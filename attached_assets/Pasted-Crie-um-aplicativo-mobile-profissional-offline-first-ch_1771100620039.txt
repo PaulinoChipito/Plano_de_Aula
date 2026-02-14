@@ -1,0 +1,150 @@
+Crie um aplicativo mobile profissional **offline-first** chamado **Lesson Planner Pro**, concebido como um ecossistema docente produtivo, colaborativo e monetizável.
+
+---
+
+## 1. Autenticação & Sessão
+- Tela de boas-vindas com login via **email + senha** ou **Google Sign-In**.
+- Sessão segura, persistente e com recuperação de conta.
+
+---
+
+## 2. Painel Principal (Main Activity)
+- Exibir em **grid responsiva** as seções:
+  **Plano de Aula, Turmas, Avaliações, Agenda, Controlo de Presença, Estatísticas, Biblioteca, Artigos, Painel Admin.**
+
+---
+
+## 3. Plano de Aula (Automação + Qualidade)
+- Inputs mínimos do professor: **classe, disciplina, tema e duração**.
+- Gerar automaticamente com IA:
+  * Sumário
+  * 1 objetivo geral
+  * Objetivos específicos dinâmicos (sem limite)
+  * Métodos e meios de ensino
+  * Sequência de atividades com tempos
+  * Perguntas de controlo e de tarefa
+- Permitir edição manual antes de salvar.
+- Exibir **Score pedagógico 0–100** com 3 sugestões rápidas de melhoria.
+- Salvar localmente e permitir sincronização opcional na nuvem.
+- Exportar para **PDF A4 (21×29,7 cm, vertical, margens profissionais, pronto para impressão)**.
+- Incluir **QR Code** no PDF para reabrir o plano no app.
+
+---
+
+## 4. Turmas & Alunos (Gestão completa)
+- Criar turmas com **designação + disciplina**.
+- Dentro da turma, cadastrar alunos com:
+  **nome, idade, telefone do encarregado e foto do armazenamento do dispositivo**.
+- Listar alunos em **ordem alfabética (A–Z)** e **numerados automaticamente**.
+- Ao clicar no nome do aluno, exibir:
+  **foto de perfil e telefone do encarregado**.
+- Permitir **editar e excluir turmas ou alunos** com confirmação.
+
+---
+
+## 5. Avaliações (Cálculos reais e rastreáveis)
+- Mostrar as turmas criadas anteriormente.
+- Ao selecionar a turma → exibir alunos numerados.
+- Ao selecionar o aluno → permitir inserir:
+  * **MAC** (Média das Avaliações Contínuas): cada nova nota é somada às anteriores e a média é recalculada automaticamente, mostrando histórico das notas usadas no cálculo.
+  * **NPT** (Nota da Prova Trimestral): inserção independente.
+  * **Observação**.
+- Guardar registos com precisão e consistência.
+
+---
+
+## 6. Agenda (Planeamento temporal docente)
+- Calendário interno com visualização por **dia, semana e mês**.
+- Adicionar, editar e apagar eventos:
+  **aulas, provas, reuniões, lembretes**.
+- Notificações **sonoras + pop-up** (premium).
+- Sincronização opcional com Google Calendar.
+
+---
+
+## 7. Controlo de Presença (Histórico + Percentuais)
+- Marcar **presença/ausência por turma + data**.
+- Guardar histórico diário e calcular automaticamente:
+  **total de aulas, presenças, ausências e % de frequência**.
+- Permitir correções posteriores.
+
+---
+
+## 8. Estatísticas (Dashboard compacto + Insights)
+- Exibir métricas essenciais por aluno e turma:
+  **Média MAC, evolução de notas e % de presença**.
+- Tela de **Insights pedagógicos automáticos (3 alertas)**:
+  * Alunos com baixo rendimento
+  * Alunos com melhor evolução
+  * Frequência crítica
+- Possibilidade de exportar relatório (PDF/relatório simples).
+
+---
+
+## 9. Biblioteca PDF (Centro de recursos docente)
+- Repositório interno para **PDFs** organizados por:
+  **disciplina, classe, autor, data e tipo de conteúdo**.
+- Modos de permissão:
+  **Público, Privado e Institucional**.
+- Acesso e download offline.
+
+---
+
+## 10. Feed de Artigos Científicos (Efeito de rede + Autoridade)
+- Professores podem **publicar artigos científicos originais em PDF** com:
+  **título, resumo, palavras-chave, área/disciplina e referências (APA)**.
+- Feed com pesquisa e filtros por disciplina/classe/impacto.
+- Interação docente madura:
+  **curtidas, comentários, downloads, ranking de impacto e seguir autores**.
+- Em modo institucional, conteúdos entram numa fila para **aprovação do admin** antes de irem ao feed público.
+
+---
+
+## 11. Marketplace Interno (Monetização sem inflar o produto)
+Professores podem **vender ou comprar**:
+  * Planos de aula prontos
+  * Quizzes e bancos de perguntas
+  * Templates PDF profissionais
+  * Artigos científicos próprios
+- Comissão da plataforma: **20–30% por venda**.
+- Sistema de rating e ranking.
+
+---
+
+## 12. Painel Administrativo (Protegido por senha exclusiva)
+- Login de admin via **senha exclusiva**.
+- Funções:
+  ✔ Aprovar/Remover artigos  
+  ✔ Gerir turmas e alunos em nível institucional  
+  ✔ Gerir marketplace e ocultar/remover conteúdos  
+  ✔ Gerir biblioteca institucional  
+  ✔ Configurar **white label** (marca e cores da escola no app e PDFs)  
+  ✔ **Auditoria de ações (logs administrativos)**  
+  ✔ Métricas globais de uso do app na escola
+
+---
+
+## 13. Requisitos Técnicos Obrigatórios
+- Arquitetura: **MVVM ou Clean Architecture**.
+- Banco de dados local com sincronização opcional na nuvem.
+- **Gerador de PDF 100% fiel ao A4**.
+- Código limpo, modular, escalável e seguro.
+- Tratamento robusto de erros e estados vazios.
+- UI acessível, rápida e profissional.
+
+---
+
+## 14. Entrega esperada
+O app deve incluir:
+  ✔ fluxo completo de telas e navegação  
+  ✔ lógica funcional implementada  
+  ✔ IA de geração e revisão de planos  
+  ✔ score pedagógico simples e útil  
+  ✔ exportação PDF A4 pronta para impressão  
+  ✔ biblioteca offline e feed científico docente  
+  ✔ monetização ativa (Freemium + SaaS + Marketplace + B2B + White label)
+
+---
+
+## 15. Visão de Posicionamento do Produto
+> **Um ecossistema onde professores planificam 10× mais rápido com IA, organizam turmas sem caos, acompanham presença e desempenho com métricas reais, e constroem autoridade e renda publicando e vendendo conhecimento científico e pedagógico — tudo funcional offline e administrável por escolas.**
