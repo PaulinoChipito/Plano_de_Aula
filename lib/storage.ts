@@ -69,13 +69,20 @@ export interface AgendaEvent {
   descricao: string;
 }
 
+export interface TeacherProfile {
+  nome: string;
+  instituicao: string;
+  disciplina: string;
+}
+
 const KEYS = {
   LESSON_PLANS: "lesson_plans",
   CLASSES: "classes",
   GRADES: "grades",
   ATTENDANCE: "attendance",
   EVENTS: "events",
-  API_KEY: "openai_api_key",
+  API_KEY: "gemini_api_key",
+  TEACHER_PROFILE: "teacher_profile",
 };
 
 async function getItem<T>(key: string, fallback: T): Promise<T> {
@@ -185,4 +192,16 @@ export async function deleteEvent(id: string): Promise<void> {
     KEYS.EVENTS,
     events.filter((e) => e.id !== id),
   );
+}
+
+export async function getTeacherProfile(): Promise<TeacherProfile> {
+  return getItem<TeacherProfile>(KEYS.TEACHER_PROFILE, {
+    nome: "",
+    instituicao: "",
+    disciplina: "",
+  });
+}
+
+export async function saveTeacherProfile(profile: TeacherProfile): Promise<void> {
+  await setItem(KEYS.TEACHER_PROFILE, profile);
 }

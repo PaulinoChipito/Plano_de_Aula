@@ -40,6 +40,8 @@ export default function StudentGradesScreen() {
   const [newMacNota, setNewMacNota] = useState("");
   const [nptValue, setNptValue] = useState("");
   const [observacao, setObservacao] = useState("");
+  const [editingEntryId, setEditingEntryId] = useState<string | null>(null);
+  const [editingEntryValue, setEditingEntryValue] = useState("");
 
   useEffect(() => {
     Promise.all([getClasses(), getGrades()]).then(([classes, allGrades]) => {
@@ -70,7 +72,20 @@ export default function StudentGradesScreen() {
       setObservacao("");
     }
     setNewMacNota("");
+    setEditingEntryId(null);
     setShowModal(true);
+  };
+
+  const updateGradesState = (updatedGrade: StudentGrade) => {
+    setGrades((prev) => {
+      const idx = prev.findIndex((g) => g.alunoId === updatedGrade.alunoId);
+      if (idx >= 0) {
+        const copy = [...prev];
+        copy[idx] = updatedGrade;
+        return copy;
+      }
+      return [...prev, updatedGrade];
+    });
   };
 
   const handleAddMac = async () => {
@@ -97,17 +112,62 @@ export default function StudentGradesScreen() {
     };
 
     await saveGrade(updatedGrade);
-    setGrades((prev) => {
-      const idx = prev.findIndex((g) => g.alunoId === selectedStudent.id);
-      if (idx >= 0) {
-        const copy = [...prev];
-        copy[idx] = updatedGrade;
-        return copy;
-      }
-      return [...prev, updatedGrade];
-    });
+    updateGradesState(updatedGrade);
     setNewMacNota("");
     if (Platform.OS !== "web") Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+  };
+
+  const handleEditMac = (entry: GradeEntry) => {
+    setEditingEntryId(entry.id);
+    setEditingEntryValue(String(entry.nota));
+  };
+
+  const handleSaveEditMac = async () => {
+    if (!selectedStudent || !editingEntryId) return;
+    const nota = parseFloat(editingEntryValue);
+    if (isNaN(nota) || nota < 0 || nota > 20) {
+      Alert.alert("Nota invalida", "A nota deve estar entre 0 e 20.");
+      return;
+    }
+
+    const existing = getStudentGrade(selectedStudent.id);
+    if (!existing) return;
+
+    const updatedGrade: StudentGrade = {
+      ...existing,
+      mac: existing.mac.map((e) =>
+        e.id === editingEntryId ? { ...e, nota } : e,
+      ),
+    };
+
+    await saveGrade(updatedGrade);
+    updateGradesState(updatedGrade);
+    setEditingEntryId(null);
+    setEditingEntryValue("");
+    if (Platform.OS !== "web") Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+  };
+
+  const handleDeleteMac = (entryId: string) => {
+    if (!selectedStudent) return;
+    Alert.alert("Eliminar Nota", "Tem a certeza que deseja remover esta nota?", [
+      { text: "Cancelar", style: "cancel" },
+      {
+        text: "Eliminar",
+        style: "destructive",
+        onPress: async () => {
+          const existing = getStudentGrade(selectedStudent.id);
+          if (!existing) return;
+
+          const updatedGrade: StudentGrade = {
+            ...existing,
+            mac: existing.mac.filter((e) => e.id !== entryId),
+          };
+
+          await saveGrade(updatedGrade);
+          updateGradesState(updatedGrade);
+        },
+      },
+    ]);
   };
 
   const handleSaveNptObs = async () => {
@@ -124,15 +184,7 @@ export default function StudentGradesScreen() {
     };
 
     await saveGrade(updatedGrade);
-    setGrades((prev) => {
-      const idx = prev.findIndex((g) => g.alunoId === selectedStudent.id);
-      if (idx >= 0) {
-        const copy = [...prev];
-        copy[idx] = updatedGrade;
-        return copy;
-      }
-      return [...prev, updatedGrade];
-    });
+    updateGradesState(updatedGrade);
     setShowModal(false);
     if (Platform.OS !== "web") Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
   };
@@ -159,7 +211,7 @@ export default function StudentGradesScreen() {
           <Text style={styles.studentName}>{item.nome}</Text>
         </View>
         <View style={styles.gradeInfo}>
-          {macAvg !== null && (
+          {macAvg !== null && grade && grade.mac.length > 0 && (
             <View style={styles.gradeBadge}>
               <Text style={styles.gradeLabel}>MAC</Text>
               <Text style={styles.gradeValue}>{macAvg}</Text>
@@ -217,10 +269,43 @@ export default function StudentGradesScreen() {
                 {selectedGrade && selectedGrade.mac.length > 0 && (
                   <View style={styles.macHistory}>
                     {selectedGrade.mac.map((entry, i) => (
-                      <View key={entry.id} style={styles.macEntry}>
-                        <Text style={styles.macEntryNum}>AC{i + 1}</Text>
-                        <Text style={styles.macEntryValue}>{entry.nota}</Text>
-                      </View>
+                      <Pressable
+                        key={entry.id}
+                        onPress={() => handleEditMac(entry)}
+                        onLongPress={() => handleDeleteMac(entry.id)}
+                        style={({ pressed }) => [
+                          styles.macEntry,
+                          editingEntryId === entry.id && styles.macEntryEditing,
+                          { opacity: pressed ? 0.8 : 1 },
+                        ]}
+                      >
+                        {editingEntryId === entry.id ? (
+                          <View style={styles.macEditContainer}>
+                            <TextInput
+                              style={styles.macEditInput}
+                              value={editingEntryValue}
+                              onChangeText={setEditingEntryValue}
+                              keyboardType="numeric"
+                              autoFocus
+                              selectTextOnFocus
+                            />
+                            <View style={styles.macEditButtons}>
+                              <Pressable onPress={handleSaveEditMac} style={styles.macEditSave}>
+                                <Ionicons name="checkmark" size={14} color={Colors.success} />
+                              </Pressable>
+                              <Pressable onPress={() => setEditingEntryId(null)} style={styles.macEditCancel}>
+                                <Ionicons name="close" size={14} color={Colors.error} />
+                              </Pressable>
+                            </View>
+                          </View>
+                        ) : (
+                          <>
+                            <Text style={styles.macEntryNum}>AC{i + 1}</Text>
+                            <Text style={styles.macEntryValue}>{entry.nota}</Text>
+                            <Feather name="edit-2" size={10} color={Colors.textMuted} />
+                          </>
+                        )}
+                      </Pressable>
                     ))}
                     <View style={[styles.macEntry, styles.macAvgEntry]}>
                       <Text style={[styles.macEntryNum, { color: Colors.primary }]}>Media</Text>
@@ -229,6 +314,9 @@ export default function StudentGradesScreen() {
                       </Text>
                     </View>
                   </View>
+                )}
+                {selectedGrade && selectedGrade.mac.length > 0 && (
+                  <Text style={styles.macHint}>Toque para editar, mantenha premido para eliminar</Text>
                 )}
                 <View style={styles.addMacRow}>
                   <TextInput
@@ -313,11 +401,25 @@ const styles = StyleSheet.create({
   modalTitle: { fontFamily: "Inter_700Bold", fontSize: 20, color: Colors.text, marginBottom: 16 },
   modalSection: { marginBottom: 20 },
   modalSectionTitle: { fontFamily: "Inter_600SemiBold", fontSize: 14, color: Colors.text, marginBottom: 8 },
-  macHistory: { flexDirection: "row", flexWrap: "wrap", gap: 8, marginBottom: 12 },
-  macEntry: { backgroundColor: Colors.background, borderRadius: 8, paddingHorizontal: 10, paddingVertical: 6, alignItems: "center" },
+  macHistory: { flexDirection: "row", flexWrap: "wrap", gap: 8, marginBottom: 8 },
+  macEntry: {
+    backgroundColor: Colors.background, borderRadius: 8, paddingHorizontal: 10, paddingVertical: 6,
+    alignItems: "center", minWidth: 52, gap: 2,
+  },
+  macEntryEditing: { borderWidth: 1, borderColor: Colors.primary, backgroundColor: Colors.primary + "08" },
+  macEditContainer: { alignItems: "center", gap: 4 },
+  macEditInput: {
+    fontFamily: "Inter_600SemiBold", fontSize: 14, color: Colors.text,
+    textAlign: "center", width: 50, paddingVertical: 2,
+    borderBottomWidth: 1, borderBottomColor: Colors.primary,
+  },
+  macEditButtons: { flexDirection: "row", gap: 8 },
+  macEditSave: { padding: 2 },
+  macEditCancel: { padding: 2 },
   macAvgEntry: { backgroundColor: Colors.primary + "12" },
   macEntryNum: { fontFamily: "Inter_500Medium", fontSize: 10, color: Colors.textSecondary },
   macEntryValue: { fontFamily: "Inter_600SemiBold", fontSize: 14, color: Colors.text },
+  macHint: { fontFamily: "Inter_400Regular", fontSize: 11, color: Colors.textMuted, fontStyle: "italic" as const, marginBottom: 8 },
   addMacRow: { flexDirection: "row", gap: 10 },
   modalInput: {
     backgroundColor: Colors.background, borderRadius: 12, borderWidth: 1, borderColor: Colors.border,

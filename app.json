@@ -1,11 +1,11 @@
 {
   "expo": {
-    "name": "Lesson Planner Pro",
-    "slug": "lesson-planner-pro",
+    "name": "Plano de Aula",
+    "slug": "planodeaula",
     "version": "1.0.0",
     "orientation": "portrait",
     "icon": "./assets/images/icon.png",
-    "scheme": "lessonplanner",
+    "scheme": "planodeaula",
     "userInterfaceStyle": "automatic",
     "newArchEnabled": true,
     "splash": {
@@ -15,10 +15,10 @@
     },
     "ios": {
       "supportsTablet": false,
-      "bundleIdentifier": "com.lessonplannerpro"
+      "bundleIdentifier": "com.planodeaula.app"
     },
     "android": {
-      "package": "com.lessonplannerpro",
+      "package": "com.planodeaula.app",
       "adaptiveIcon": {
         "backgroundColor": "#0F1B2D",
         "foregroundImage": "./assets/images/android-icon-foreground.png",

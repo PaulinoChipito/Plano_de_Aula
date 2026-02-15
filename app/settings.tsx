@@ -15,7 +15,13 @@ import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { Ionicons, Feather } from "@expo/vector-icons";
 import * as Haptics from "expo-haptics";
 import Colors from "@/constants/colors";
-import { getApiKey, setApiKey } from "@/lib/storage";
+import {
+  getApiKey,
+  setApiKey,
+  getTeacherProfile,
+  saveTeacherProfile,
+  TeacherProfile,
+} from "@/lib/storage";
 
 export default function SettingsScreen() {
   const insets = useSafeAreaInsets();
@@ -24,20 +30,37 @@ export default function SettingsScreen() {
   const [apiKey, setApiKeyState] = useState("");
   const [showKey, setShowKey] = useState(false);
   const [saved, setSaved] = useState(false);
+  const [profileSaved, setProfileSaved] = useState(false);
+
+  const [profile, setProfile] = useState<TeacherProfile>({
+    nome: "",
+    instituicao: "",
+    disciplina: "",
+  });
 
   useEffect(() => {
     getApiKey().then((key) => {
       if (key) setApiKeyState(key);
     });
+    getTeacherProfile().then(setProfile);
   }, []);
 
-  const handleSave = async () => {
+  const handleSaveApiKey = async () => {
     await setApiKey(apiKey.trim());
     if (Platform.OS !== "web") {
       Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
     }
     setSaved(true);
     setTimeout(() => setSaved(false), 2000);
+  };
+
+  const handleSaveProfile = async () => {
+    await saveTeacherProfile(profile);
+    if (Platform.OS !== "web") {
+      Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+    }
+    setProfileSaved(true);
+    setTimeout(() => setProfileSaved(false), 2000);
   };
 
   const handleClear = () => {
@@ -88,10 +111,86 @@ export default function SettingsScreen() {
           <View style={styles.section}>
             <View style={styles.sectionHeader}>
               <View style={styles.sectionIconContainer}>
-                <Feather name="key" size={20} color={Colors.primary} />
+                <Feather name="user" size={20} color={Colors.primary} />
               </View>
               <View>
-                <Text style={styles.sectionTitle}>Chave API (OpenAI)</Text>
+                <Text style={styles.sectionTitle}>Perfil do Professor</Text>
+                <Text style={styles.sectionSubtitle}>
+                  Os seus dados pessoais e profissionais
+                </Text>
+              </View>
+            </View>
+
+            <View style={styles.inputGroup}>
+              <Text style={styles.inputLabel}>Nome do Professor</Text>
+              <TextInput
+                style={styles.profileInput}
+                value={profile.nome}
+                onChangeText={(text) =>
+                  setProfile((prev) => ({ ...prev, nome: text }))
+                }
+                placeholder="Ex: Joao Silva"
+                placeholderTextColor={Colors.textMuted}
+              />
+            </View>
+
+            <View style={styles.inputGroup}>
+              <Text style={styles.inputLabel}>Nome da Instituicao</Text>
+              <TextInput
+                style={styles.profileInput}
+                value={profile.instituicao}
+                onChangeText={(text) =>
+                  setProfile((prev) => ({ ...prev, instituicao: text }))
+                }
+                placeholder="Ex: Escola Secundaria de Luanda"
+                placeholderTextColor={Colors.textMuted}
+              />
+            </View>
+
+            <View style={styles.inputGroup}>
+              <Text style={styles.inputLabel}>Disciplina que Lecciona</Text>
+              <TextInput
+                style={styles.profileInput}
+                value={profile.disciplina}
+                onChangeText={(text) =>
+                  setProfile((prev) => ({ ...prev, disciplina: text }))
+                }
+                placeholder="Ex: Matematica"
+                placeholderTextColor={Colors.textMuted}
+              />
+            </View>
+
+            <Pressable
+              onPress={handleSaveProfile}
+              style={({ pressed }) => [
+                styles.saveBtn,
+                profileSaved && styles.savedBtn,
+                { opacity: pressed ? 0.9 : 1 },
+              ]}
+            >
+              <Feather
+                name={profileSaved ? "check" : "save"}
+                size={18}
+                color="#fff"
+              />
+              <Text style={styles.saveBtnText}>
+                {profileSaved ? "Guardado!" : "Guardar Perfil"}
+              </Text>
+            </Pressable>
+          </View>
+
+          <View style={styles.section}>
+            <View style={styles.sectionHeader}>
+              <View
+                style={[
+                  styles.sectionIconContainer,
+                  { backgroundColor: "#6366F115" },
+                ]}
+              >
+                <Feather name="key" size={20} color="#6366F1" />
+              </View>
+              <View>
+                <Text style={styles.sectionTitle}>Chave API (Gemini)</Text>
                 <Text style={styles.sectionSubtitle}>
                   Necessaria para gerar planos com IA
                 </Text>
@@ -103,7 +202,7 @@ export default function SettingsScreen() {
                 style={styles.input}
                 value={apiKey}
                 onChangeText={setApiKeyState}
-                placeholder="sk-..."
+                placeholder="AIza..."
                 placeholderTextColor={Colors.textMuted}
                 secureTextEntry={!showKey}
                 autoCapitalize="none"
@@ -123,7 +222,7 @@ export default function SettingsScreen() {
 
             <View style={styles.buttonRow}>
               <Pressable
-                onPress={handleSave}
+                onPress={handleSaveApiKey}
                 style={({ pressed }) => [
                   styles.saveBtn,
                   saved && styles.savedBtn,
@@ -157,7 +256,8 @@ export default function SettingsScreen() {
           <View style={styles.infoCard}>
             <Feather name="info" size={18} color={Colors.info} />
             <Text style={styles.infoText}>
-              A chave API e guardada localmente no seu dispositivo e nunca e partilhada. Obtenha a sua chave em platform.openai.com
+              A chave API e guardada localmente no seu dispositivo e nunca e
+              partilhada. Obtenha a sua chave em aistudio.google.com/apikey
             </Text>
           </View>
         </ScrollView>
@@ -194,6 +294,7 @@ const styles = StyleSheet.create({
   },
   content: {
     padding: 20,
+    gap: 20,
   },
   section: {
     backgroundColor: Colors.surface,
@@ -230,6 +331,26 @@ const styles = StyleSheet.create({
     color: Colors.textSecondary,
     marginTop: 2,
   },
+  inputGroup: {
+    marginBottom: 14,
+  },
+  inputLabel: {
+    fontFamily: "Inter_500Medium",
+    fontSize: 13,
+    color: Colors.textSecondary,
+    marginBottom: 6,
+  },
+  profileInput: {
+    backgroundColor: Colors.background,
+    borderRadius: 12,
+    borderWidth: 1,
+    borderColor: Colors.border,
+    paddingHorizontal: 14,
+    paddingVertical: 12,
+    fontFamily: "Inter_400Regular",
+    fontSize: 15,
+    color: Colors.text,
+  },
   inputWrapper: {
     flexDirection: "row",
     alignItems: "center",
@@ -264,6 +385,7 @@ const styles = StyleSheet.create({
     backgroundColor: Colors.primary,
     borderRadius: 12,
     paddingVertical: 14,
+    marginTop: 4,
   },
   savedBtn: {
     backgroundColor: Colors.success,
@@ -282,6 +404,7 @@ const styles = StyleSheet.create({
     backgroundColor: Colors.error + "10",
     alignItems: "center",
     justifyContent: "center",
+    marginTop: 4,
   },
   infoCard: {
     flexDirection: "row",
@@ -290,7 +413,6 @@ const styles = StyleSheet.create({
     backgroundColor: Colors.info + "10",
     borderRadius: 12,
     padding: 16,
-    marginTop: 20,
   },
   infoText: {
     flex: 1,
