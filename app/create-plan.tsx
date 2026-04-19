@@ -74,11 +74,20 @@ export default function CreatePlanScreen() {
         sumario: result.sumario,
         objetivoGeral: result.objetivoGeral,
         objetivosEspecificos: result.objetivosEspecificos,
+        conteudos: result.conteudos,
+        metodosPrincipais: result.metodosPrincipais,
         metodos: result.metodos,
         meios: result.meios,
-        atividades: result.atividades,
+        desenvolvimentoAula: result.desenvolvimentoAula,
+        atividades: result.desenvolvimentoAula.map((e) => ({
+          descricao: `${e.etapa} — Prof: ${e.actividadesProfessor}`,
+          tempo: e.duracao,
+        })),
         perguntasControlo: result.perguntasControlo,
-        perguntasTarefa: result.perguntasTarefa,
+        tarefasPraticas: result.tarefasPraticas,
+        perguntasTarefa: result.tarefasPraticas,
+        avaliacao: result.avaliacao,
+        observacoes: result.observacoes,
         score: result.score,
         sugestoes: result.sugestoes,
         createdAt: new Date().toISOString(),
@@ -107,7 +116,7 @@ export default function CreatePlanScreen() {
 
   const handleSaveAI = async () => {
     if (!aiPlan) return;
-    const updatedPlan = {
+    const updatedPlan: LessonPlan = {
       ...aiPlan,
       sumario: editSumario,
       objetivoGeral: editObjetivoGeral,
@@ -133,6 +142,7 @@ export default function CreatePlanScreen() {
       meios,
       atividades: atividades.filter((a) => a.descricao.trim()),
       perguntasControlo: perguntasControlo.filter((p) => p.trim()),
+      tarefasPraticas: perguntasTarefa.filter((p) => p.trim()),
       perguntasTarefa: perguntasTarefa.filter((p) => p.trim()),
       score: 0,
       sugestoes: [],
@@ -425,6 +435,18 @@ export default function CreatePlanScreen() {
                 <TextInput style={[styles.input, styles.textArea]} value={editObjetivoGeral} onChangeText={setEditObjetivoGeral} multiline numberOfLines={2} />
               </View>
 
+              {aiPlan.conteudos && aiPlan.conteudos.length > 0 && (
+                <View style={styles.readOnlySection}>
+                  <Text style={styles.editLabel}>Conteudos</Text>
+                  {aiPlan.conteudos.map((c, i) => (
+                    <View key={i} style={styles.bulletItem}>
+                      <View style={styles.bullet} />
+                      <Text style={styles.bulletText}>{c}</Text>
+                    </View>
+                  ))}
+                </View>
+              )}
+
               <View style={styles.readOnlySection}>
                 <Text style={styles.editLabel}>Objetivos Especificos</Text>
                 {aiPlan.objetivosEspecificos.map((obj, i) => (
@@ -435,28 +457,36 @@ export default function CreatePlanScreen() {
                 ))}
               </View>
 
+              {aiPlan.metodosPrincipais && (
+                <View style={styles.readOnlySection}>
+                  <Text style={styles.editLabel}>Metodo(s) Principal(is)</Text>
+                  <Text style={[styles.readOnlyText, { color: Colors.primary, fontWeight: "600" }]}>{aiPlan.metodosPrincipais}</Text>
+                </View>
+              )}
+
               <View style={styles.readOnlySection}>
-                <Text style={styles.editLabel}>Metodos de Ensino</Text>
+                <Text style={styles.editLabel}>Metodos, Tecnicas e Meios de Ensino</Text>
                 <Text style={styles.readOnlyText}>{aiPlan.metodos}</Text>
+                {aiPlan.meios ? <Text style={[styles.readOnlyText, { marginTop: 4 }]}>Meios: {aiPlan.meios}</Text> : null}
               </View>
 
-              <View style={styles.readOnlySection}>
-                <Text style={styles.editLabel}>Meios de Ensino</Text>
-                <Text style={styles.readOnlyText}>{aiPlan.meios}</Text>
-              </View>
-
-              <View style={styles.readOnlySection}>
-                <Text style={styles.editLabel}>Sequencia de Atividades</Text>
-                {aiPlan.atividades.map((at, i) => (
-                  <View key={i} style={styles.atividadeItem}>
-                    <View style={styles.atividadeNum}><Text style={styles.atividadeNumText}>{i + 1}</Text></View>
-                    <View style={styles.atividadeContent}>
-                      <Text style={styles.atividadeDesc}>{at.descricao}</Text>
-                      <Text style={styles.atividadeTempo}>{at.tempo}</Text>
+              {aiPlan.desenvolvimentoAula && aiPlan.desenvolvimentoAula.length > 0 && (
+                <View style={styles.readOnlySection}>
+                  <Text style={styles.editLabel}>Desenvolvimento da Aula</Text>
+                  {aiPlan.desenvolvimentoAula.map((etapa, i) => (
+                    <View key={i} style={styles.etapaCard}>
+                      <View style={styles.etapaHeader}>
+                        <Text style={styles.etapaNome}>{etapa.etapa}</Text>
+                        <Text style={styles.etapaDuracao}>{etapa.duracao}</Text>
+                      </View>
+                      <Text style={styles.etapaRoleLabel}>Professor:</Text>
+                      <Text style={styles.etapaRoleText}>{etapa.actividadesProfessor}</Text>
+                      <Text style={styles.etapaRoleLabel}>Alunos:</Text>
+                      <Text style={styles.etapaRoleText}>{etapa.actividadesAlunos}</Text>
                     </View>
-                  </View>
-                ))}
-              </View>
+                  ))}
+                </View>
+              )}
 
               <View style={styles.readOnlySection}>
                 <Text style={styles.editLabel}>Perguntas de Controlo</Text>
@@ -468,15 +498,31 @@ export default function CreatePlanScreen() {
                 ))}
               </View>
 
-              <View style={styles.readOnlySection}>
-                <Text style={styles.editLabel}>Perguntas de Tarefa</Text>
-                {aiPlan.perguntasTarefa.map((p, i) => (
-                  <View key={i} style={styles.bulletItem}>
-                    <Feather name="edit-3" size={14} color={Colors.accent} />
-                    <Text style={styles.bulletText}>{p}</Text>
-                  </View>
-                ))}
-              </View>
+              {aiPlan.tarefasPraticas && aiPlan.tarefasPraticas.length > 0 && (
+                <View style={styles.readOnlySection}>
+                  <Text style={styles.editLabel}>Tarefa Pratica</Text>
+                  {aiPlan.tarefasPraticas.map((t, i) => (
+                    <View key={i} style={styles.bulletItem}>
+                      <Feather name="clipboard" size={14} color={Colors.accent} />
+                      <Text style={styles.bulletText}>{t}</Text>
+                    </View>
+                  ))}
+                </View>
+              )}
+
+              {aiPlan.avaliacao && (
+                <View style={styles.readOnlySection}>
+                  <Text style={styles.editLabel}>Avaliacao</Text>
+                  <Text style={styles.readOnlyText}>{aiPlan.avaliacao}</Text>
+                </View>
+              )}
+
+              {aiPlan.observacoes && (
+                <View style={styles.readOnlySection}>
+                  <Text style={styles.editLabel}>Observacoes</Text>
+                  <Text style={styles.readOnlyText}>{aiPlan.observacoes}</Text>
+                </View>
+              )}
 
               <Pressable onPress={handleSaveAI} style={({ pressed }) => [styles.saveBtn, { opacity: pressed ? 0.9 : 1 }]}>
                 <Feather name="check" size={20} color="#fff" />
@@ -585,4 +631,18 @@ const styles = StyleSheet.create({
     flex: 1, fontFamily: "Inter_400Regular", fontSize: 12,
     color: Colors.textSecondary, lineHeight: 17,
   },
+  etapaCard: {
+    backgroundColor: Colors.background, borderRadius: 10, padding: 12,
+    borderLeftWidth: 3, borderLeftColor: Colors.primary,
+  },
+  etapaHeader: {
+    flexDirection: "row", justifyContent: "space-between", alignItems: "center", marginBottom: 6,
+  },
+  etapaNome: { fontFamily: "Inter_600SemiBold", fontSize: 13, color: Colors.text },
+  etapaDuracao: {
+    fontFamily: "Inter_500Medium", fontSize: 12, color: Colors.primary,
+    backgroundColor: Colors.primary + "12", paddingHorizontal: 8, paddingVertical: 2, borderRadius: 6,
+  },
+  etapaRoleLabel: { fontFamily: "Inter_600SemiBold", fontSize: 12, color: Colors.textSecondary, marginTop: 4 },
+  etapaRoleText: { fontFamily: "Inter_400Regular", fontSize: 13, color: Colors.textSecondary, lineHeight: 18, marginTop: 2 },
 });

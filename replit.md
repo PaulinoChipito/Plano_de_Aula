@@ -69,7 +69,16 @@ Preferred communication style: Simple, everyday language.
 
 ### Data Models (Client-Side in `lib/storage.ts`)
 
-- **LessonPlan** — Full lesson plan with score, suggestions, activities, objectives
+- **LessonPlan** — Full lesson plan following the Angolan pedagogical guide structure:
+  - *Identificação*: classe, disciplina, tema, duracao, numAlunos, sumario
+  - *Objectivo Geral* + *Objectivos Específicos* (ABCD model)
+  - *Conteúdos*: list of content topics
+  - *Método(s) Principal(is)* + full metodos/meios description
+  - *Desenvolvimento da Aula*: table with etapa, duracao, actividadesProfessor, actividadesAlunos
+  - *Perguntas de Controlo*, *Tarefas Práticas*
+  - *Avaliação*, *Observações*
+  - score (0-100), sugestoes, AI generation metadata
+  - Backward-compatible: atividades and perguntasTarefa fields retained for older data
 - **ClassGroup** — Class with designation, subject, and embedded students array
 - **Student** — Name, age, guardian phone, photo URI
 - **StudentGrade / GradeEntry** — Grade tracking per student per class
@@ -88,6 +97,7 @@ Preferred communication style: Simple, everyday language.
 - The app uses **offline-first AI** for lesson plan generation via `lib/localAI.ts`:
   - **Web**: Runs the `Qwen2.5-0.5B-Instruct` model (ONNX quantized, ~300 MB) directly in the browser using `@huggingface/transformers` (WebAssembly). Downloaded once, cached in browser storage, fully offline afterwards. No API key required.
   - **Native (iOS/Android)**: Smart template-based pedagogical generation — instant, fully offline, no model download needed.
+- Generated plans follow the structure defined in `docs/guia_plano_de_aula.md` (Angolan pedagogical guide with 18 model plans).
 - No external API keys required. No data is sent to external servers.
 
 ### Database

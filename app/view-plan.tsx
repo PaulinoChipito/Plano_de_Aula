@@ -118,24 +118,28 @@ export default function ViewPlanScreen() {
       year: "numeric",
     });
 
-    const objEspHtml = p.objetivosEspecificos
-      .map((o) => `<li>${o}</li>`)
-      .join("");
+    const objEspHtml = p.objetivosEspecificos.map((o) => `<li>${o}</li>`).join("");
+    const conteudosHtml = (p.conteudos || []).map((c) => `<li>${c}</li>`).join("");
+    const pergControloHtml = p.perguntasControlo.map((q) => `<li>${q}</li>`).join("");
+    const tarefasPraticasHtml = (p.tarefasPraticas || p.perguntasTarefa || []).map((t) => `<li>${t}</li>`).join("");
 
-    const atividadesHtml = p.atividades
-      .map(
-        (a, i) =>
-          `<tr><td style="text-align:center;font-weight:600;width:40px;">${i + 1}</td><td>${a.descricao}</td><td style="text-align:center;width:80px;">${a.tempo}</td></tr>`,
-      )
-      .join("");
+    const desenvolvimentoHtml = (p.desenvolvimentoAula && p.desenvolvimentoAula.length > 0)
+      ? p.desenvolvimentoAula.map((e) =>
+          `<tr>
+            <td style="font-weight:600;width:100px;vertical-align:top;">${e.etapa}<br><span style="font-weight:400;font-size:9pt;color:#0D7377;">${e.duracao}</span></td>
+            <td style="vertical-align:top;">${e.actividadesProfessor}</td>
+            <td style="vertical-align:top;">${e.actividadesAlunos}</td>
+          </tr>`
+        ).join("")
+      : p.atividades.map((a, i) =>
+          `<tr>
+            <td style="text-align:center;font-weight:600;width:40px;">${i + 1}</td>
+            <td>${a.descricao}</td>
+            <td style="text-align:center;width:80px;">${a.tempo}</td>
+          </tr>`
+        ).join("");
 
-    const pergControloHtml = p.perguntasControlo
-      .map((q) => `<li>${q}</li>`)
-      .join("");
-
-    const pergTarefaHtml = p.perguntasTarefa
-      .map((q) => `<li>${q}</li>`)
-      .join("");
+    const hasDesenvolvimento = p.desenvolvimentoAula && p.desenvolvimentoAula.length > 0;
 
     return `<!DOCTYPE html>
 <html>
@@ -150,16 +154,19 @@ export default function ViewPlanScreen() {
   .header h2 { font-size: 12pt; color: #555; font-weight: 400; }
   .meta-table { width: 100%; border-collapse: collapse; margin-bottom: 18px; }
   .meta-table td { padding: 6px 10px; border: 1px solid #ddd; font-size: 10pt; }
-  .meta-table td.label { background: #f5f5f5; font-weight: 600; width: 30%; color: #333; }
+  .meta-table td.label { background: #f0f9f9; font-weight: 600; width: 28%; color: #0D7377; }
   .section { margin-bottom: 14px; }
   .section-title { font-size: 11pt; font-weight: 700; color: #0D7377; border-bottom: 1px solid #e0e0e0; padding-bottom: 4px; margin-bottom: 8px; text-transform: uppercase; letter-spacing: 0.5px; }
   .section p { text-align: justify; }
+  .section-meta { font-size: 10pt; color: #555; font-style: italic; margin-bottom: 4px; }
   ul { padding-left: 18px; }
   ul li { margin-bottom: 3px; }
-  table.atividades { width: 100%; border-collapse: collapse; margin-top: 6px; }
-  table.atividades th { background: #0D7377; color: #fff; padding: 6px 8px; font-size: 10pt; text-align: left; }
-  table.atividades td { padding: 6px 8px; border-bottom: 1px solid #eee; font-size: 10pt; }
-  table.atividades tr:nth-child(even) { background: #f9f9f9; }
+  table.dev { width: 100%; border-collapse: collapse; margin-top: 6px; }
+  table.dev th { background: #0D7377; color: #fff; padding: 7px 8px; font-size: 10pt; text-align: left; }
+  table.dev td { padding: 7px 8px; border: 1px solid #ddd; font-size: 10pt; vertical-align: top; }
+  table.dev tr:nth-child(even) td { background: #f9f9f9; }
+  .avaliacao-box { background: #f0f9f9; border-left: 3px solid #0D7377; padding: 10px 14px; border-radius: 4px; font-size: 10pt; }
+  .obs-box { background: #fffde7; border-left: 3px solid #f9a825; padding: 10px 14px; border-radius: 4px; font-size: 10pt; }
   .footer { margin-top: 30px; text-align: center; font-size: 9pt; color: #999; border-top: 1px solid #ddd; padding-top: 8px; }
 </style>
 </head>
@@ -171,74 +178,90 @@ export default function ViewPlanScreen() {
 
   <table class="meta-table">
     <tr>
-      <td class="label">Professor(a)</td>
-      <td>${profile.nome || "---"}</td>
-      <td class="label">Data</td>
-      <td>${dataFormatada}</td>
-    </tr>
-    <tr>
       <td class="label">Disciplina</td>
       <td>${p.disciplina}</td>
-      <td class="label">Classe</td>
+      <td class="label">Classe / Ano</td>
       <td>${p.classe}</td>
     </tr>
     <tr>
-      <td class="label">Tema</td>
-      <td colspan="3">${p.tema}</td>
+      <td class="label">Sumario</td>
+      <td colspan="3">${p.sumario}</td>
     </tr>
     <tr>
       <td class="label">Duracao</td>
       <td>${p.duracao} minutos</td>
-      <td class="label">Score</td>
-      <td>${p.score > 0 ? p.score + "/100" : "N/A"}</td>
+      <td class="label">N.º de Alunos</td>
+      <td>${p.numAlunos || "---"}</td>
     </tr>
+    <tr>
+      <td class="label">Data</td>
+      <td>${dataFormatada}</td>
+      <td class="label">Professor(a)</td>
+      <td>${profile.nome || "---"}</td>
+    </tr>
+    ${p.metodosPrincipais ? `<tr><td class="label">Metodo(s) Principal(is)</td><td colspan="3">${p.metodosPrincipais}</td></tr>` : ""}
   </table>
 
   <div class="section">
-    <div class="section-title">Sumario</div>
-    <p>${p.sumario}</p>
-  </div>
-
-  <div class="section">
-    <div class="section-title">Objetivo Geral</div>
+    <div class="section-title">Objectivo Geral</div>
     <p>${p.objetivoGeral}</p>
   </div>
 
   ${p.objetivosEspecificos.length > 0 ? `
   <div class="section">
-    <div class="section-title">Objetivos Especificos</div>
+    <div class="section-title">Objectivos Especificos</div>
     <ul>${objEspHtml}</ul>
   </div>` : ""}
 
+  ${conteudosHtml ? `
   <div class="section">
-    <div class="section-title">Metodos de Ensino</div>
-    <p>${p.metodos}</p>
-  </div>
-
-  <div class="section">
-    <div class="section-title">Meios de Ensino</div>
-    <p>${p.meios}</p>
-  </div>
-
-  ${p.atividades.length > 0 ? `
-  <div class="section">
-    <div class="section-title">Sequencia de Atividades</div>
-    <table class="atividades">
-      <thead><tr><th style="width:40px;text-align:center;">N</th><th>Descricao</th><th style="width:80px;text-align:center;">Tempo</th></tr></thead>
-      <tbody>${atividadesHtml}</tbody>
-    </table>
+    <div class="section-title">Conteudos</div>
+    <ul>${conteudosHtml}</ul>
   </div>` : ""}
 
-  ${p.perguntasControlo.length > 0 ? `
+  <div class="section">
+    <div class="section-title">Metodos, Tecnicas e Meios de Ensino</div>
+    <p>${p.metodos}</p>
+    ${p.meios ? `<p style="margin-top:6px;"><strong>Meios:</strong> ${p.meios}</p>` : ""}
+  </div>
+
+  <div class="section">
+    <div class="section-title">Desenvolvimento da Aula</div>
+    <table class="dev">
+      <thead>
+        <tr>
+          ${hasDesenvolvimento
+            ? `<th style="width:120px;">Etapa / Momento</th><th>Actividades do Professor</th><th>Actividades dos Alunos</th>`
+            : `<th style="width:40px;text-align:center;">N</th><th>Descricao</th><th style="width:80px;text-align:center;">Tempo</th>`
+          }
+        </tr>
+      </thead>
+      <tbody>${desenvolvimentoHtml}</tbody>
+    </table>
+  </div>
+
+  ${pergControloHtml ? `
   <div class="section">
     <div class="section-title">Perguntas de Controlo</div>
     <ul>${pergControloHtml}</ul>
   </div>` : ""}
 
-  ${p.perguntasTarefa.length > 0 ? `
+  ${tarefasPraticasHtml ? `
   <div class="section">
-    <div class="section-title">Perguntas de Tarefa</div>
-    <ul>${pergTarefaHtml}</ul>
+    <div class="section-title">Tarefa Pratica</div>
+    <ul>${tarefasPraticasHtml}</ul>
+  </div>` : ""}
+
+  ${p.avaliacao ? `
+  <div class="section">
+    <div class="section-title">Avaliacao</div>
+    <div class="avaliacao-box">${p.avaliacao}</div>
+  </div>` : ""}
+
+  ${p.observacoes ? `
+  <div class="section">
+    <div class="section-title">Observacoes</div>
+    <div class="obs-box">${p.observacoes}</div>
   </div>` : ""}
 
   <div class="footer">
@@ -481,9 +504,21 @@ export default function ViewPlanScreen() {
               <Text style={styles.sectionText}>{plan.objetivoGeral}</Text>
             </View>
 
+            {plan.conteudos && plan.conteudos.length > 0 && (
+              <View style={styles.section}>
+                <Text style={styles.sectionTitle}>Conteudos</Text>
+                {plan.conteudos.map((c, i) => (
+                  <View key={i} style={styles.bulletItem}>
+                    <View style={styles.bullet} />
+                    <Text style={styles.bulletText}>{c}</Text>
+                  </View>
+                ))}
+              </View>
+            )}
+
             {plan.objetivosEspecificos.length > 0 && (
               <View style={styles.section}>
-                <Text style={styles.sectionTitle}>Objetivos Especificos</Text>
+                <Text style={styles.sectionTitle}>Objectivos Especificos</Text>
                 {plan.objetivosEspecificos.map((obj, i) => (
                   <View key={i} style={styles.bulletItem}>
                     <View style={styles.bullet} />
@@ -493,23 +528,49 @@ export default function ViewPlanScreen() {
               </View>
             )}
 
-            {plan.metodos ? (
-              <View style={styles.section}>
-                <Text style={styles.sectionTitle}>Metodos de Ensino</Text>
-                <Text style={styles.sectionText}>{plan.metodos}</Text>
+            {plan.metodosPrincipais ? (
+              <View style={[styles.section, styles.metodosPrincSection]}>
+                <Text style={styles.sectionTitleSmall}>Metodo(s) Principal(is)</Text>
+                <Text style={styles.metodosPrincText}>{plan.metodosPrincipais}</Text>
               </View>
             ) : null}
 
-            {plan.meios ? (
+            {(plan.metodos || plan.meios) ? (
               <View style={styles.section}>
-                <Text style={styles.sectionTitle}>Meios de Ensino</Text>
-                <Text style={styles.sectionText}>{plan.meios}</Text>
+                <Text style={styles.sectionTitle}>Metodos, Tecnicas e Meios de Ensino</Text>
+                {plan.metodos ? <Text style={styles.sectionText}>{plan.metodos}</Text> : null}
+                {plan.meios ? (
+                  <Text style={[styles.sectionText, { marginTop: 6 }]}>
+                    <Text style={{ fontWeight: "600", color: Colors.text }}>Meios: </Text>
+                    {plan.meios}
+                  </Text>
+                ) : null}
               </View>
             ) : null}
 
-            {plan.atividades.length > 0 && (
+            {plan.desenvolvimentoAula && plan.desenvolvimentoAula.length > 0 ? (
               <View style={styles.section}>
-                <Text style={styles.sectionTitle}>Sequencia de Atividades</Text>
+                <Text style={styles.sectionTitle}>Desenvolvimento da Aula</Text>
+                {plan.desenvolvimentoAula.map((etapa, i) => (
+                  <View key={i} style={styles.etapaCard}>
+                    <View style={styles.etapaHeader}>
+                      <Text style={styles.etapaNome}>{etapa.etapa}</Text>
+                      <Text style={styles.etapaDuracao}>{etapa.duracao}</Text>
+                    </View>
+                    <View style={styles.etapaRoleRow}>
+                      <Text style={styles.etapaRoleLabel}>Professor:</Text>
+                      <Text style={styles.etapaRoleText}>{etapa.actividadesProfessor}</Text>
+                    </View>
+                    <View style={styles.etapaRoleRow}>
+                      <Text style={styles.etapaRoleLabel}>Alunos:</Text>
+                      <Text style={styles.etapaRoleText}>{etapa.actividadesAlunos}</Text>
+                    </View>
+                  </View>
+                ))}
+              </View>
+            ) : plan.atividades.length > 0 ? (
+              <View style={styles.section}>
+                <Text style={styles.sectionTitle}>Sequencia de Actividades</Text>
                 {plan.atividades.map((at, i) => (
                   <View key={i} style={styles.atividadeItem}>
                     <View style={styles.atividadeNum}>
@@ -522,7 +583,7 @@ export default function ViewPlanScreen() {
                   </View>
                 ))}
               </View>
-            )}
+            ) : null}
 
             {plan.perguntasControlo.length > 0 && (
               <View style={styles.section}>
@@ -536,17 +597,31 @@ export default function ViewPlanScreen() {
               </View>
             )}
 
-            {plan.perguntasTarefa.length > 0 && (
+            {(plan.tarefasPraticas || plan.perguntasTarefa || []).length > 0 && (
               <View style={styles.section}>
-                <Text style={styles.sectionTitle}>Perguntas de Tarefa</Text>
-                {plan.perguntasTarefa.map((p, i) => (
+                <Text style={styles.sectionTitle}>Tarefa Pratica</Text>
+                {(plan.tarefasPraticas || plan.perguntasTarefa || []).map((t, i) => (
                   <View key={i} style={styles.bulletItem}>
-                    <Feather name="edit-3" size={14} color={Colors.accent} />
-                    <Text style={styles.bulletText}>{p}</Text>
+                    <Feather name="clipboard" size={14} color={Colors.accent} />
+                    <Text style={styles.bulletText}>{t}</Text>
                   </View>
                 ))}
               </View>
             )}
+
+            {plan.avaliacao ? (
+              <View style={[styles.section, styles.avaliacaoSection]}>
+                <Text style={styles.sectionTitle}>Avaliacao</Text>
+                <Text style={styles.sectionText}>{plan.avaliacao}</Text>
+              </View>
+            ) : null}
+
+            {plan.observacoes ? (
+              <View style={[styles.section, styles.observacoesSection]}>
+                <Text style={styles.sectionTitle}>Observacoes</Text>
+                <Text style={styles.sectionText}>{plan.observacoes}</Text>
+              </View>
+            ) : null}
 
             {plan.sugestoes.length > 0 && (
               <View style={[styles.section, styles.sugestoesSection]}>
@@ -649,4 +724,24 @@ const styles = StyleSheet.create({
     backgroundColor: Colors.success, borderRadius: 14, paddingVertical: 16, marginTop: 8,
   },
   saveEditBtnText: { fontFamily: "Inter_600SemiBold", fontSize: 16, color: "#fff" },
+  metodosPrincSection: {
+    backgroundColor: Colors.primary + "10", borderWidth: 1, borderColor: Colors.primary + "30",
+  },
+  sectionTitleSmall: { fontFamily: "Inter_600SemiBold", fontSize: 12, color: Colors.primary, textTransform: "uppercase", letterSpacing: 0.5, marginBottom: 2 },
+  metodosPrincText: { fontFamily: "Inter_600SemiBold", fontSize: 15, color: Colors.primary },
+  etapaCard: {
+    backgroundColor: Colors.background, borderRadius: 10, padding: 12,
+    borderLeftWidth: 3, borderLeftColor: Colors.primary,
+  },
+  etapaHeader: { flexDirection: "row", justifyContent: "space-between", alignItems: "center", marginBottom: 8 },
+  etapaNome: { fontFamily: "Inter_700Bold", fontSize: 14, color: Colors.text, flex: 1 },
+  etapaDuracao: {
+    fontFamily: "Inter_500Medium", fontSize: 12, color: Colors.primary,
+    backgroundColor: Colors.primary + "15", paddingHorizontal: 8, paddingVertical: 3, borderRadius: 6,
+  },
+  etapaRoleRow: { flexDirection: "row", gap: 6, marginTop: 4, alignItems: "flex-start" },
+  etapaRoleLabel: { fontFamily: "Inter_700Bold", fontSize: 12, color: Colors.textSecondary, minWidth: 70, paddingTop: 1 },
+  etapaRoleText: { flex: 1, fontFamily: "Inter_400Regular", fontSize: 13, color: Colors.textSecondary, lineHeight: 18 },
+  avaliacaoSection: { backgroundColor: Colors.primary + "08", borderWidth: 1, borderColor: Colors.primary + "20" },
+  observacoesSection: { backgroundColor: "#FFF9E6", borderWidth: 1, borderColor: "#F9A82520" },
 });

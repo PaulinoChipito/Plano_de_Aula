@@ -5,20 +5,34 @@ export function generateId(): string {
   return Crypto.randomUUID();
 }
 
+export interface DesenvolvimentoEtapa {
+  etapa: string;
+  duracao: string;
+  actividadesProfessor: string;
+  actividadesAlunos: string;
+}
+
 export interface LessonPlan {
   id: string;
   classe: string;
   disciplina: string;
   tema: string;
   duracao: string;
+  numAlunos?: string;
   sumario: string;
   objetivoGeral: string;
   objetivosEspecificos: string[];
+  conteudos?: string[];
+  metodosPrincipais?: string;
   metodos: string;
   meios: string;
+  desenvolvimentoAula?: DesenvolvimentoEtapa[];
   atividades: { descricao: string; tempo: string }[];
   perguntasControlo: string[];
+  tarefasPraticas?: string[];
   perguntasTarefa: string[];
+  avaliacao?: string;
+  observacoes?: string;
   score: number;
   sugestoes: string[];
   createdAt: string;
