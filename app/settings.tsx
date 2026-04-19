@@ -13,24 +13,22 @@ import {
 import { router } from "expo-router";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { Ionicons, Feather } from "@expo/vector-icons";
+import { MaterialCommunityIcons } from "@expo/vector-icons";
 import * as Haptics from "expo-haptics";
 import Colors from "@/constants/colors";
 import {
-  getApiKey,
-  setApiKey,
   getTeacherProfile,
   saveTeacherProfile,
   TeacherProfile,
 } from "@/lib/storage";
+import { isModelCachedWeb, resetModel } from "@/lib/localAI";
 
 export default function SettingsScreen() {
   const insets = useSafeAreaInsets();
   const topPadding = Platform.OS === "web" ? 67 : insets.top;
   const bottomPadding = Platform.OS === "web" ? 34 : insets.bottom;
-  const [apiKey, setApiKeyState] = useState("");
-  const [showKey, setShowKey] = useState(false);
-  const [saved, setSaved] = useState(false);
   const [profileSaved, setProfileSaved] = useState(false);
+  const [modelCached, setModelCached] = useState(false);
 
   const [profile, setProfile] = useState<TeacherProfile>({
     nome: "",
@@ -39,19 +37,26 @@ export default function SettingsScreen() {
   });
 
   useEffect(() => {
-    getApiKey().then((key) => {
-      if (key) setApiKeyState(key);
-    });
     getTeacherProfile().then(setProfile);
+    setModelCached(isModelCachedWeb());
   }, []);
 
-  const handleSaveApiKey = async () => {
-    await setApiKey(apiKey.trim());
-    if (Platform.OS !== "web") {
-      Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
-    }
-    setSaved(true);
-    setTimeout(() => setSaved(false), 2000);
+  const handleResetModel = () => {
+    Alert.alert(
+      "Limpar modelo da memória",
+      "O modelo será descarregado novamente na próxima utilização. Deseja continuar?",
+      [
+        { text: "Cancelar", style: "cancel" },
+        {
+          text: "Limpar",
+          style: "destructive",
+          onPress: () => {
+            resetModel();
+            setModelCached(false);
+          },
+        },
+      ],
+    );
   };
 
   const handleSaveProfile = async () => {
@@ -63,23 +68,6 @@ export default function SettingsScreen() {
     setTimeout(() => setProfileSaved(false), 2000);
   };
 
-  const handleClear = () => {
-    Alert.alert(
-      "Limpar Chave API",
-      "Tem a certeza que deseja remover a chave API?",
-      [
-        { text: "Cancelar", style: "cancel" },
-        {
-          text: "Limpar",
-          style: "destructive",
-          onPress: async () => {
-            setApiKeyState("");
-            await setApiKey("");
-          },
-        },
-      ],
-    );
-  };
 
   return (
     <View style={styles.container}>
@@ -184,80 +172,69 @@ export default function SettingsScreen() {
               <View
                 style={[
                   styles.sectionIconContainer,
-                  { backgroundColor: "#6366F115" },
+                  { backgroundColor: Colors.primary + "15" },
                 ]}
               >
-                <Feather name="key" size={20} color="#6366F1" />
+                <MaterialCommunityIcons name="chip" size={20} color={Colors.primary} />
               </View>
-              <View>
-                <Text style={styles.sectionTitle}>Chave API (Gemini)</Text>
+              <View style={{ flex: 1 }}>
+                <Text style={styles.sectionTitle}>IA Local — Qwen2.5-0.5B</Text>
                 <Text style={styles.sectionSubtitle}>
-                  Necessaria para gerar planos com IA
+                  Geração de planos sem internet nem custos de API
                 </Text>
               </View>
             </View>
 
-            <View style={styles.inputWrapper}>
-              <TextInput
-                style={styles.input}
-                value={apiKey}
-                onChangeText={setApiKeyState}
-                placeholder="AIza..."
-                placeholderTextColor={Colors.textMuted}
-                secureTextEntry={!showKey}
-                autoCapitalize="none"
-                autoCorrect={false}
-              />
-              <Pressable
-                onPress={() => setShowKey(!showKey)}
-                style={styles.eyeBtn}
-              >
+            <View style={styles.modelInfoRow}>
+              <View style={[styles.modelBadge, { backgroundColor: Platform.OS === "web" ? Colors.success + "15" : Colors.primary + "15" }]}>
                 <Feather
-                  name={showKey ? "eye-off" : "eye"}
-                  size={20}
-                  color={Colors.textSecondary}
+                  name={Platform.OS === "web" ? "cpu" : "smartphone"}
+                  size={14}
+                  color={Platform.OS === "web" ? Colors.success : Colors.primary}
                 />
-              </Pressable>
-            </View>
-
-            <View style={styles.buttonRow}>
-              <Pressable
-                onPress={handleSaveApiKey}
-                style={({ pressed }) => [
-                  styles.saveBtn,
-                  saved && styles.savedBtn,
-                  { opacity: pressed ? 0.9 : 1 },
-                ]}
-              >
-                <Feather
-                  name={saved ? "check" : "save"}
-                  size={18}
-                  color="#fff"
-                />
-                <Text style={styles.saveBtnText}>
-                  {saved ? "Guardado!" : "Guardar"}
+                <Text style={[styles.modelBadgeText, { color: Platform.OS === "web" ? Colors.success : Colors.primary }]}>
+                  {Platform.OS === "web" ? "Modelo neural (web)" : "Geração por modelos (nativo)"}
                 </Text>
-              </Pressable>
-
-              {apiKey.length > 0 && (
-                <Pressable
-                  onPress={handleClear}
-                  style={({ pressed }) => [
-                    styles.clearBtn,
-                    { opacity: pressed ? 0.9 : 1 },
-                  ]}
-                >
-                  <Feather name="trash-2" size={18} color={Colors.error} />
-                </Pressable>
+              </View>
+              {Platform.OS === "web" && (
+                <View style={[styles.modelBadge, { backgroundColor: modelCached ? Colors.success + "15" : Colors.warning + "15" }]}>
+                  <Feather
+                    name={modelCached ? "check-circle" : "download"}
+                    size={14}
+                    color={modelCached ? Colors.success : Colors.warning}
+                  />
+                  <Text style={[styles.modelBadgeText, { color: modelCached ? Colors.success : Colors.warning }]}>
+                    {modelCached ? "Carregado" : "Será descarregado"}
+                  </Text>
+                </View>
               )}
             </View>
+
+            {Platform.OS === "web" ? (
+              <Text style={styles.modelDescription}>
+                O modelo Qwen2.5-0.5B-Instruct é executado directamente no browser usando WebAssembly. Na primeira utilização é descarregado (~300 MB) e guardado localmente. As utilizações seguintes são totalmente offline.
+              </Text>
+            ) : (
+              <Text style={styles.modelDescription}>
+                No dispositivo móvel, os planos são gerados usando modelos pedagógicos estruturados — sem necessidade de internet, API key ou processamento pesado.
+              </Text>
+            )}
+
+            {Platform.OS === "web" && modelCached && (
+              <Pressable
+                onPress={handleResetModel}
+                style={({ pressed }) => [styles.resetBtn, { opacity: pressed ? 0.8 : 1 }]}
+              >
+                <Feather name="refresh-cw" size={16} color={Colors.error} />
+                <Text style={styles.resetBtnText}>Limpar modelo da memória</Text>
+              </Pressable>
+            )}
           </View>
 
           <View style={styles.infoCard}>
-            <Feather name="info" size={18} color={Colors.info} />
+            <Feather name="shield" size={18} color={Colors.success} />
             <Text style={styles.infoText}>
-              A chave API e guardada localmente no seu dispositivo e nunca e
-              partilhada. Obtenha a sua chave em aistudio.google.com/apikey
+              Toda a geração de planos ocorre localmente no seu dispositivo. Nenhum dado é enviado para servidores externos.
             </Text>
           </View>
         </ScrollView>
@@ -410,7 +387,7 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     alignItems: "flex-start",
     gap: 12,
-    backgroundColor: Colors.info + "10",
+    backgroundColor: Colors.success + "10",
     borderRadius: 12,
     padding: 16,
   },
@@ -420,5 +397,47 @@ const styles = StyleSheet.create({
     fontSize: 13,
     color: Colors.textSecondary,
     lineHeight: 20,
+  },
+  modelInfoRow: {
+    flexDirection: "row",
+    gap: 8,
+    flexWrap: "wrap",
+    marginBottom: 12,
+  },
+  modelBadge: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 6,
+    paddingHorizontal: 10,
+    paddingVertical: 6,
+    borderRadius: 8,
+  },
+  modelBadgeText: {
+    fontFamily: "Inter_500Medium",
+    fontSize: 12,
+  },
+  modelDescription: {
+    fontFamily: "Inter_400Regular",
+    fontSize: 13,
+    color: Colors.textSecondary,
+    lineHeight: 19,
+  },
+  resetBtn: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 8,
+    marginTop: 14,
+    paddingVertical: 10,
+    paddingHorizontal: 14,
+    borderRadius: 10,
+    borderWidth: 1,
+    borderColor: Colors.error + "30",
+    backgroundColor: Colors.error + "08",
+    alignSelf: "flex-start",
+  },
+  resetBtnText: {
+    fontFamily: "Inter_500Medium",
+    fontSize: 13,
+    color: Colors.error,
   },
 });

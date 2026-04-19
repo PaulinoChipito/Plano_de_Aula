@@ -11,7 +11,7 @@ Key features:
 - **Attendance Tracking** — Mark daily attendance per class with historical stats
 - **Agenda/Calendar** — Schedule events (classes, exams, meetings, reminders)
 - **Statistics Dashboard** — Cross-reference grades, attendance, and generate insights
-- **Settings** — API key management for AI features, teacher profile configuration
+- **Settings** — Model status for AI features, teacher profile configuration
 
 The app is designed for Portuguese-speaking educators (UI text is in Portuguese).
 
@@ -48,7 +48,7 @@ Preferred communication style: Simple, everyday language.
 | `attendance-mark.tsx` | Mark daily attendance |
 | `statistics.tsx` | Analytics dashboard |
 | `agenda.tsx` | Event calendar |
-| `settings.tsx` | API key & teacher profile |
+| `settings.tsx` | AI model status & teacher profile |
 
 ### Backend (Express)
 
@@ -85,7 +85,10 @@ Preferred communication style: Simple, everyday language.
 ## External Dependencies
 
 ### AI Integration
-- The app supports AI-powered lesson plan generation via Google Gemini API (gemini-2.0-flash model). The API key is stored in AsyncStorage and used from the client side. Users obtain keys from aistudio.google.com/apikey. Manual plan creation is also available for offline use without API key.
+- The app uses **offline-first AI** for lesson plan generation via `lib/localAI.ts`:
+  - **Web**: Runs the `Qwen2.5-0.5B-Instruct` model (ONNX quantized, ~300 MB) directly in the browser using `@huggingface/transformers` (WebAssembly). Downloaded once, cached in browser storage, fully offline afterwards. No API key required.
+  - **Native (iOS/Android)**: Smart template-based pedagogical generation — instant, fully offline, no model download needed.
+- No external API keys required. No data is sent to external servers.
 
 ### Database
 - **PostgreSQL** via Drizzle ORM — required for server-side features. Needs `DATABASE_URL` environment variable.
@@ -97,6 +100,7 @@ Preferred communication style: Simple, everyday language.
 - **drizzle-orm** (^0.39.3) + **pg** (^8.16.3) — Database ORM
 - **@tanstack/react-query** (^5.83.0) — Server state management
 - **@react-native-async-storage/async-storage** (2.2.0) — Local persistence
+- **@huggingface/transformers** — Offline AI inference via Qwen2.5-0.5B-Instruct (ONNX) on web
 - **expo-image-picker** — Student photo selection
 - **expo-haptics** — Tactile feedback on actions
 - **expo-crypto** — UUID generation

@@ -16,12 +16,11 @@ import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { Ionicons, Feather, MaterialCommunityIcons } from "@expo/vector-icons";
 import * as Haptics from "expo-haptics";
 import Colors from "@/constants/colors";
+import { generateId, saveLessonPlan, LessonPlan } from "@/lib/storage";
 import {
-  generateId,
-  saveLessonPlan,
-  getApiKey,
-  LessonPlan,
-} from "@/lib/storage";
+  generateLessonPlanOffline,
+  GenerationStatus,
+} from "@/lib/localAI";
 
 export default function CreatePlanScreen() {
   const insets = useSafeAreaInsets();
@@ -47,6 +46,7 @@ export default function CreatePlanScreen() {
   const [aiPlan, setAiPlan] = useState<LessonPlan | null>(null);
   const [editSumario, setEditSumario] = useState("");
   const [editObjetivoGeral, setEditObjetivoGeral] = useState("");
+  const [genStatus, setGenStatus] = useState<GenerationStatus>({ stage: "idle" });
 
   const canGenerate =
     classe.trim() && disciplina.trim() && tema.trim() && duracao.trim();
@@ -54,79 +54,16 @@ export default function CreatePlanScreen() {
     classe.trim() && disciplina.trim() && tema.trim() && duracao.trim() && sumario.trim();
 
   const generateWithAI = async () => {
-    const apiKey = await getApiKey();
-    if (!apiKey) {
-      Alert.alert(
-        "Chave API em falta",
-        "Configure a sua chave API Gemini nas Definicoes antes de gerar planos.",
-        [
-          { text: "Cancelar", style: "cancel" },
-          {
-            text: "Ir para Definicoes",
-            onPress: () => router.push("/settings"),
-          },
-        ],
-      );
-      return;
-    }
-
     setLoading(true);
+    setGenStatus({ stage: "idle" });
     try {
-      const prompt = `Gera um plano de aula completo e detalhado em portugues com os seguintes dados:
-- Classe: ${classe}
-- Disciplina: ${disciplina}
-- Tema: ${tema}
-- Duracao: ${duracao} minutos
-
-Responde APENAS com um JSON valido (sem markdown, sem \`\`\`) com esta estrutura exacta:
-{
-  "sumario": "resumo do plano",
-  "objetivoGeral": "objetivo geral da aula",
-  "objetivosEspecificos": ["obj1", "obj2", "obj3"],
-  "metodos": "metodos de ensino",
-  "meios": "meios de ensino",
-  "atividades": [{"descricao": "actividade", "tempo": "10 min"}],
-  "perguntasControlo": ["pergunta1", "pergunta2"],
-  "perguntasTarefa": ["tarefa1", "tarefa2"],
-  "score": 85,
-  "sugestoes": ["sugestao1", "sugestao2", "sugestao3"]
-}
-
-O score pedagogico deve ser entre 0-100 baseado na qualidade e completude do plano.
-As sugestoes devem ser 3 melhorias rapidas para aumentar o score.`;
-
-      const response = await fetch(
-        `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=${apiKey}`,
-        {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({
-            contents: [
-              {
-                parts: [
-                  {
-                    text: `Es um especialista em pedagogia e planificacao de aulas. Responde sempre em portugues e apenas com JSON valido, sem formatacao markdown.\n\n${prompt}`,
-                  },
-                ],
-              },
-            ],
-            generationConfig: {
-              temperature: 0.7,
-              maxOutputTokens: 2000,
-            },
-          }),
-        },
+      const result = await generateLessonPlanOffline(
+        classe,
+        disciplina,
+        tema,
+        duracao,
+        (status) => setGenStatus(status),
       );
-
-      if (!response.ok) {
-        const errorText = await response.text();
-        throw new Error(`API Error: ${response.status} - ${errorText}`);
-      }
-
-      const data = await response.json();
-      const content = data.candidates[0].content.parts[0].text.trim();
-      const cleanContent = content.replace(/```json\n?|\n?```/g, "").trim();
-      const parsed = JSON.parse(cleanContent);
 
       const plan: LessonPlan = {
         id: generateId(),
@@ -134,30 +71,34 @@ As sugestoes devem ser 3 melhorias rapidas para aumentar o score.`;
         disciplina,
         tema,
         duracao,
-        sumario: parsed.sumario || "",
-        objetivoGeral: parsed.objetivoGeral || "",
-        objetivosEspecificos: parsed.objetivosEspecificos || [],
-        metodos: parsed.metodos || "",
-        meios: parsed.meios || "",
-        atividades: parsed.atividades || [],
-        perguntasControlo: parsed.perguntasControlo || [],
-        perguntasTarefa: parsed.perguntasTarefa || [],
-        score: parsed.score || 75,
-        sugestoes: parsed.sugestoes || [],
+        sumario: result.sumario,
+        objetivoGeral: result.objetivoGeral,
+        objetivosEspecificos: result.objetivosEspecificos,
+        metodos: result.metodos,
+        meios: result.meios,
+        atividades: result.atividades,
+        perguntasControlo: result.perguntasControlo,
+        perguntasTarefa: result.perguntasTarefa,
+        score: result.score,
+        sugestoes: result.sugestoes,
         createdAt: new Date().toISOString(),
       };
 
       setAiPlan(plan);
       setEditSumario(plan.sumario);
       setEditObjetivoGeral(plan.objetivoGeral);
+      setGenStatus({ stage: "done" });
 
       if (Platform.OS !== "web") {
         Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
       }
     } catch (error: any) {
+      setGenStatus({ stage: "error", error: error.message });
       Alert.alert(
         "Erro ao gerar",
-        error.message || "Verifique a sua chave API e tente novamente.",
+        Platform.OS === "web"
+          ? "Ocorreu um erro ao carregar o modelo de IA. Verifique a sua ligação à internet para a primeira descarga."
+          : "Não foi possível gerar o plano. Tente novamente.",
       );
     } finally {
       setLoading(false);
@@ -334,7 +275,12 @@ As sugestoes devem ser 3 melhorias rapidas para aumentar o score.`;
                   ]}
                 >
                   {loading ? (
-                    <ActivityIndicator color="#fff" />
+                    <>
+                      <ActivityIndicator color="#fff" size="small" />
+                      <Text style={styles.generateBtnText} numberOfLines={1}>
+                        {genStatus.message || "A gerar..."}
+                      </Text>
+                    </>
                   ) : (
                     <>
                       <MaterialCommunityIcons name="robot" size={20} color="#fff" />
@@ -342,6 +288,19 @@ As sugestoes devem ser 3 melhorias rapidas para aumentar o score.`;
                     </>
                   )}
                 </Pressable>
+                {loading && genStatus.stage === "downloading" && typeof genStatus.progress === "number" && (
+                  <View style={styles.progressBarContainer}>
+                    <View style={[styles.progressBar, { width: `${genStatus.progress}%` as any }]} />
+                  </View>
+                )}
+                <View style={styles.aiInfoCard}>
+                  <MaterialCommunityIcons name="chip" size={14} color={Colors.primary} />
+                  <Text style={styles.aiInfoText}>
+                    {Platform.OS === "web"
+                      ? "Usa o modelo Qwen2.5-0.5B localmente no browser (sem envio de dados). Primeira utilização requer descarga (~300 MB)."
+                      : "Geração offline baseada em modelos pedagógicos. Sem necessidade de internet ou chave API."}
+                  </Text>
+                </View>
 
                 <Pressable
                   onPress={() => setMode("manual")}
@@ -611,4 +570,19 @@ const styles = StyleSheet.create({
     backgroundColor: Colors.success, borderRadius: 14, paddingVertical: 16, marginTop: 8,
   },
   saveBtnText: { fontFamily: "Inter_600SemiBold", fontSize: 16, color: "#fff" },
+  progressBarContainer: {
+    height: 4, backgroundColor: Colors.border, borderRadius: 2, overflow: "hidden",
+  },
+  progressBar: {
+    height: 4, backgroundColor: Colors.primary, borderRadius: 2,
+  },
+  aiInfoCard: {
+    flexDirection: "row", alignItems: "flex-start", gap: 8,
+    backgroundColor: Colors.primary + "0D", borderRadius: 10,
+    paddingHorizontal: 12, paddingVertical: 10,
+  },
+  aiInfoText: {
+    flex: 1, fontFamily: "Inter_400Regular", fontSize: 12,
+    color: Colors.textSecondary, lineHeight: 17,
+  },
 });
