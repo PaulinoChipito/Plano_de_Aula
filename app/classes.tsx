@@ -13,6 +13,7 @@ import {
 import { router, useFocusEffect } from "expo-router";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { Ionicons, Feather } from "@expo/vector-icons";
+import { LinearGradient } from "expo-linear-gradient";
 import * as Haptics from "expo-haptics";
 import Colors from "@/constants/colors";
 import { getClasses, saveClass, deleteClass, generateId, ClassGroup } from "@/lib/storage";
@@ -67,11 +68,16 @@ export default function ClassesScreen() {
     <Pressable
       onPress={() => router.push({ pathname: "/class-detail", params: { id: item.id } })}
       onLongPress={() => handleDelete(item.id)}
-      style={({ pressed }) => [styles.card, { opacity: pressed ? 0.95 : 1 }]}
+      style={({ pressed }) => [styles.card, { opacity: pressed ? 0.85 : 1 }]}
     >
-      <View style={styles.cardIcon}>
-        <Ionicons name="people" size={22} color={Colors.primary} />
-      </View>
+      <LinearGradient
+        colors={["#60A5FA", "#6366F1", "#9333EA"]}
+        style={styles.cardIcon}
+        start={{ x: 0, y: 0 }}
+        end={{ x: 1, y: 1 }}
+      >
+        <Ionicons name="people" size={20} color="#fff" />
+      </LinearGradient>
       <View style={styles.cardContent}>
         <Text style={styles.cardTitle}>{item.designacao}</Text>
         <Text style={styles.cardSubtitle}>{item.disciplina}</Text>
@@ -85,16 +91,23 @@ export default function ClassesScreen() {
 
   return (
     <View style={styles.container}>
+      <LinearGradient
+        colors={["#0F1729", "#581C87", "#0F1729"]}
+        style={StyleSheet.absoluteFillObject}
+        start={{ x: 0.2, y: 0 }}
+        end={{ x: 0.8, y: 1 }}
+      />
+
       <View style={[styles.header, { paddingTop: topPadding + 12 }]}>
         <Pressable onPress={() => router.back()} style={({ pressed }) => [styles.backBtn, { opacity: pressed ? 0.6 : 1 }]}>
-          <Ionicons name="chevron-back" size={24} color={Colors.text} />
+          <Ionicons name="chevron-back" size={24} color="#fff" />
         </Pressable>
         <Text style={styles.headerTitle}>Turmas</Text>
         <Pressable
           onPress={() => setShowModal(true)}
           style={({ pressed }) => [styles.addBtn, { opacity: pressed ? 0.7 : 1 }]}
         >
-          <Ionicons name="add" size={24} color={Colors.primary} />
+          <Ionicons name="add" size={24} color={Colors.primaryLight} />
         </Pressable>
       </View>
 
@@ -148,32 +161,34 @@ const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: Colors.background },
   header: {
     flexDirection: "row", alignItems: "center", justifyContent: "space-between",
-    paddingHorizontal: 16, paddingBottom: 16, backgroundColor: Colors.surface,
+    paddingHorizontal: 16, paddingBottom: 16,
+    backgroundColor: "rgba(15,23,42,0.7)",
     borderBottomWidth: 1, borderBottomColor: Colors.border,
   },
   backBtn: { width: 40, height: 40, alignItems: "center", justifyContent: "center" },
   headerTitle: { fontFamily: "Inter_700Bold", fontSize: 18, color: Colors.text },
-  addBtn: { width: 40, height: 40, alignItems: "center", justifyContent: "center", borderRadius: 12, backgroundColor: Colors.primary + "15" },
+  addBtn: { width: 40, height: 40, alignItems: "center", justifyContent: "center", borderRadius: 12, backgroundColor: "rgba(52,211,153,0.15)" },
   list: { padding: 20, gap: 12 },
   card: {
-    flexDirection: "row", alignItems: "center", backgroundColor: Colors.surface,
+    flexDirection: "row", alignItems: "center",
+    backgroundColor: Colors.surface,
     borderRadius: 14, padding: 16, gap: 12,
-    shadowColor: "#000", shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.06, shadowRadius: 8, elevation: 2,
+    borderWidth: 1, borderColor: Colors.border,
   },
-  cardIcon: { width: 44, height: 44, borderRadius: 12, backgroundColor: Colors.primary + "12", alignItems: "center", justifyContent: "center" },
+  cardIcon: { width: 44, height: 44, borderRadius: 12, alignItems: "center", justifyContent: "center" },
   cardContent: { flex: 1 },
   cardTitle: { fontFamily: "Inter_600SemiBold", fontSize: 16, color: Colors.text },
   cardSubtitle: { fontFamily: "Inter_400Regular", fontSize: 13, color: Colors.textSecondary, marginTop: 2 },
-  cardBadge: { backgroundColor: Colors.primary + "15", paddingHorizontal: 8, paddingVertical: 4, borderRadius: 8 },
-  cardBadgeText: { fontFamily: "Inter_600SemiBold", fontSize: 12, color: Colors.primary },
+  cardBadge: { backgroundColor: "rgba(96,165,250,0.2)", paddingHorizontal: 8, paddingVertical: 4, borderRadius: 8 },
+  cardBadgeText: { fontFamily: "Inter_600SemiBold", fontSize: 12, color: "#60A5FA" },
   emptyContainer: { alignItems: "center", justifyContent: "center", paddingTop: 80, gap: 8 },
   emptyTitle: { fontFamily: "Inter_600SemiBold", fontSize: 18, color: Colors.text, marginTop: 8 },
   emptySubtitle: { fontFamily: "Inter_400Regular", fontSize: 14, color: Colors.textSecondary },
-  modalOverlay: { flex: 1, backgroundColor: "rgba(0,0,0,0.5)", justifyContent: "center", paddingHorizontal: 24 },
-  modalContent: { backgroundColor: Colors.surface, borderRadius: 20, padding: 24, gap: 16 },
+  modalOverlay: { flex: 1, backgroundColor: "rgba(0,0,0,0.7)", justifyContent: "center", paddingHorizontal: 24 },
+  modalContent: { backgroundColor: Colors.modalBg, borderRadius: 20, padding: 24, gap: 16, borderWidth: 1, borderColor: Colors.border },
   modalTitle: { fontFamily: "Inter_700Bold", fontSize: 20, color: Colors.text },
   modalInput: {
-    backgroundColor: Colors.background, borderRadius: 12, borderWidth: 1, borderColor: Colors.border,
+    backgroundColor: "rgba(255,255,255,0.08)", borderRadius: 12, borderWidth: 1, borderColor: Colors.border,
     paddingHorizontal: 14, paddingVertical: 12, fontFamily: "Inter_400Regular", fontSize: 15, color: Colors.text,
   },
   modalBtn: { backgroundColor: Colors.primary, borderRadius: 12, paddingVertical: 14, alignItems: "center" },

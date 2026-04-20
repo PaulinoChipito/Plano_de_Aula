@@ -13,6 +13,7 @@ import {
 import { router, useLocalSearchParams } from "expo-router";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { Ionicons, Feather } from "@expo/vector-icons";
+import { LinearGradient } from "expo-linear-gradient";
 import * as Haptics from "expo-haptics";
 import * as Print from "expo-print";
 import * as Sharing from "expo-sharing";
@@ -358,12 +359,18 @@ export default function ViewPlanScreen() {
 
   return (
     <View style={styles.container}>
+      <LinearGradient
+        colors={["#0F1729", "#581C87", "#0F1729"]}
+        style={StyleSheet.absoluteFillObject}
+        start={{ x: 0.2, y: 0 }}
+        end={{ x: 0.8, y: 1 }}
+      />
       <View style={[styles.header, { paddingTop: topPadding + 12 }]}>
         <Pressable
           onPress={() => { if (editing) { setEditing(false); } else { router.back(); } }}
           style={({ pressed }) => [styles.backBtn, { opacity: pressed ? 0.6 : 1 }]}
         >
-          <Ionicons name={editing ? "close" : "chevron-back"} size={24} color={Colors.text} />
+          <Ionicons name={editing ? "close" : "chevron-back"} size={24} color="#fff" />
         </Pressable>
         <Text style={styles.headerTitle} numberOfLines={1}>
           {editing ? "Editar Plano" : plan.tema}
@@ -701,7 +708,7 @@ const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: Colors.background },
   header: {
     flexDirection: "row", alignItems: "center", justifyContent: "space-between",
-    paddingHorizontal: 16, paddingBottom: 16, backgroundColor: Colors.surface,
+    paddingHorizontal: 16, paddingBottom: 16, backgroundColor: "rgba(15,23,42,0.7)",
     borderBottomWidth: 1, borderBottomColor: Colors.border,
   },
   backBtn: { width: 40, height: 40, alignItems: "center", justifyContent: "center" },
@@ -720,7 +727,7 @@ const styles = StyleSheet.create({
     backgroundColor: Colors.primary + "12", paddingHorizontal: 10, paddingVertical: 6, borderRadius: 8,
   },
   metaChipText: { fontFamily: "Inter_500Medium", fontSize: 12, color: Colors.primary },
-  section: { backgroundColor: Colors.surface, borderRadius: 14, padding: 16, gap: 8 },
+  section: { backgroundColor: Colors.surface, borderRadius: 14, padding: 16, gap: 8, borderWidth: 1, borderColor: Colors.border },
   sugestoesSection: { backgroundColor: Colors.accent + "10" },
   sectionTitle: { fontFamily: "Inter_600SemiBold", fontSize: 15, color: Colors.text, marginBottom: 4 },
   sectionText: { fontFamily: "Inter_400Regular", fontSize: 14, color: Colors.textSecondary, lineHeight: 20 },
@@ -781,8 +788,8 @@ const styles = StyleSheet.create({
   etapaRoleLabel: { fontFamily: "Inter_700Bold", fontSize: 12, color: Colors.textSecondary, minWidth: 70, paddingTop: 1 },
   etapaRoleText: { flex: 1, fontFamily: "Inter_400Regular", fontSize: 13, color: Colors.textSecondary, lineHeight: 18 },
   avaliacaoSection: { backgroundColor: Colors.primary + "08", borderWidth: 1, borderColor: Colors.primary + "20" },
-  observacoesSection: { backgroundColor: "#FFF9E6", borderWidth: 1, borderColor: "#F9A82520" },
-  diferenciacaoSection: { backgroundColor: "#F3F0FF", borderWidth: 1, borderColor: "#7C4DFF20" },
+  observacoesSection: { backgroundColor: "rgba(249,168,37,0.08)", borderWidth: 1, borderColor: "rgba(249,168,37,0.25)" },
+  diferenciacaoSection: { backgroundColor: "rgba(124,77,255,0.08)", borderWidth: 1, borderColor: "rgba(124,77,255,0.25)" },
   tpcItem: { flexDirection: "row", alignItems: "flex-start", gap: 8, paddingVertical: 4 },
   tpcMeta: { fontFamily: "Inter_400Regular", fontSize: 12, color: Colors.primary, marginTop: 2, fontStyle: "italic" },
   tpcSubLabel: { fontFamily: "Inter_600SemiBold", fontSize: 13, color: Colors.text },

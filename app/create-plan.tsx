@@ -14,6 +14,7 @@ import {
 import { router } from "expo-router";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { Ionicons, Feather, MaterialCommunityIcons } from "@expo/vector-icons";
+import { LinearGradient } from "expo-linear-gradient";
 import * as Haptics from "expo-haptics";
 import Colors from "@/constants/colors";
 import { generateId, saveLessonPlan, LessonPlan } from "@/lib/storage";
@@ -242,12 +243,18 @@ export default function CreatePlanScreen() {
 
   return (
     <View style={styles.container}>
+      <LinearGradient
+        colors={["#0F1729", "#581C87", "#0F1729"]}
+        style={StyleSheet.absoluteFillObject}
+        start={{ x: 0.2, y: 0 }}
+        end={{ x: 0.8, y: 1 }}
+      />
       <View style={[styles.header, { paddingTop: topPadding + 12 }]}>
         <Pressable
           onPress={() => router.back()}
           style={({ pressed }) => [styles.backBtn, { opacity: pressed ? 0.6 : 1 }]}
         >
-          <Ionicons name="chevron-back" size={24} color={Colors.text} />
+          <Ionicons name="chevron-back" size={24} color="#fff" />
         </Pressable>
         <Text style={styles.headerTitle}>Novo Plano</Text>
         <View style={{ width: 40 }} />
@@ -565,7 +572,7 @@ const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: Colors.background },
   header: {
     flexDirection: "row", alignItems: "center", justifyContent: "space-between",
-    paddingHorizontal: 16, paddingBottom: 16, backgroundColor: Colors.surface,
+    paddingHorizontal: 16, paddingBottom: 16, backgroundColor: "rgba(15,23,42,0.7)",
     borderBottomWidth: 1, borderBottomColor: Colors.border,
   },
   backBtn: { width: 40, height: 40, alignItems: "center", justifyContent: "center" },
@@ -614,7 +621,7 @@ const styles = StyleSheet.create({
   atividadeInputs: { flex: 1, flexDirection: "row", gap: 8 },
   scoreCard: {
     backgroundColor: Colors.surface, borderRadius: 16, padding: 16,
-    shadowColor: "#000", shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.06, shadowRadius: 8, elevation: 2,
+    borderWidth: 1, borderColor: Colors.border,
   },
   scoreRow: { flexDirection: "row", justifyContent: "space-between", alignItems: "center" },
   scoreLabel: { fontFamily: "Inter_600SemiBold", fontSize: 16, color: Colors.text },
@@ -625,7 +632,7 @@ const styles = StyleSheet.create({
   sugestaoText: { flex: 1, fontFamily: "Inter_400Regular", fontSize: 13, color: Colors.textSecondary, lineHeight: 18 },
   editSection: { gap: 6 },
   editLabel: { fontFamily: "Inter_600SemiBold", fontSize: 14, color: Colors.text, marginBottom: 4 },
-  readOnlySection: { backgroundColor: Colors.surface, borderRadius: 14, padding: 16, gap: 8 },
+  readOnlySection: { backgroundColor: Colors.surface, borderRadius: 14, padding: 16, gap: 8, borderWidth: 1, borderColor: Colors.border },
   readOnlyText: { fontFamily: "Inter_400Regular", fontSize: 14, color: Colors.textSecondary, lineHeight: 20 },
   bulletItem: { flexDirection: "row", alignItems: "flex-start", gap: 8, paddingVertical: 2 },
   bullet: { width: 6, height: 6, borderRadius: 3, backgroundColor: Colors.primary, marginTop: 6 },

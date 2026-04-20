@@ -10,6 +10,7 @@ import {
 import { router, useFocusEffect } from "expo-router";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { Ionicons, Feather, MaterialCommunityIcons } from "@expo/vector-icons";
+import { LinearGradient } from "expo-linear-gradient";
 import Colors from "@/constants/colors";
 import {
   getClasses,
@@ -166,12 +167,18 @@ export default function StatisticsScreen() {
 
   return (
     <View style={styles.container}>
+      <LinearGradient
+        colors={["#0F1729", "#581C87", "#0F1729"]}
+        style={StyleSheet.absoluteFillObject}
+        start={{ x: 0.2, y: 0 }}
+        end={{ x: 0.8, y: 1 }}
+      />
       <View style={[styles.header, { paddingTop: topPadding + 12 }]}>
         <Pressable
           onPress={() => router.back()}
           style={({ pressed }) => [styles.backBtn, { opacity: pressed ? 0.6 : 1 }]}
         >
-          <Ionicons name="chevron-back" size={24} color={Colors.text} />
+          <Ionicons name="chevron-back" size={24} color="#fff" />
         </Pressable>
         <Text style={styles.headerTitle}>Estatisticas</Text>
         <View style={{ width: 40 }} />
@@ -280,7 +287,7 @@ const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: Colors.background },
   header: {
     flexDirection: "row", alignItems: "center", justifyContent: "space-between",
-    paddingHorizontal: 16, paddingBottom: 16, backgroundColor: Colors.surface,
+    paddingHorizontal: 16, paddingBottom: 16, backgroundColor: "rgba(15,23,42,0.7)",
     borderBottomWidth: 1, borderBottomColor: Colors.border,
   },
   backBtn: { width: 40, height: 40, alignItems: "center", justifyContent: "center" },
@@ -290,7 +297,7 @@ const styles = StyleSheet.create({
   metricCard: {
     width: "47%" as any, flexGrow: 1, minWidth: 140,
     backgroundColor: Colors.surface, borderRadius: 16, padding: 16, alignItems: "center", gap: 6,
-    shadowColor: "#000", shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.06, shadowRadius: 8, elevation: 2,
+    borderWidth: 1, borderColor: Colors.border,
   },
   metricValue: { fontFamily: "Inter_700Bold", fontSize: 24, color: Colors.text },
   metricLabel: { fontFamily: "Inter_400Regular", fontSize: 12, color: Colors.textSecondary },
@@ -299,12 +306,13 @@ const styles = StyleSheet.create({
   insightCard: {
     flexDirection: "row", alignItems: "flex-start", gap: 12,
     backgroundColor: Colors.surface, borderRadius: 12, padding: 14,
-    borderLeftWidth: 3,
+    borderLeftWidth: 3, borderTopWidth: 1, borderRightWidth: 1, borderBottomWidth: 1,
+    borderTopColor: Colors.border, borderRightColor: Colors.border, borderBottomColor: Colors.border,
   },
   insightText: { flex: 1, fontFamily: "Inter_400Regular", fontSize: 13, color: Colors.textSecondary, lineHeight: 18 },
   classStatCard: {
     backgroundColor: Colors.surface, borderRadius: 16, padding: 16,
-    shadowColor: "#000", shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.06, shadowRadius: 8, elevation: 2,
+    borderWidth: 1, borderColor: Colors.border,
   },
   classStatTitle: { fontFamily: "Inter_600SemiBold", fontSize: 16, color: Colors.text },
   classStatSubtitle: { fontFamily: "Inter_400Regular", fontSize: 13, color: Colors.textSecondary, marginBottom: 12 },

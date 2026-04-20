@@ -11,6 +11,7 @@ import {
 import { router, useFocusEffect } from "expo-router";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { Ionicons, Feather } from "@expo/vector-icons";
+import { LinearGradient } from "expo-linear-gradient";
 import * as Haptics from "expo-haptics";
 import Colors from "@/constants/colors";
 import { getLessonPlans, deleteLessonPlan, LessonPlan } from "@/lib/storage";
@@ -55,7 +56,7 @@ export default function LessonPlansScreen() {
       onLongPress={() => handleDelete(item.id)}
       style={({ pressed }) => [
         styles.planCard,
-        { opacity: pressed ? 0.95 : 1 },
+        { opacity: pressed ? 0.85 : 1 },
       ]}
     >
       <View style={styles.planHeader}>
@@ -70,14 +71,11 @@ export default function LessonPlansScreen() {
         <View
           style={[
             styles.scoreBadge,
-            { backgroundColor: getScoreColor(item.score) + "15" },
+            { backgroundColor: getScoreColor(item.score) + "25" },
           ]}
         >
           <Text
-            style={[
-              styles.scoreText,
-              { color: getScoreColor(item.score) },
-            ]}
+            style={[styles.scoreText, { color: getScoreColor(item.score) }]}
           >
             {item.score}
           </Text>
@@ -94,15 +92,19 @@ export default function LessonPlansScreen() {
 
   return (
     <View style={styles.container}>
+      <LinearGradient
+        colors={["#0F1729", "#581C87", "#0F1729"]}
+        style={StyleSheet.absoluteFillObject}
+        start={{ x: 0.2, y: 0 }}
+        end={{ x: 0.8, y: 1 }}
+      />
+
       <View style={[styles.header, { paddingTop: topPadding + 12 }]}>
         <Pressable
           onPress={() => router.back()}
-          style={({ pressed }) => [
-            styles.backBtn,
-            { opacity: pressed ? 0.6 : 1 },
-          ]}
+          style={({ pressed }) => [styles.backBtn, { opacity: pressed ? 0.6 : 1 }]}
         >
-          <Ionicons name="chevron-back" size={24} color={Colors.text} />
+          <Ionicons name="chevron-back" size={24} color="#fff" />
         </Pressable>
         <Text style={styles.headerTitle}>Planos de Aula</Text>
         <Pressable
@@ -111,12 +113,9 @@ export default function LessonPlansScreen() {
               Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
             router.push("/create-plan");
           }}
-          style={({ pressed }) => [
-            styles.addBtn,
-            { opacity: pressed ? 0.7 : 1 },
-          ]}
+          style={({ pressed }) => [styles.addBtn, { opacity: pressed ? 0.7 : 1 }]}
         >
-          <Ionicons name="add" size={24} color={Colors.primary} />
+          <Ionicons name="add" size={24} color={Colors.primaryLight} />
         </Pressable>
       </View>
 
@@ -154,7 +153,7 @@ const styles = StyleSheet.create({
     justifyContent: "space-between",
     paddingHorizontal: 16,
     paddingBottom: 16,
-    backgroundColor: Colors.surface,
+    backgroundColor: "rgba(15,23,42,0.7)",
     borderBottomWidth: 1,
     borderBottomColor: Colors.border,
   },
@@ -175,7 +174,7 @@ const styles = StyleSheet.create({
     alignItems: "center",
     justifyContent: "center",
     borderRadius: 12,
-    backgroundColor: Colors.primary + "15",
+    backgroundColor: "rgba(52,211,153,0.15)",
   },
   list: {
     padding: 20,
@@ -185,11 +184,8 @@ const styles = StyleSheet.create({
     backgroundColor: Colors.surface,
     borderRadius: 16,
     padding: 16,
-    shadowColor: "#000",
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.06,
-    shadowRadius: 8,
-    elevation: 2,
+    borderWidth: 1,
+    borderColor: Colors.border,
   },
   planHeader: {
     flexDirection: "row",

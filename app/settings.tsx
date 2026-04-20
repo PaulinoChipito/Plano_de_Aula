@@ -14,6 +14,7 @@ import { router } from "expo-router";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { Ionicons, Feather } from "@expo/vector-icons";
 import { MaterialCommunityIcons } from "@expo/vector-icons";
+import { LinearGradient } from "expo-linear-gradient";
 import * as Haptics from "expo-haptics";
 import Colors from "@/constants/colors";
 import {
@@ -71,6 +72,12 @@ export default function SettingsScreen() {
 
   return (
     <View style={styles.container}>
+      <LinearGradient
+        colors={["#0F1729", "#581C87", "#0F1729"]}
+        style={StyleSheet.absoluteFillObject}
+        start={{ x: 0.2, y: 0 }}
+        end={{ x: 0.8, y: 1 }}
+      />
       <View style={[styles.header, { paddingTop: topPadding + 12 }]}>
         <Pressable
           onPress={() => router.back()}
@@ -79,7 +86,7 @@ export default function SettingsScreen() {
             { opacity: pressed ? 0.6 : 1 },
           ]}
         >
-          <Ionicons name="chevron-back" size={24} color={Colors.text} />
+          <Ionicons name="chevron-back" size={24} color="#fff" />
         </Pressable>
         <Text style={styles.headerTitle}>Definicoes</Text>
         <View style={{ width: 40 }} />
@@ -254,7 +261,7 @@ const styles = StyleSheet.create({
     justifyContent: "space-between",
     paddingHorizontal: 16,
     paddingBottom: 16,
-    backgroundColor: Colors.surface,
+    backgroundColor: "rgba(15,23,42,0.7)",
     borderBottomWidth: 1,
     borderBottomColor: Colors.border,
   },
@@ -277,11 +284,8 @@ const styles = StyleSheet.create({
     backgroundColor: Colors.surface,
     borderRadius: 16,
     padding: 20,
-    shadowColor: "#000",
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.06,
-    shadowRadius: 8,
-    elevation: 2,
+    borderWidth: 1,
+    borderColor: Colors.border,
   },
   sectionHeader: {
     flexDirection: "row",

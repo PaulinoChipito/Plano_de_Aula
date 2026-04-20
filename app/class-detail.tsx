@@ -13,6 +13,7 @@ import {
 import { router, useLocalSearchParams } from "expo-router";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { Ionicons, Feather } from "@expo/vector-icons";
+import { LinearGradient } from "expo-linear-gradient";
 import { Image } from "expo-image";
 import * as ImagePicker from "expo-image-picker";
 import * as Haptics from "expo-haptics";
@@ -129,9 +130,15 @@ export default function ClassDetailScreen() {
 
   return (
     <View style={styles.container}>
+      <LinearGradient
+        colors={["#0F1729", "#581C87", "#0F1729"]}
+        style={StyleSheet.absoluteFillObject}
+        start={{ x: 0.2, y: 0 }}
+        end={{ x: 0.8, y: 1 }}
+      />
       <View style={[styles.header, { paddingTop: topPadding + 12 }]}>
         <Pressable onPress={() => router.back()} style={({ pressed }) => [styles.backBtn, { opacity: pressed ? 0.6 : 1 }]}>
-          <Ionicons name="chevron-back" size={24} color={Colors.text} />
+          <Ionicons name="chevron-back" size={24} color="#fff" />
         </Pressable>
         <View style={styles.headerCenter}>
           <Text style={styles.headerTitle}>{classGroup.designacao}</Text>
@@ -218,7 +225,7 @@ const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: Colors.background },
   header: {
     flexDirection: "row", alignItems: "center", justifyContent: "space-between",
-    paddingHorizontal: 16, paddingBottom: 16, backgroundColor: Colors.surface,
+    paddingHorizontal: 16, paddingBottom: 16, backgroundColor: "rgba(15,23,42,0.7)",
     borderBottomWidth: 1, borderBottomColor: Colors.border,
   },
   backBtn: { width: 40, height: 40, alignItems: "center", justifyContent: "center" },
@@ -230,7 +237,7 @@ const styles = StyleSheet.create({
   studentCard: {
     flexDirection: "row", alignItems: "center", backgroundColor: Colors.surface,
     borderRadius: 14, padding: 14, gap: 12,
-    shadowColor: "#000", shadowOffset: { width: 0, height: 1 }, shadowOpacity: 0.04, shadowRadius: 4, elevation: 1,
+    borderWidth: 1, borderColor: Colors.border,
   },
   studentNum: { width: 28, height: 28, borderRadius: 14, backgroundColor: Colors.primary + "12", alignItems: "center", justifyContent: "center" },
   studentNumText: { fontFamily: "Inter_600SemiBold", fontSize: 12, color: Colors.primary },
@@ -242,8 +249,8 @@ const styles = StyleSheet.create({
   emptyContainer: { alignItems: "center", paddingTop: 80, gap: 8 },
   emptyTitle: { fontFamily: "Inter_600SemiBold", fontSize: 18, color: Colors.text, marginTop: 8 },
   emptySubtitle: { fontFamily: "Inter_400Regular", fontSize: 14, color: Colors.textSecondary },
-  modalOverlay: { flex: 1, backgroundColor: "rgba(0,0,0,0.5)", justifyContent: "center", paddingHorizontal: 24 },
-  modalContent: { backgroundColor: Colors.surface, borderRadius: 20, padding: 24, gap: 16 },
+  modalOverlay: { flex: 1, backgroundColor: "rgba(0,0,0,0.7)", justifyContent: "center", paddingHorizontal: 24 },
+  modalContent: { backgroundColor: Colors.modalBg, borderRadius: 20, padding: 24, gap: 16, borderWidth: 1, borderColor: Colors.border },
   modalTitle: { fontFamily: "Inter_700Bold", fontSize: 20, color: Colors.text },
   photoPickerBtn: { alignSelf: "center" },
   photoPicker: { width: 80, height: 80, borderRadius: 40, backgroundColor: Colors.surfaceAlt, alignItems: "center", justifyContent: "center", overflow: "hidden" },

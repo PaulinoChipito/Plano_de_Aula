@@ -10,6 +10,7 @@ import {
 import { router, useLocalSearchParams } from "expo-router";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { Ionicons, Feather } from "@expo/vector-icons";
+import { LinearGradient } from "expo-linear-gradient";
 import * as Haptics from "expo-haptics";
 import Colors from "@/constants/colors";
 import {
@@ -134,9 +135,15 @@ export default function AttendanceMarkScreen() {
 
   return (
     <View style={styles.container}>
+      <LinearGradient
+        colors={["#0F1729", "#581C87", "#0F1729"]}
+        style={StyleSheet.absoluteFillObject}
+        start={{ x: 0.2, y: 0 }}
+        end={{ x: 0.8, y: 1 }}
+      />
       <View style={[styles.header, { paddingTop: topPadding + 12 }]}>
         <Pressable onPress={() => router.back()} style={({ pressed }) => [styles.backBtn, { opacity: pressed ? 0.6 : 1 }]}>
-          <Ionicons name="chevron-back" size={24} color={Colors.text} />
+          <Ionicons name="chevron-back" size={24} color="#fff" />
         </Pressable>
         <View style={styles.headerCenter}>
           <Text style={styles.headerTitle}>{classGroup.designacao}</Text>
@@ -173,18 +180,18 @@ const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: Colors.background },
   header: {
     flexDirection: "row", alignItems: "center", justifyContent: "space-between",
-    paddingHorizontal: 16, paddingBottom: 16, backgroundColor: Colors.surface,
+    paddingHorizontal: 16, paddingBottom: 16, backgroundColor: "rgba(15,23,42,0.7)",
     borderBottomWidth: 1, borderBottomColor: Colors.border,
   },
   backBtn: { width: 40, height: 40, alignItems: "center", justifyContent: "center" },
   headerCenter: { alignItems: "center" },
   headerTitle: { fontFamily: "Inter_700Bold", fontSize: 18, color: Colors.text },
   headerSubtitle: { fontFamily: "Inter_400Regular", fontSize: 13, color: Colors.textSecondary },
-  saveHeaderBtn: { width: 40, height: 40, alignItems: "center", justifyContent: "center", borderRadius: 12, backgroundColor: Colors.success + "15" },
+  saveHeaderBtn: { width: 40, height: 40, alignItems: "center", justifyContent: "center", borderRadius: 12, backgroundColor: "rgba(52,211,153,0.15)" },
   statsBar: {
     flexDirection: "row", justifyContent: "center", gap: 24,
-    paddingVertical: 12, backgroundColor: Colors.surface,
-    borderBottomWidth: 1, borderBottomColor: Colors.borderLight,
+    paddingVertical: 12, backgroundColor: "rgba(15,23,42,0.5)",
+    borderBottomWidth: 1, borderBottomColor: Colors.border,
   },
   statItem: { flexDirection: "row", alignItems: "center", gap: 6 },
   statDot: { width: 8, height: 8, borderRadius: 4 },
@@ -193,9 +200,9 @@ const styles = StyleSheet.create({
   studentCard: {
     flexDirection: "row", alignItems: "center", backgroundColor: Colors.surface,
     borderRadius: 14, padding: 14, gap: 12,
-    shadowColor: "#000", shadowOffset: { width: 0, height: 1 }, shadowOpacity: 0.04, shadowRadius: 4, elevation: 1,
+    borderWidth: 1, borderColor: Colors.border,
   },
-  studentCardAbsent: { backgroundColor: Colors.error + "08" },
+  studentCardAbsent: { backgroundColor: "rgba(248,113,113,0.1)", borderColor: "rgba(248,113,113,0.3)" },
   studentNum: { width: 28, height: 28, borderRadius: 14, backgroundColor: Colors.primary + "12", alignItems: "center", justifyContent: "center" },
   studentNumText: { fontFamily: "Inter_600SemiBold", fontSize: 12, color: Colors.primary },
   studentInfo: { flex: 1 },
