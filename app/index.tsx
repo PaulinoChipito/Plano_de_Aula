@@ -1,4 +1,4 @@
-import React from "react";
+import React, { useEffect, useRef } from "react";
 import {
   View,
   Text,
@@ -6,69 +6,146 @@ import {
   ScrollView,
   Pressable,
   Platform,
+  Animated,
+  Dimensions,
 } from "react-native";
 import { router } from "expo-router";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { Ionicons, MaterialCommunityIcons, Feather } from "@expo/vector-icons";
 import { LinearGradient } from "expo-linear-gradient";
 import * as Haptics from "expo-haptics";
-import Colors from "@/constants/colors";
+import Svg, { Path } from "react-native-svg";
+
+const USE_NATIVE_DRIVER = Platform.OS !== "web";
+const { width: SCREEN_WIDTH } = Dimensions.get("window");
+const CARD_GAP = 16;
+const CARD_PADDING = 20;
+const CARD_WIDTH = (SCREEN_WIDTH - CARD_PADDING * 2 - CARD_GAP) / 2;
 
 interface GridItem {
   icon: React.ReactNode;
   label: string;
   route: string;
-  gradient: [string, string];
+  gradient: [string, string, string];
 }
 
 const GRID_ITEMS: GridItem[] = [
   {
-    icon: <MaterialCommunityIcons name="file-document-edit" size={28} color="#fff" />,
+    icon: <MaterialCommunityIcons name="book-open-variant" size={32} color="#fff" />,
     label: "Plano de Aula",
     route: "/lesson-plans",
-    gradient: [Colors.primary, Colors.primaryDark],
+    gradient: ["#34D399", "#14B8A6", "#0891B2"],
   },
   {
-    icon: <Ionicons name="people" size={28} color="#fff" />,
+    icon: <Ionicons name="people" size={32} color="#fff" />,
     label: "Turmas",
     route: "/classes",
-    gradient: ["#6366F1", "#4338CA"],
+    gradient: ["#60A5FA", "#6366F1", "#9333EA"],
   },
   {
-    icon: <MaterialCommunityIcons name="clipboard-check" size={28} color="#fff" />,
-    label: "Avaliacoes",
+    icon: <MaterialCommunityIcons name="clipboard-check" size={32} color="#fff" />,
+    label: "Avaliações",
     route: "/assessments",
-    gradient: ["#F59E0B", "#D97706"],
+    gradient: ["#A78BFA", "#A855F7", "#C026D3"],
   },
   {
-    icon: <Ionicons name="calendar" size={28} color="#fff" />,
+    icon: <Ionicons name="calendar" size={32} color="#fff" />,
     label: "Agenda",
     route: "/agenda",
-    gradient: ["#EC4899", "#BE185D"],
+    gradient: ["#FBBF24", "#F97316", "#DC2626"],
   },
   {
-    icon: <MaterialCommunityIcons name="account-check" size={28} color="#fff" />,
-    label: "Presenca",
+    icon: <MaterialCommunityIcons name="account-check" size={32} color="#fff" />,
+    label: "Presenças",
     route: "/attendance",
-    gradient: ["#22C55E", "#15803D"],
+    gradient: ["#22D3EE", "#0EA5E9", "#2563EB"],
   },
   {
-    icon: <Ionicons name="stats-chart" size={28} color="#fff" />,
-    label: "Estatisticas",
+    icon: <Ionicons name="stats-chart" size={32} color="#fff" />,
+    label: "Estatísticas",
     route: "/statistics",
-    gradient: ["#3B82F6", "#1D4ED8"],
-  },
-  {
-    icon: <Ionicons name="settings-sharp" size={28} color="#fff" />,
-    label: "Definicoes",
-    route: "/settings",
-    gradient: ["#6B7280", "#374151"],
+    gradient: ["#F472B6", "#F43F5E", "#DC2626"],
   },
 ];
 
+function AnimatedBlob({
+  style,
+  xRange,
+  yRange,
+  duration,
+}: {
+  style: object;
+  xRange: [number, number];
+  yRange: [number, number];
+  duration: number;
+}) {
+  const anim = useRef(new Animated.Value(0)).current;
+
+  useEffect(() => {
+    Animated.loop(
+      Animated.sequence([
+        Animated.timing(anim, {
+          toValue: 1,
+          duration: duration / 2,
+          useNativeDriver: USE_NATIVE_DRIVER,
+        }),
+        Animated.timing(anim, {
+          toValue: 0,
+          duration: duration / 2,
+          useNativeDriver: USE_NATIVE_DRIVER,
+        }),
+      ])
+    ).start();
+  }, []);
+
+  const translateX = anim.interpolate({
+    inputRange: [0, 1],
+    outputRange: xRange,
+  });
+  const translateY = anim.interpolate({
+    inputRange: [0, 1],
+    outputRange: yRange,
+  });
+
+  return (
+    <Animated.View
+      style={[style, { transform: [{ translateX }, { translateY }] }]}
+    />
+  );
+}
+
+function WaveSvg() {
+  return (
+    <Svg viewBox="0 0 1440 48" width="100%" height={48} style={{ marginTop: -1 }}>
+      <Path
+        d="M0 48H1440V0C1440 0 1080 48 720 48C360 48 0 0 0 0V48Z"
+        fill="rgba(15,23,42,0.5)"
+      />
+    </Svg>
+  );
+}
+
 export default function Dashboard() {
   const insets = useSafeAreaInsets();
-  const topPadding = Platform.OS === "web" ? 67 : insets.top;
+  const topPadding = Platform.OS === "web" ? 16 : insets.top;
+
+  const cardScales = useRef(GRID_ITEMS.map(() => new Animated.Value(1))).current;
+
+  const handlePressIn = (index: number) => {
+    Animated.spring(cardScales[index], {
+      toValue: 0.95,
+      useNativeDriver: USE_NATIVE_DRIVER,
+      speed: 50,
+    }).start();
+  };
+
+  const handlePressOut = (index: number) => {
+    Animated.spring(cardScales[index], {
+      toValue: 1,
+      useNativeDriver: USE_NATIVE_DRIVER,
+      speed: 20,
+    }).start();
+  };
 
   const handlePress = (route: string) => {
     if (Platform.OS !== "web") {
@@ -78,57 +155,100 @@ export default function Dashboard() {
   };
 
   return (
-    <View style={styles.container}>
+    <View style={styles.root}>
       <LinearGradient
-        colors={[Colors.primary, Colors.primaryDark, "#0A3D5C"]}
-        style={[styles.header, { paddingTop: topPadding + 16 }]}
-      >
-        <View style={styles.headerContent}>
-          <View>
-            <Text style={styles.greeting}>Lesson Planner</Text>
-            <Text style={styles.subtitle}>Pro</Text>
-          </View>
-          <Pressable
-            onPress={() => handlePress("/settings")}
-            style={({ pressed }) => [
-              styles.settingsBtn,
-              { opacity: pressed ? 0.7 : 1 },
-            ]}
-          >
-            <Feather name="settings" size={22} color="rgba(255,255,255,0.9)" />
-          </Pressable>
-        </View>
-      </LinearGradient>
+        colors={["#0F1729", "#581C87", "#0F1729"]}
+        style={StyleSheet.absoluteFillObject}
+        start={{ x: 0.2, y: 0 }}
+        end={{ x: 0.8, y: 1 }}
+      />
+
+      <AnimatedBlob
+        style={styles.blobPurple}
+        xRange={[0, 100]}
+        yRange={[0, 50]}
+        duration={20000}
+      />
+      <AnimatedBlob
+        style={styles.blobTeal}
+        xRange={[0, -100]}
+        yRange={[0, -50]}
+        duration={15000}
+      />
 
       <ScrollView
         style={styles.scrollView}
-        contentContainerStyle={[
-          styles.gridContainer,
-          { paddingBottom: Platform.OS === "web" ? 34 : insets.bottom + 20 },
-        ]}
+        contentContainerStyle={{
+          paddingBottom: Platform.OS === "web" ? 34 : insets.bottom + 24,
+        }}
         showsVerticalScrollIndicator={false}
       >
-        <View style={styles.grid}>
-          {GRID_ITEMS.map((item, index) => (
+        <LinearGradient
+          colors={["#10B981", "#14B8A6", "#06B6D4"]}
+          style={[styles.header, { paddingTop: topPadding + 20 }]}
+          start={{ x: 0, y: 0 }}
+          end={{ x: 1, y: 0 }}
+        >
+          <View style={styles.headerRow}>
+            <View style={styles.headerSpacer} />
+            <View style={styles.headerInner}>
+              <Ionicons name="sparkles" size={20} color="rgba(255,255,255,0.9)" />
+              <Text style={styles.headerTitle}>Lesson Planner Pro</Text>
+              <Ionicons name="sparkles" size={20} color="rgba(255,255,255,0.9)" />
+            </View>
             <Pressable
-              key={index}
-              onPress={() => handlePress(item.route)}
+              onPress={() => handlePress("/settings")}
               style={({ pressed }) => [
-                styles.gridItem,
-                { transform: [{ scale: pressed ? 0.95 : 1 }] },
+                styles.settingsBtn,
+                { opacity: pressed ? 0.7 : 1 },
               ]}
             >
-              <LinearGradient
-                colors={item.gradient}
-                style={styles.gridItemGradient}
-                start={{ x: 0, y: 0 }}
-                end={{ x: 1, y: 1 }}
-              >
-                <View style={styles.iconContainer}>{item.icon}</View>
-                <Text style={styles.gridLabel}>{item.label}</Text>
-              </LinearGradient>
+              <Feather name="settings" size={20} color="rgba(255,255,255,0.9)" />
             </Pressable>
-          ))}
+          </View>
+          <WaveSvg />
+        </LinearGradient>
+
+        <View style={styles.gridContainer}>
+          <View style={styles.grid}>
+            {GRID_ITEMS.map((item, index) => (
+              <Animated.View
+                key={index}
+                style={[
+                  styles.cardWrapper,
+                  { transform: [{ scale: cardScales[index] }] },
+                ]}
+              >
+                <Pressable
+                  onPress={() => handlePress(item.route)}
+                  onPressIn={() => handlePressIn(index)}
+                  onPressOut={() => handlePressOut(index)}
+                  style={styles.card}
+                >
+                  <View style={styles.cardBorder}>
+                    <View style={styles.cardContent}>
+                      <LinearGradient
+                        colors={item.gradient}
+                        style={styles.iconContainer}
+                        start={{ x: 0, y: 0 }}
+                        end={{ x: 1, y: 1 }}
+                      >
+                        {item.icon}
+                      </LinearGradient>
+                      <Text style={styles.cardLabel}>{item.label}</Text>
+                    </View>
+                  </View>
+                </Pressable>
+              </Animated.View>
+            ))}
+          </View>
+
+          <View style={styles.footer}>
+            <View style={styles.footerBadge}>
+              <View style={styles.statusDot} />
+              <Text style={styles.footerText}>Sistema Activo · INIDE Angola</Text>
+            </View>
+          </View>
         </View>
       </ScrollView>
     </View>
@@ -136,74 +256,131 @@ export default function Dashboard() {
 }
 
 const styles = StyleSheet.create({
-  container: {
+  root: {
     flex: 1,
-    backgroundColor: Colors.background,
+    backgroundColor: "#0F1729",
   },
-  header: {
-    paddingHorizontal: 24,
-    paddingBottom: 32,
-    borderBottomLeftRadius: 28,
-    borderBottomRightRadius: 28,
+  blobPurple: {
+    position: "absolute",
+    top: 80,
+    left: -80,
+    width: 288,
+    height: 288,
+    borderRadius: 144,
+    backgroundColor: "rgba(168,85,247,0.2)",
   },
-  headerContent: {
-    flexDirection: "row",
-    justifyContent: "space-between",
-    alignItems: "center",
-  },
-  greeting: {
-    fontFamily: "Inter_700Bold",
-    fontSize: 28,
-    color: "#fff",
-  },
-  subtitle: {
-    fontFamily: "Inter_500Medium",
-    fontSize: 16,
-    color: "rgba(255,255,255,0.7)",
-    marginTop: 2,
-  },
-  settingsBtn: {
-    width: 44,
-    height: 44,
-    borderRadius: 22,
-    backgroundColor: "rgba(255,255,255,0.15)",
-    alignItems: "center",
-    justifyContent: "center",
+  blobTeal: {
+    position: "absolute",
+    bottom: 80,
+    right: -80,
+    width: 384,
+    height: 384,
+    borderRadius: 192,
+    backgroundColor: "rgba(20,184,166,0.2)",
   },
   scrollView: {
     flex: 1,
   },
-  gridContainer: {
-    padding: 20,
+  header: {
+    paddingHorizontal: 20,
+    paddingBottom: 0,
+    overflow: "hidden",
   },
-  grid: {
+  headerRow: {
     flexDirection: "row",
-    flexWrap: "wrap",
-    gap: 16,
-  },
-  gridItem: {
-    width: "47%" as any,
-    flexGrow: 1,
-    minWidth: 150,
-  },
-  gridItemGradient: {
-    borderRadius: 20,
-    padding: 20,
-    minHeight: 130,
+    alignItems: "center",
     justifyContent: "space-between",
+    paddingBottom: 20,
   },
-  iconContainer: {
-    width: 48,
-    height: 48,
-    borderRadius: 14,
+  headerSpacer: {
+    width: 40,
+  },
+  headerInner: {
+    flex: 1,
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
+    gap: 8,
+  },
+  headerTitle: {
+    fontFamily: "Inter_600SemiBold",
+    fontSize: 20,
+    color: "#fff",
+  },
+  settingsBtn: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
     backgroundColor: "rgba(255,255,255,0.2)",
     alignItems: "center",
     justifyContent: "center",
   },
-  gridLabel: {
-    fontFamily: "Inter_600SemiBold",
-    fontSize: 15,
+  gridContainer: {
+    padding: CARD_PADDING,
+    paddingTop: 24,
+  },
+  grid: {
+    flexDirection: "row",
+    flexWrap: "wrap",
+    gap: CARD_GAP,
+  },
+  cardWrapper: {
+    width: CARD_WIDTH,
+  },
+  card: {
+    borderRadius: 24,
+    overflow: "hidden",
+  },
+  cardBorder: {
+    borderRadius: 24,
+    borderWidth: 1,
+    borderColor: "rgba(255,255,255,0.2)",
+    backgroundColor: "rgba(255,255,255,0.08)",
+  },
+  cardContent: {
+    padding: 20,
+    minHeight: 140,
+    alignItems: "center",
+    justifyContent: "center",
+    gap: 14,
+  },
+  iconContainer: {
+    width: 72,
+    height: 72,
+    borderRadius: 20,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  cardLabel: {
+    fontFamily: "Inter_500Medium",
+    fontSize: 14,
     color: "#fff",
-    marginTop: 12,
+    textAlign: "center",
+  },
+  footer: {
+    marginTop: 32,
+    alignItems: "center",
+  },
+  footerBadge: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 8,
+    paddingHorizontal: 16,
+    paddingVertical: 8,
+    borderRadius: 999,
+    backgroundColor: "rgba(255,255,255,0.1)",
+    borderWidth: 1,
+    borderColor: "rgba(255,255,255,0.15)",
+  },
+  statusDot: {
+    width: 8,
+    height: 8,
+    borderRadius: 4,
+    backgroundColor: "#34D399",
+  },
+  footerText: {
+    fontFamily: "Inter_400Regular",
+    fontSize: 13,
+    color: "rgba(255,255,255,0.7)",
   },
 });
