@@ -97,10 +97,19 @@ export interface AgendaEvent {
   descricao: string;
 }
 
+export const NIVEL_ENSINO_OPTIONS = [
+  "Ensino Primário",
+  "1.º Ciclo do Ensino Secundário",
+  "2.º Ciclo do Ensino Secundário",
+  "Universidade",
+];
+
 export interface TeacherProfile {
   nome: string;
+  email: string;
   instituicao: string;
-  disciplina: string;
+  nivelEnsino: string;
+  disciplinas: string;
 }
 
 const KEYS = {
@@ -111,6 +120,7 @@ const KEYS = {
   EVENTS: "events",
   API_KEY: "gemini_api_key",
   TEACHER_PROFILE: "teacher_profile",
+  ONBOARDING_DONE: "onboarding_done",
 };
 
 async function getItem<T>(key: string, fallback: T): Promise<T> {
@@ -225,11 +235,22 @@ export async function deleteEvent(id: string): Promise<void> {
 export async function getTeacherProfile(): Promise<TeacherProfile> {
   return getItem<TeacherProfile>(KEYS.TEACHER_PROFILE, {
     nome: "",
+    email: "",
     instituicao: "",
-    disciplina: "",
+    nivelEnsino: "",
+    disciplinas: "",
   });
 }
 
 export async function saveTeacherProfile(profile: TeacherProfile): Promise<void> {
   await setItem(KEYS.TEACHER_PROFILE, profile);
+}
+
+export async function isOnboardingDone(): Promise<boolean> {
+  const val = await AsyncStorage.getItem(KEYS.ONBOARDING_DONE);
+  return val === "true";
+}
+
+export async function markOnboardingDone(): Promise<void> {
+  await AsyncStorage.setItem(KEYS.ONBOARDING_DONE, "true");
 }

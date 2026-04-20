@@ -192,9 +192,11 @@ export default function Dashboard() {
           <View style={styles.headerRow}>
             <View style={styles.headerSpacer} />
             <View style={styles.headerInner}>
-              <Ionicons name="sparkles" size={20} color="rgba(255,255,255,0.9)" />
-              <Text style={styles.headerTitle}>Lesson Planner Pro</Text>
-              <Ionicons name="sparkles" size={20} color="rgba(255,255,255,0.9)" />
+              <MaterialCommunityIcons name="school" size={22} color="rgba(255,255,255,0.9)" />
+              <View style={styles.headerTitleBlock}>
+                <Text style={styles.headerTitle}>EcoEducacional</Text>
+                <Text style={styles.headerSubtitle}>Gestão Pedagógica</Text>
+              </View>
             </View>
             <Pressable
               onPress={() => handlePress("/settings")}
@@ -302,10 +304,21 @@ const styles = StyleSheet.create({
     justifyContent: "center",
     gap: 8,
   },
+  headerTitleBlock: {
+    alignItems: "center",
+    gap: 1,
+  },
   headerTitle: {
-    fontFamily: "Inter_600SemiBold",
+    fontFamily: "Inter_700Bold",
     fontSize: 20,
     color: "#fff",
+    letterSpacing: -0.3,
+  },
+  headerSubtitle: {
+    fontFamily: "Inter_400Regular",
+    fontSize: 11,
+    color: "rgba(255,255,255,0.75)",
+    letterSpacing: 0.5,
   },
   settingsBtn: {
     width: 40,

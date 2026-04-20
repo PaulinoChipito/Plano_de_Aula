@@ -9,6 +9,7 @@ import {
   Alert,
   KeyboardAvoidingView,
   ScrollView,
+  Modal,
 } from "react-native";
 import { router } from "expo-router";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
@@ -21,6 +22,7 @@ import {
   getTeacherProfile,
   saveTeacherProfile,
   TeacherProfile,
+  NIVEL_ENSINO_OPTIONS,
 } from "@/lib/storage";
 import { isModelCachedWeb, resetModel } from "@/lib/localAI";
 
@@ -30,11 +32,14 @@ export default function SettingsScreen() {
   const bottomPadding = Platform.OS === "web" ? 34 : insets.bottom;
   const [profileSaved, setProfileSaved] = useState(false);
   const [modelCached, setModelCached] = useState(false);
+  const [showNivelModal, setShowNivelModal] = useState(false);
 
   const [profile, setProfile] = useState<TeacherProfile>({
     nome: "",
+    email: "",
     instituicao: "",
-    disciplina: "",
+    nivelEnsino: "",
+    disciplinas: "",
   });
 
   useEffect(() => {
@@ -69,7 +74,6 @@ export default function SettingsScreen() {
     setTimeout(() => setProfileSaved(false), 2000);
   };
 
-
   return (
     <View style={styles.container}>
       <LinearGradient
@@ -88,7 +92,7 @@ export default function SettingsScreen() {
         >
           <Ionicons name="chevron-back" size={24} color="#fff" />
         </Pressable>
-        <Text style={styles.headerTitle}>Definicoes</Text>
+        <Text style={styles.headerTitle}>Definições</Text>
         <View style={{ width: 40 }} />
       </View>
 
@@ -102,13 +106,14 @@ export default function SettingsScreen() {
             { paddingBottom: bottomPadding + 20 },
           ]}
           showsVerticalScrollIndicator={false}
+          keyboardShouldPersistTaps="handled"
         >
           <View style={styles.section}>
             <View style={styles.sectionHeader}>
               <View style={styles.sectionIconContainer}>
                 <Feather name="user" size={20} color={Colors.primary} />
               </View>
-              <View>
+              <View style={{ flex: 1 }}>
                 <Text style={styles.sectionTitle}>Perfil do Professor</Text>
                 <Text style={styles.sectionSubtitle}>
                   Os seus dados pessoais e profissionais
@@ -117,42 +122,79 @@ export default function SettingsScreen() {
             </View>
 
             <View style={styles.inputGroup}>
-              <Text style={styles.inputLabel}>Nome do Professor</Text>
+              <Text style={styles.inputLabel}>Nome completo</Text>
               <TextInput
                 style={styles.profileInput}
                 value={profile.nome}
                 onChangeText={(text) =>
                   setProfile((prev) => ({ ...prev, nome: text }))
                 }
-                placeholder="Ex: Joao Silva"
+                placeholder="Ex: Maria João Silva"
                 placeholderTextColor={Colors.textMuted}
+                autoCapitalize="words"
               />
             </View>
 
             <View style={styles.inputGroup}>
-              <Text style={styles.inputLabel}>Nome da Instituicao</Text>
+              <Text style={styles.inputLabel}>Endereço de e-mail</Text>
+              <TextInput
+                style={styles.profileInput}
+                value={profile.email}
+                onChangeText={(text) =>
+                  setProfile((prev) => ({ ...prev, email: text }))
+                }
+                placeholder="Ex: joao.silva@escola.ao"
+                placeholderTextColor={Colors.textMuted}
+                keyboardType="email-address"
+                autoCapitalize="none"
+              />
+            </View>
+
+            <View style={styles.inputGroup}>
+              <Text style={styles.inputLabel}>Nome da Instituição</Text>
               <TextInput
                 style={styles.profileInput}
                 value={profile.instituicao}
                 onChangeText={(text) =>
                   setProfile((prev) => ({ ...prev, instituicao: text }))
                 }
-                placeholder="Ex: Escola Secundaria de Luanda"
+                placeholder="Ex: Escola Secundária do Rangel"
                 placeholderTextColor={Colors.textMuted}
+                autoCapitalize="words"
               />
             </View>
 
             <View style={styles.inputGroup}>
-              <Text style={styles.inputLabel}>Disciplina que Lecciona</Text>
+              <Text style={styles.inputLabel}>Nível de Ensino</Text>
+              <Pressable
+                onPress={() => setShowNivelModal(true)}
+                style={({ pressed }) => [
+                  styles.selectBtn,
+                  pressed && { opacity: 0.8 },
+                  profile.nivelEnsino ? styles.selectBtnFilled : null,
+                ]}
+              >
+                <Text style={profile.nivelEnsino ? styles.selectBtnText : styles.selectBtnPlaceholder}>
+                  {profile.nivelEnsino || "Selecionar nível de ensino"}
+                </Text>
+                <Feather name="chevron-down" size={16} color={profile.nivelEnsino ? Colors.primary : Colors.textMuted} />
+              </Pressable>
+            </View>
+
+            <View style={styles.inputGroup}>
+              <Text style={styles.inputLabel}>Disciplinas que Lecciona</Text>
               <TextInput
-                style={styles.profileInput}
-                value={profile.disciplina}
+                style={[styles.profileInput, { minHeight: 60, textAlignVertical: "top" }]}
+                value={profile.disciplinas}
                 onChangeText={(text) =>
-                  setProfile((prev) => ({ ...prev, disciplina: text }))
+                  setProfile((prev) => ({ ...prev, disciplinas: text }))
                 }
-                placeholder="Ex: Matematica"
+                placeholder="Ex: Matemática, Física"
                 placeholderTextColor={Colors.textMuted}
+                multiline
+                numberOfLines={2}
               />
+              <Text style={styles.fieldHint}>Separe por vírgulas se leccionar mais de uma</Text>
             </View>
 
             <Pressable
@@ -200,7 +242,7 @@ export default function SettingsScreen() {
                   color={Platform.OS === "web" ? Colors.success : Colors.primary}
                 />
                 <Text style={[styles.modelBadgeText, { color: Platform.OS === "web" ? Colors.success : Colors.primary }]}>
-                  {Platform.OS === "web" ? "Modelo neural (web)" : "Geração por modelos (nativo)"}
+                  {Platform.OS === "web" ? "Modelo neural (web)" : "Modelos pedagógicos (nativo)"}
                 </Text>
               </View>
               {Platform.OS === "web" && (
@@ -211,7 +253,7 @@ export default function SettingsScreen() {
                     color={modelCached ? Colors.success : Colors.warning}
                   />
                   <Text style={[styles.modelBadgeText, { color: modelCached ? Colors.success : Colors.warning }]}>
-                    {modelCached ? "Carregado" : "Será descarregado"}
+                    {modelCached ? "Carregado em cache" : "Será descarregado"}
                   </Text>
                 </View>
               )}
@@ -246,6 +288,34 @@ export default function SettingsScreen() {
           </View>
         </ScrollView>
       </KeyboardAvoidingView>
+
+      <Modal visible={showNivelModal} transparent animationType="fade" onRequestClose={() => setShowNivelModal(false)}>
+        <Pressable style={styles.modalOverlay} onPress={() => setShowNivelModal(false)}>
+          <Pressable style={styles.modalContent} onPress={() => {}}>
+            <Text style={styles.modalTitle}>Nível de Ensino</Text>
+            {NIVEL_ENSINO_OPTIONS.map((opt) => (
+              <Pressable
+                key={opt}
+                onPress={() => {
+                  setProfile((prev) => ({ ...prev, nivelEnsino: opt }));
+                  setShowNivelModal(false);
+                  if (Platform.OS !== "web") Haptics.selectionAsync();
+                }}
+                style={({ pressed }) => [
+                  styles.nivelOption,
+                  profile.nivelEnsino === opt && styles.nivelOptionSelected,
+                  pressed && { opacity: 0.8 },
+                ]}
+              >
+                <Text style={[styles.nivelOptionText, profile.nivelEnsino === opt && styles.nivelOptionTextSelected]}>
+                  {opt}
+                </Text>
+                {profile.nivelEnsino === opt && <Feather name="check" size={16} color={Colors.primary} />}
+              </Pressable>
+            ))}
+          </Pressable>
+        </Pressable>
+      </Modal>
     </View>
   );
 }
@@ -314,12 +384,17 @@ const styles = StyleSheet.create({
   },
   inputGroup: {
     marginBottom: 14,
+    gap: 6,
   },
   inputLabel: {
     fontFamily: "Inter_500Medium",
     fontSize: 13,
     color: Colors.textSecondary,
-    marginBottom: 6,
+  },
+  fieldHint: {
+    fontFamily: "Inter_400Regular",
+    fontSize: 11,
+    color: Colors.textMuted,
   },
   profileInput: {
     backgroundColor: Colors.background,
@@ -332,33 +407,34 @@ const styles = StyleSheet.create({
     fontSize: 15,
     color: Colors.text,
   },
-  inputWrapper: {
+  selectBtn: {
     flexDirection: "row",
     alignItems: "center",
+    justifyContent: "space-between",
     backgroundColor: Colors.background,
     borderRadius: 12,
     borderWidth: 1,
     borderColor: Colors.border,
     paddingHorizontal: 14,
+    paddingVertical: 13,
   },
-  input: {
-    flex: 1,
+  selectBtnFilled: {
+    borderColor: Colors.primary + "60",
+    backgroundColor: Colors.primary + "08",
+  },
+  selectBtnText: {
     fontFamily: "Inter_400Regular",
     fontSize: 15,
     color: Colors.text,
-    paddingVertical: 14,
+    flex: 1,
   },
-  eyeBtn: {
-    padding: 8,
-  },
-  buttonRow: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 12,
-    marginTop: 16,
+  selectBtnPlaceholder: {
+    fontFamily: "Inter_400Regular",
+    fontSize: 15,
+    color: Colors.textMuted,
+    flex: 1,
   },
   saveBtn: {
-    flex: 1,
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "center",
@@ -376,17 +452,6 @@ const styles = StyleSheet.create({
     fontSize: 15,
     color: "#fff",
   },
-  clearBtn: {
-    width: 48,
-    height: 48,
-    borderRadius: 12,
-    borderWidth: 1,
-    borderColor: Colors.error + "30",
-    backgroundColor: Colors.error + "10",
-    alignItems: "center",
-    justifyContent: "center",
-    marginTop: 4,
-  },
   infoCard: {
     flexDirection: "row",
     alignItems: "flex-start",
@@ -394,6 +459,8 @@ const styles = StyleSheet.create({
     backgroundColor: Colors.success + "10",
     borderRadius: 12,
     padding: 16,
+    borderWidth: 1,
+    borderColor: Colors.success + "25",
   },
   infoText: {
     flex: 1,
@@ -443,5 +510,50 @@ const styles = StyleSheet.create({
     fontFamily: "Inter_500Medium",
     fontSize: 13,
     color: Colors.error,
+  },
+  modalOverlay: {
+    flex: 1,
+    backgroundColor: "rgba(0,0,0,0.7)",
+    justifyContent: "center",
+    paddingHorizontal: 24,
+  },
+  modalContent: {
+    backgroundColor: Colors.modalBg,
+    borderRadius: 20,
+    padding: 24,
+    gap: 10,
+    borderWidth: 1,
+    borderColor: Colors.border,
+  },
+  modalTitle: {
+    fontFamily: "Inter_700Bold",
+    fontSize: 18,
+    color: Colors.text,
+    marginBottom: 6,
+  },
+  nivelOption: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+    paddingHorizontal: 14,
+    paddingVertical: 13,
+    borderRadius: 12,
+    borderWidth: 1,
+    borderColor: Colors.border,
+    backgroundColor: "rgba(255,255,255,0.04)",
+  },
+  nivelOptionSelected: {
+    borderColor: Colors.primary + "80",
+    backgroundColor: Colors.primary + "12",
+  },
+  nivelOptionText: {
+    fontFamily: "Inter_400Regular",
+    fontSize: 14,
+    color: Colors.textSecondary,
+    flex: 1,
+  },
+  nivelOptionTextSelected: {
+    color: Colors.primary,
+    fontFamily: "Inter_500Medium",
   },
 });
