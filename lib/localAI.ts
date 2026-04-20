@@ -84,6 +84,7 @@ function buildPrompt(
   disciplina: string,
   tema: string,
   duracao: string,
+  sumario?: string,
 ): string {
   const classeNum = parseInt(classe.replace(/[^\d]/g, "")) || 0;
   let nivel = "";
@@ -93,15 +94,20 @@ function buildPrompt(
   else if (classeNum >= 10 && classeNum <= 12) nivel = "II Ciclo do Ensino Secundário (15–18 anos)";
   else nivel = "Ensino Superior (+18 anos)";
 
+  const sumarioLine = sumario
+    ? `Sumário (descrição detalhada do que o professor vai leccionar): "${sumario}"`
+    : "";
+
   return `Gera um plano de aula completo para:
 Classe: ${classe} | Nível: ${nivel}
 Disciplina: ${disciplina}
 Tema: ${tema}
+${sumarioLine}
 Duração: ${duracao} minutos
 
 Responde APENAS com este JSON (sem markdown):
 {
-  "sumario": "título descritivo da aula (tema + disciplina + classe)",
+  "sumario": "${sumario ? sumario : `título descritivo da aula (tema + disciplina + classe)`}",
   "faixaEtaria": "${nivel}",
   "objetivoGeral": "1 verbo infinitivo + competência central da aula (sem 'e', sem encadeamento)",
   "objetivosEspecificos": [
@@ -188,12 +194,13 @@ async function generateWithQwen(
   tema: string,
   duracao: string,
   onStatus: (s: GenerationStatus) => void,
+  sumario?: string,
 ): Promise<LessonPlanAIResult> {
   await loadPipeline(onStatus);
   onStatus({ stage: "generating", message: "A gerar plano de aula com IA local..." });
   const messages = [
     { role: "system", content: SYSTEM_PROMPT },
-    { role: "user", content: buildPrompt(classe, disciplina, tema, duracao) },
+    { role: "user", content: buildPrompt(classe, disciplina, tema, duracao, sumario) },
   ];
   const result = await pipelineInstance(messages, {
     max_new_tokens: 1800,
@@ -215,9 +222,9 @@ async function generateWithQwen(
     parsed = JSON.parse(jsonStr);
   } catch {
     const partial = jsonStr.replace(/,?\s*$/, "}");
-    try { parsed = JSON.parse(partial); } catch { return buildTemplatePlan(classe, disciplina, tema, duracao); }
+    try { parsed = JSON.parse(partial); } catch { return buildTemplatePlan(classe, disciplina, tema, duracao, sumario); }
   }
-  return mergeWithDefaults(parsed, classe, disciplina, tema, duracao);
+  return mergeWithDefaults(parsed, classe, disciplina, tema, duracao, sumario);
 }
 
 function mergeWithDefaults(
@@ -226,10 +233,11 @@ function mergeWithDefaults(
   disciplina: string,
   tema: string,
   duracao: string,
+  sumario?: string,
 ): LessonPlanAIResult {
-  const tmpl = buildTemplatePlan(classe, disciplina, tema, duracao);
+  const tmpl = buildTemplatePlan(classe, disciplina, tema, duracao, sumario);
   return {
-    sumario: parsed.sumario || tmpl.sumario,
+    sumario: sumario || parsed.sumario || tmpl.sumario,
     faixaEtaria: parsed.faixaEtaria || tmpl.faixaEtaria,
     objetivoGeral: parsed.objetivoGeral || tmpl.objetivoGeral,
     objetivosEspecificos: parsed.objetivosEspecificos?.length ? parsed.objetivosEspecificos : tmpl.objetivosEspecificos,
@@ -675,6 +683,7 @@ export function buildTemplatePlan(
   disciplina: string,
   tema: string,
   duracao: string,
+  sumario?: string,
 ): LessonPlanAIResult {
   const faixa = detectFaixaEtaria(classe);
   const natureza = detectTemaNatureza(tema);
@@ -694,7 +703,7 @@ export function buildTemplatePlan(
   const avaliacao = gerarAvaliacao(disciplina, natureza);
 
   return {
-    sumario: `${tema} — ${disciplina}, ${classe}`,
+    sumario: sumario || `${tema} — ${disciplina}, ${classe}`,
     faixaEtaria: `${faixa.faixa} (${faixa.nivel})`,
     objetivoGeral: objGeral,
     objetivosEspecificos: objEspecificos,
@@ -724,10 +733,11 @@ export async function generateLessonPlanOffline(
   tema: string,
   duracao: string,
   onStatus: (s: GenerationStatus) => void,
+  sumario?: string,
 ): Promise<LessonPlanAIResult> {
   if (Platform.OS === "web") {
     try {
-      return await generateWithQwen(classe, disciplina, tema, duracao, onStatus);
+      return await generateWithQwen(classe, disciplina, tema, duracao, onStatus, sumario);
     } catch (err: any) {
       onStatus({ stage: "error", error: err.message });
       throw err;
@@ -735,7 +745,7 @@ export async function generateLessonPlanOffline(
   } else {
     onStatus({ stage: "generating", message: "A gerar plano pedagógico..." });
     await new Promise((r) => setTimeout(r, 500));
-    const result = buildTemplatePlan(classe, disciplina, tema, duracao);
+    const result = buildTemplatePlan(classe, disciplina, tema, duracao, sumario);
     onStatus({ stage: "done" });
     return result;
   }

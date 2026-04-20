@@ -53,6 +53,8 @@ export default function CreatePlanScreen() {
   const canSaveManual =
     classe.trim() && disciplina.trim() && tema.trim() && duracao.trim() && sumario.trim();
 
+  const sumarioParaIA = sumario.trim();
+
   const generateWithAI = async () => {
     setLoading(true);
     setGenStatus({ stage: "idle" });
@@ -63,6 +65,7 @@ export default function CreatePlanScreen() {
         tema,
         duracao,
         (status) => setGenStatus(status),
+        sumarioParaIA,
       );
 
       const plan: LessonPlan = {
@@ -71,7 +74,7 @@ export default function CreatePlanScreen() {
         disciplina,
         tema,
         duracao,
-        sumario: result.sumario,
+        sumario: sumarioParaIA || result.sumario,
         objetivoGeral: result.objetivoGeral,
         objetivosEspecificos: result.objetivosEspecificos,
         conteudos: result.conteudos,
@@ -271,6 +274,18 @@ export default function CreatePlanScreen() {
               <View style={styles.inputGroup}>
                 <Text style={styles.label}>Tema</Text>
                 <TextInput style={styles.input} value={tema} onChangeText={setTema} placeholder="Ex: Equacoes do 2o grau" placeholderTextColor={Colors.textMuted} />
+              </View>
+              <View style={styles.inputGroup}>
+                <Text style={styles.label}>Sumario</Text>
+                <Text style={styles.labelHint}>Descreva brevemente o que vai ser ensinado. A IA usará este texto para criar um plano mais específico.</Text>
+                <TextInput
+                  style={[styles.input, styles.textArea]}
+                  value={sumario}
+                  onChangeText={setSumario}
+                  multiline
+                  placeholder="Ex: Revisao dos numeros naturais, introducao ao conceito de equacao, resolucao de equacoes simples com uma incognita..."
+                  placeholderTextColor={Colors.textMuted}
+                />
               </View>
               <View style={styles.inputGroup}>
                 <Text style={styles.label}>Duracao (minutos)</Text>
@@ -657,4 +672,5 @@ const styles = StyleSheet.create({
   etapaRoleText: { fontFamily: "Inter_400Regular", fontSize: 13, color: Colors.textSecondary, lineHeight: 18, marginTop: 2 },
   tpcItem: { flexDirection: "row", alignItems: "flex-start", gap: 8, paddingVertical: 4 },
   tpcMeta: { fontFamily: "Inter_400Regular", fontSize: 12, color: Colors.primary, marginTop: 2, fontStyle: "italic" },
+  labelHint: { fontFamily: "Inter_400Regular", fontSize: 12, color: Colors.textSecondary, marginBottom: 6, lineHeight: 16 },
 });
