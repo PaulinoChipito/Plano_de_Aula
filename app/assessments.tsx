@@ -9,7 +9,7 @@ import {
 } from "react-native";
 import { router, useFocusEffect } from "expo-router";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
-import { Ionicons, MaterialCommunityIcons } from "@expo/vector-icons";
+import Icon from "@/components/Icon";
 import { LinearGradient } from "expo-linear-gradient";
 import Colors from "@/constants/colors";
 import { getClasses, ClassGroup } from "@/lib/storage";
@@ -32,13 +32,13 @@ export default function AssessmentsScreen() {
       style={({ pressed }) => [styles.card, { opacity: pressed ? 0.95 : 1 }]}
     >
       <View style={styles.cardIcon}>
-        <MaterialCommunityIcons name="clipboard-check" size={22} color="#D97706" />
+        <Icon name="clipboard-check" size={22} color="#D97706" />
       </View>
       <View style={styles.cardContent}>
         <Text style={styles.cardTitle}>{item.designacao}</Text>
         <Text style={styles.cardSubtitle}>{item.disciplina} - {item.alunos.length} alunos</Text>
       </View>
-      <Ionicons name="chevron-forward" size={18} color={Colors.textMuted} />
+      <Icon name="chevron-forward" size={18} color={Colors.textMuted} />
     </Pressable>
   );
 
@@ -52,7 +52,7 @@ export default function AssessmentsScreen() {
       />
       <View style={[styles.header, { paddingTop: topPadding + 12 }]}>
         <Pressable onPress={() => router.back()} style={({ pressed }) => [styles.backBtn, { opacity: pressed ? 0.6 : 1 }]}>
-          <Ionicons name="chevron-back" size={24} color="#fff" />
+          <Icon name="chevron-back" size={24} color="#fff" />
         </Pressable>
         <Text style={styles.headerTitle}>Avaliacoes</Text>
         <View style={{ width: 40 }} />
@@ -66,7 +66,7 @@ export default function AssessmentsScreen() {
         showsVerticalScrollIndicator={false}
         ListEmptyComponent={
           <View style={styles.emptyContainer}>
-            <MaterialCommunityIcons name="clipboard-text-outline" size={48} color={Colors.textMuted} />
+            <Icon name="clipboard-text-outline" size={48} color={Colors.textMuted} />
             <Text style={styles.emptyTitle}>Sem turmas</Text>
             <Text style={styles.emptySubtitle}>Crie turmas primeiro para avaliar alunos</Text>
           </View>

@@ -13,8 +13,7 @@ import {
 } from "react-native";
 import { router } from "expo-router";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
-import { Ionicons, Feather } from "@expo/vector-icons";
-import { MaterialCommunityIcons } from "@expo/vector-icons";
+import Icon from "@/components/Icon";
 import { LinearGradient } from "expo-linear-gradient";
 import * as Haptics from "expo-haptics";
 import Colors from "@/constants/colors";
@@ -90,7 +89,7 @@ export default function SettingsScreen() {
             { opacity: pressed ? 0.6 : 1 },
           ]}
         >
-          <Ionicons name="chevron-back" size={24} color="#fff" />
+          <Icon name="chevron-back" size={24} color="#fff" />
         </Pressable>
         <Text style={styles.headerTitle}>Definições</Text>
         <View style={{ width: 40 }} />
@@ -111,7 +110,7 @@ export default function SettingsScreen() {
           <View style={styles.section}>
             <View style={styles.sectionHeader}>
               <View style={styles.sectionIconContainer}>
-                <Feather name="user" size={20} color={Colors.primary} />
+                <Icon name="user" size={20} color={Colors.primary} />
               </View>
               <View style={{ flex: 1 }}>
                 <Text style={styles.sectionTitle}>Perfil do Professor</Text>
@@ -177,7 +176,7 @@ export default function SettingsScreen() {
                 <Text style={profile.nivelEnsino ? styles.selectBtnText : styles.selectBtnPlaceholder}>
                   {profile.nivelEnsino || "Selecionar nível de ensino"}
                 </Text>
-                <Feather name="chevron-down" size={16} color={profile.nivelEnsino ? Colors.primary : Colors.textMuted} />
+                <Icon name="chevron-down" size={16} color={profile.nivelEnsino ? Colors.primary : Colors.textMuted} />
               </Pressable>
             </View>
 
@@ -205,11 +204,7 @@ export default function SettingsScreen() {
                 { opacity: pressed ? 0.9 : 1 },
               ]}
             >
-              <Feather
-                name={profileSaved ? "check" : "save"}
-                size={18}
-                color="#fff"
-              />
+              <Icon name={profileSaved ? "check" : "save"} size={18} color="#fff" />
               <Text style={styles.saveBtnText}>
                 {profileSaved ? "Guardado!" : "Guardar Perfil"}
               </Text>
@@ -224,7 +219,7 @@ export default function SettingsScreen() {
                   { backgroundColor: Colors.primary + "15" },
                 ]}
               >
-                <MaterialCommunityIcons name="chip" size={20} color={Colors.primary} />
+                <Icon name="chip" size={20} color={Colors.primary} />
               </View>
               <View style={{ flex: 1 }}>
                 <Text style={styles.sectionTitle}>IA Local — Qwen2.5-0.5B</Text>
@@ -236,22 +231,14 @@ export default function SettingsScreen() {
 
             <View style={styles.modelInfoRow}>
               <View style={[styles.modelBadge, { backgroundColor: Platform.OS === "web" ? Colors.success + "15" : Colors.primary + "15" }]}>
-                <Feather
-                  name={Platform.OS === "web" ? "cpu" : "smartphone"}
-                  size={14}
-                  color={Platform.OS === "web" ? Colors.success : Colors.primary}
-                />
+                <Icon name={Platform.OS === "web" ? "cpu" : "smartphone"} size={14} color={Platform.OS === "web" ? Colors.success : Colors.primary} />
                 <Text style={[styles.modelBadgeText, { color: Platform.OS === "web" ? Colors.success : Colors.primary }]}>
                   {Platform.OS === "web" ? "Modelo neural (web)" : "Modelos pedagógicos (nativo)"}
                 </Text>
               </View>
               {Platform.OS === "web" && (
                 <View style={[styles.modelBadge, { backgroundColor: modelCached ? Colors.success + "15" : Colors.warning + "15" }]}>
-                  <Feather
-                    name={modelCached ? "check-circle" : "download"}
-                    size={14}
-                    color={modelCached ? Colors.success : Colors.warning}
-                  />
+                  <Icon name={modelCached ? "check-circle" : "download"} size={14} color={modelCached ? Colors.success : Colors.warning} />
                   <Text style={[styles.modelBadgeText, { color: modelCached ? Colors.success : Colors.warning }]}>
                     {modelCached ? "Carregado em cache" : "Será descarregado"}
                   </Text>
@@ -274,14 +261,14 @@ export default function SettingsScreen() {
                 onPress={handleResetModel}
                 style={({ pressed }) => [styles.resetBtn, { opacity: pressed ? 0.8 : 1 }]}
               >
-                <Feather name="refresh-cw" size={16} color={Colors.error} />
+                <Icon name="refresh-cw" size={16} color={Colors.error} />
                 <Text style={styles.resetBtnText}>Limpar modelo da memória</Text>
               </Pressable>
             )}
           </View>
 
           <View style={styles.infoCard}>
-            <Feather name="shield" size={18} color={Colors.success} />
+            <Icon name="shield" size={18} color={Colors.success} />
             <Text style={styles.infoText}>
               Toda a geração de planos ocorre localmente no seu dispositivo. Nenhum dado é enviado para servidores externos.
             </Text>
@@ -310,7 +297,7 @@ export default function SettingsScreen() {
                 <Text style={[styles.nivelOptionText, profile.nivelEnsino === opt && styles.nivelOptionTextSelected]}>
                   {opt}
                 </Text>
-                {profile.nivelEnsino === opt && <Feather name="check" size={16} color={Colors.primary} />}
+                {profile.nivelEnsino === opt && <Icon name="check" size={16} color={Colors.primary} />}
               </Pressable>
             ))}
           </Pressable>

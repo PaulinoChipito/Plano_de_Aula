@@ -9,7 +9,7 @@ import {
 } from "react-native";
 import { router, useFocusEffect } from "expo-router";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
-import { Ionicons, Feather, MaterialCommunityIcons } from "@expo/vector-icons";
+import Icon, { IconName } from "@/components/Icon";
 import { LinearGradient } from "expo-linear-gradient";
 import Colors from "@/constants/colors";
 import {
@@ -178,7 +178,7 @@ export default function StatisticsScreen() {
           onPress={() => router.back()}
           style={({ pressed }) => [styles.backBtn, { opacity: pressed ? 0.6 : 1 }]}
         >
-          <Ionicons name="chevron-back" size={24} color="#fff" />
+          <Icon name="chevron-back" size={24} color="#fff" />
         </Pressable>
         <Text style={styles.headerTitle}>Estatisticas</Text>
         <View style={{ width: 40 }} />
@@ -190,22 +190,22 @@ export default function StatisticsScreen() {
       >
         <View style={styles.metricsGrid}>
           <View style={styles.metricCard}>
-            <Ionicons name="people" size={22} color={Colors.primary} />
+            <Icon name="people" size={22} color={Colors.primary} />
             <Text style={styles.metricValue}>{totalStudents}</Text>
             <Text style={styles.metricLabel}>Alunos</Text>
           </View>
           <View style={styles.metricCard}>
-            <MaterialCommunityIcons name="school" size={22} color="#6366F1" />
+            <Icon name="school" size={22} color="#6366F1" />
             <Text style={styles.metricValue}>{classes.length}</Text>
             <Text style={styles.metricLabel}>Turmas</Text>
           </View>
           <View style={styles.metricCard}>
-            <Feather name="bar-chart-2" size={22} color={Colors.accent} />
+            <Icon name="bar-chart-2" size={22} color={Colors.accent} />
             <Text style={styles.metricValue}>{globalAvg || "-"}</Text>
             <Text style={styles.metricLabel}>Media MAC</Text>
           </View>
           <View style={styles.metricCard}>
-            <Ionicons name="calendar" size={22} color={Colors.success} />
+            <Icon name="calendar" size={22} color={Colors.success} />
             <Text style={styles.metricValue}>{totalSessions}</Text>
             <Text style={styles.metricLabel}>Aulas</Text>
           </View>
@@ -221,11 +221,7 @@ export default function StatisticsScreen() {
                 { borderLeftColor: getInsightColor(insight.type) },
               ]}
             >
-              <Feather
-                name={insight.icon as any}
-                size={18}
-                color={getInsightColor(insight.type)}
-              />
+              <Icon name={insight.icon as IconName} size={18} color={getInsightColor(insight.type)} />
               <Text style={styles.insightText}>{insight.message}</Text>
             </View>
           ))}

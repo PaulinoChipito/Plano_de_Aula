@@ -13,7 +13,7 @@ import {
 } from "react-native";
 import { router } from "expo-router";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
-import { Ionicons, Feather, MaterialCommunityIcons } from "@expo/vector-icons";
+import Icon from "@/components/Icon";
 import { LinearGradient } from "expo-linear-gradient";
 import * as Haptics from "expo-haptics";
 import Colors from "@/constants/colors";
@@ -229,13 +229,13 @@ export default function CreatePlanScreen() {
           />
           {list.length > 1 && (
             <Pressable onPress={() => removeListItem(list, setter, i)} style={styles.removeBtn}>
-              <Ionicons name="close" size={18} color={Colors.error} />
+              <Icon name="close" size={18} color={Colors.error} />
             </Pressable>
           )}
         </View>
       ))}
       <Pressable onPress={() => addListItem(list, setter)} style={styles.addItemBtn}>
-        <Ionicons name="add" size={16} color={Colors.primary} />
+        <Icon name="add" size={16} color={Colors.primary} />
         <Text style={styles.addItemText}>Adicionar</Text>
       </Pressable>
     </View>
@@ -254,7 +254,7 @@ export default function CreatePlanScreen() {
           onPress={() => router.back()}
           style={({ pressed }) => [styles.backBtn, { opacity: pressed ? 0.6 : 1 }]}
         >
-          <Ionicons name="chevron-back" size={24} color="#fff" />
+          <Icon name="chevron-back" size={24} color="#fff" />
         </Pressable>
         <Text style={styles.headerTitle}>Novo Plano</Text>
         <View style={{ width: 40 }} />
@@ -318,7 +318,7 @@ export default function CreatePlanScreen() {
                     </>
                   ) : (
                     <>
-                      <MaterialCommunityIcons name="robot" size={20} color="#fff" />
+                      <Icon name="robot" size={20} color="#fff" />
                       <Text style={styles.generateBtnText}>Gerar com IA</Text>
                     </>
                   )}
@@ -329,7 +329,7 @@ export default function CreatePlanScreen() {
                   </View>
                 )}
                 <View style={styles.aiInfoCard}>
-                  <MaterialCommunityIcons name="chip" size={14} color={Colors.primary} />
+                  <Icon name="chip" size={14} color={Colors.primary} />
                   <Text style={styles.aiInfoText}>
                     {Platform.OS === "web"
                       ? "Usa o modelo Qwen2.5-0.5B localmente no browser (sem envio de dados). Primeira utilização requer descarga (~300 MB)."
@@ -346,7 +346,7 @@ export default function CreatePlanScreen() {
                     { opacity: pressed && canGenerate ? 0.9 : 1 },
                   ]}
                 >
-                  <Feather name="edit" size={18} color={canGenerate ? Colors.primary : Colors.textMuted} />
+                  <Icon name="edit" size={18} color={canGenerate ? Colors.primary : Colors.textMuted} />
                   <Text style={[styles.manualBtnText, !canGenerate && { color: Colors.textMuted }]}>
                     Criar Manualmente
                   </Text>
@@ -358,7 +358,7 @@ export default function CreatePlanScreen() {
           {mode === "manual" && (
             <>
               <View style={styles.modeHeader}>
-                <Feather name="edit" size={18} color={Colors.primary} />
+                <Icon name="edit" size={18} color={Colors.primary} />
                 <Text style={styles.modeHeaderText}>Modo Manual - Offline</Text>
               </View>
 
@@ -400,13 +400,13 @@ export default function CreatePlanScreen() {
                     </View>
                     {atividades.length > 1 && (
                       <Pressable onPress={() => removeAtividade(i)} style={styles.removeBtn}>
-                        <Ionicons name="close" size={18} color={Colors.error} />
+                        <Icon name="close" size={18} color={Colors.error} />
                       </Pressable>
                     )}
                   </View>
                 ))}
                 <Pressable onPress={addAtividade} style={styles.addItemBtn}>
-                  <Ionicons name="add" size={16} color={Colors.primary} />
+                  <Icon name="add" size={16} color={Colors.primary} />
                   <Text style={styles.addItemText}>Adicionar atividade</Text>
                 </Pressable>
               </View>
@@ -423,7 +423,7 @@ export default function CreatePlanScreen() {
                   { opacity: pressed ? 0.9 : 1 },
                 ]}
               >
-                <Feather name="check" size={20} color="#fff" />
+                <Icon name="check" size={20} color="#fff" />
                 <Text style={styles.saveBtnText}>Guardar Plano</Text>
               </Pressable>
             </>
@@ -442,7 +442,7 @@ export default function CreatePlanScreen() {
                   <View style={styles.sugestoesContainer}>
                     {aiPlan.sugestoes.map((s, i) => (
                       <View key={i} style={styles.sugestaoItem}>
-                        <Feather name="zap" size={14} color={Colors.accent} />
+                        <Icon name="zap" size={14} color={Colors.accent} />
                         <Text style={styles.sugestaoText}>{s}</Text>
                       </View>
                     ))}
@@ -517,7 +517,7 @@ export default function CreatePlanScreen() {
                 <Text style={styles.editLabel}>Perguntas de Controlo</Text>
                 {aiPlan.perguntasControlo.map((p, i) => (
                   <View key={i} style={styles.bulletItem}>
-                    <Feather name="help-circle" size={14} color={Colors.primary} />
+                    <Icon name="help-circle" size={14} color={Colors.primary} />
                     <Text style={styles.bulletText}>{p}</Text>
                   </View>
                 ))}
@@ -528,7 +528,7 @@ export default function CreatePlanScreen() {
                   <Text style={styles.editLabel}>TPC — Tarefa de Casa</Text>
                   {aiPlan.tarefaDeCasa.map((t, i) => (
                     <View key={i} style={styles.tpcItem}>
-                      <Feather name="book-open" size={14} color={Colors.accent} />
+                      <Icon name="book-open" size={14} color={Colors.accent} />
                       <View style={{ flex: 1 }}>
                         <Text style={styles.bulletText}>{t.descricao}</Text>
                         {t.referencia ? <Text style={styles.tpcMeta}>{t.referencia}</Text> : null}
@@ -557,7 +557,7 @@ export default function CreatePlanScreen() {
               )}
 
               <Pressable onPress={handleSaveAI} style={({ pressed }) => [styles.saveBtn, { opacity: pressed ? 0.9 : 1 }]}>
-                <Feather name="check" size={20} color="#fff" />
+                <Icon name="check" size={20} color="#fff" />
                 <Text style={styles.saveBtnText}>Guardar Plano</Text>
               </Pressable>
             </>

@@ -11,7 +11,7 @@ import {
 } from "react-native";
 import { router } from "expo-router";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
-import { Ionicons, MaterialCommunityIcons, Feather } from "@expo/vector-icons";
+import Icon from "@/components/Icon";
 import { LinearGradient } from "expo-linear-gradient";
 import * as Haptics from "expo-haptics";
 import Svg, { Path } from "react-native-svg";
@@ -31,37 +31,37 @@ interface GridItem {
 
 const GRID_ITEMS: GridItem[] = [
   {
-    icon: <MaterialCommunityIcons name="book-open-variant" size={32} color="#fff" />,
+    icon: <Icon name="book-open-variant" size={32} color="#fff" />,
     label: "Plano de Aula",
     route: "/lesson-plans",
     gradient: ["#34D399", "#14B8A6", "#0891B2"],
   },
   {
-    icon: <Ionicons name="people" size={32} color="#fff" />,
+    icon: <Icon name="people" size={32} color="#fff" />,
     label: "Turmas",
     route: "/classes",
     gradient: ["#60A5FA", "#6366F1", "#9333EA"],
   },
   {
-    icon: <MaterialCommunityIcons name="clipboard-check" size={32} color="#fff" />,
+    icon: <Icon name="clipboard-check" size={32} color="#fff" />,
     label: "Avaliações",
     route: "/assessments",
     gradient: ["#A78BFA", "#A855F7", "#C026D3"],
   },
   {
-    icon: <Ionicons name="calendar" size={32} color="#fff" />,
+    icon: <Icon name="calendar" size={32} color="#fff" />,
     label: "Agenda",
     route: "/agenda",
     gradient: ["#FBBF24", "#F97316", "#DC2626"],
   },
   {
-    icon: <MaterialCommunityIcons name="account-check" size={32} color="#fff" />,
+    icon: <Icon name="account-check" size={32} color="#fff" />,
     label: "Presenças",
     route: "/attendance",
     gradient: ["#22D3EE", "#0EA5E9", "#2563EB"],
   },
   {
-    icon: <Ionicons name="stats-chart" size={32} color="#fff" />,
+    icon: <Icon name="stats-chart" size={32} color="#fff" />,
     label: "Estatísticas",
     route: "/statistics",
     gradient: ["#F472B6", "#F43F5E", "#DC2626"],
@@ -192,7 +192,7 @@ export default function Dashboard() {
           <View style={styles.headerRow}>
             <View style={styles.headerSpacer} />
             <View style={styles.headerInner}>
-              <MaterialCommunityIcons name="school" size={22} color="rgba(255,255,255,0.9)" />
+              <Icon name="school" size={22} color="rgba(255,255,255,0.9)" />
               <View style={styles.headerTitleBlock}>
                 <Text style={styles.headerTitle}>EcoEducacional</Text>
                 <Text style={styles.headerSubtitle}>Gestão Pedagógica</Text>
@@ -205,7 +205,7 @@ export default function Dashboard() {
                 { opacity: pressed ? 0.7 : 1 },
               ]}
             >
-              <Feather name="settings" size={20} color="rgba(255,255,255,0.9)" />
+              <Icon name="settings" size={20} color="rgba(255,255,255,0.9)" />
             </Pressable>
           </View>
           <WaveSvg />

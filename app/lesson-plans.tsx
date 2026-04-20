@@ -10,7 +10,7 @@ import {
 } from "react-native";
 import { router, useFocusEffect } from "expo-router";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
-import { Ionicons, Feather } from "@expo/vector-icons";
+import Icon from "@/components/Icon";
 import { LinearGradient } from "expo-linear-gradient";
 import * as Haptics from "expo-haptics";
 import Colors from "@/constants/colors";
@@ -104,7 +104,7 @@ export default function LessonPlansScreen() {
           onPress={() => router.back()}
           style={({ pressed }) => [styles.backBtn, { opacity: pressed ? 0.6 : 1 }]}
         >
-          <Ionicons name="chevron-back" size={24} color="#fff" />
+          <Icon name="chevron-back" size={24} color="#fff" />
         </Pressable>
         <Text style={styles.headerTitle}>Planos de Aula</Text>
         <Pressable
@@ -115,7 +115,7 @@ export default function LessonPlansScreen() {
           }}
           style={({ pressed }) => [styles.addBtn, { opacity: pressed ? 0.7 : 1 }]}
         >
-          <Ionicons name="add" size={24} color={Colors.primaryLight} />
+          <Icon name="add" size={24} color={Colors.primaryLight} />
         </Pressable>
       </View>
 
@@ -130,7 +130,7 @@ export default function LessonPlansScreen() {
         showsVerticalScrollIndicator={false}
         ListEmptyComponent={
           <View style={styles.emptyContainer}>
-            <Feather name="file-text" size={48} color={Colors.textMuted} />
+            <Icon name="file-text" size={48} color={Colors.textMuted} />
             <Text style={styles.emptyTitle}>Sem planos de aula</Text>
             <Text style={styles.emptySubtitle}>
               Crie o seu primeiro plano com IA

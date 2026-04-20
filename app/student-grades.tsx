@@ -13,7 +13,7 @@ import {
 } from "react-native";
 import { router, useLocalSearchParams } from "expo-router";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
-import { Ionicons, Feather } from "@expo/vector-icons";
+import Icon from "@/components/Icon";
 import { LinearGradient } from "expo-linear-gradient";
 import * as Haptics from "expo-haptics";
 import Colors from "@/constants/colors";
@@ -225,7 +225,7 @@ export default function StudentGradesScreen() {
             </View>
           )}
         </View>
-        <Ionicons name="chevron-forward" size={16} color={Colors.textMuted} />
+        <Icon name="chevron-forward" size={16} color={Colors.textMuted} />
       </Pressable>
     );
   };
@@ -242,7 +242,7 @@ export default function StudentGradesScreen() {
       />
       <View style={[styles.header, { paddingTop: topPadding + 12 }]}>
         <Pressable onPress={() => router.back()} style={({ pressed }) => [styles.backBtn, { opacity: pressed ? 0.6 : 1 }]}>
-          <Ionicons name="chevron-back" size={24} color="#fff" />
+          <Icon name="chevron-back" size={24} color="#fff" />
         </Pressable>
         <View style={styles.headerCenter}>
           <Text style={styles.headerTitle}>{classGroup.designacao}</Text>
@@ -259,7 +259,7 @@ export default function StudentGradesScreen() {
         showsVerticalScrollIndicator={false}
         ListEmptyComponent={
           <View style={styles.emptyContainer}>
-            <Feather name="users" size={48} color={Colors.textMuted} />
+            <Icon name="users" size={48} color={Colors.textMuted} />
             <Text style={styles.emptyTitle}>Sem alunos</Text>
           </View>
         }
@@ -298,10 +298,10 @@ export default function StudentGradesScreen() {
                             />
                             <View style={styles.macEditButtons}>
                               <Pressable onPress={handleSaveEditMac} style={styles.macEditSave}>
-                                <Ionicons name="checkmark" size={14} color={Colors.success} />
+                                <Icon name="checkmark" size={14} color={Colors.success} />
                               </Pressable>
                               <Pressable onPress={() => setEditingEntryId(null)} style={styles.macEditCancel}>
-                                <Ionicons name="close" size={14} color={Colors.error} />
+                                <Icon name="close" size={14} color={Colors.error} />
                               </Pressable>
                             </View>
                           </View>
@@ -309,7 +309,7 @@ export default function StudentGradesScreen() {
                           <>
                             <Text style={styles.macEntryNum}>AC{i + 1}</Text>
                             <Text style={styles.macEntryValue}>{entry.nota}</Text>
-                            <Feather name="edit-2" size={10} color={Colors.textMuted} />
+                            <Icon name="edit-2" size={10} color={Colors.textMuted} />
                           </>
                         )}
                       </Pressable>
@@ -335,7 +335,7 @@ export default function StudentGradesScreen() {
                     keyboardType="numeric"
                   />
                   <Pressable onPress={handleAddMac} style={({ pressed }) => [styles.addMacBtn, { opacity: pressed ? 0.9 : 1 }]}>
-                    <Ionicons name="add" size={20} color="#fff" />
+                    <Icon name="add" size={20} color="#fff" />
                   </Pressable>
                 </View>
               </View>

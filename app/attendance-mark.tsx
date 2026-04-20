@@ -9,7 +9,7 @@ import {
 } from "react-native";
 import { router, useLocalSearchParams } from "expo-router";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
-import { Ionicons, Feather } from "@expo/vector-icons";
+import Icon from "@/components/Icon";
 import { LinearGradient } from "expo-linear-gradient";
 import * as Haptics from "expo-haptics";
 import Colors from "@/constants/colors";
@@ -121,11 +121,7 @@ export default function AttendanceMarkScreen() {
           )}
         </View>
         <View style={[styles.toggleBtn, isPresent ? styles.togglePresent : styles.toggleAbsent]}>
-          <Ionicons
-            name={isPresent ? "checkmark" : "close"}
-            size={18}
-            color={isPresent ? "#fff" : "#fff"}
-          />
+          <Icon name={isPresent ? "checkmark" : "close"} size={18} color="#fff" />
         </View>
       </Pressable>
     );
@@ -143,14 +139,14 @@ export default function AttendanceMarkScreen() {
       />
       <View style={[styles.header, { paddingTop: topPadding + 12 }]}>
         <Pressable onPress={() => router.back()} style={({ pressed }) => [styles.backBtn, { opacity: pressed ? 0.6 : 1 }]}>
-          <Ionicons name="chevron-back" size={24} color="#fff" />
+          <Icon name="chevron-back" size={24} color="#fff" />
         </Pressable>
         <View style={styles.headerCenter}>
           <Text style={styles.headerTitle}>{classGroup.designacao}</Text>
           <Text style={styles.headerSubtitle}>{today}</Text>
         </View>
         <Pressable onPress={handleSave} style={({ pressed }) => [styles.saveHeaderBtn, { opacity: pressed ? 0.7 : 1 }]}>
-          <Feather name="check" size={20} color={Colors.success} />
+          <Icon name="check" size={20} color={Colors.success} />
         </Pressable>
       </View>
 

@@ -12,7 +12,7 @@ import {
 } from "react-native";
 import { router, useLocalSearchParams } from "expo-router";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
-import { Ionicons, Feather } from "@expo/vector-icons";
+import Icon from "@/components/Icon";
 import { LinearGradient } from "expo-linear-gradient";
 import * as Haptics from "expo-haptics";
 import * as Print from "expo-print";
@@ -345,13 +345,13 @@ export default function ViewPlanScreen() {
           />
           {list.length > 1 && (
             <Pressable onPress={() => removeListItem(list, setter, i)} style={styles.removeBtn}>
-              <Ionicons name="close" size={18} color={Colors.error} />
+              <Icon name="close" size={18} color={Colors.error} />
             </Pressable>
           )}
         </View>
       ))}
       <Pressable onPress={() => addListItem(list, setter)} style={styles.addItemBtn}>
-        <Ionicons name="add" size={16} color={Colors.primary} />
+        <Icon name="add" size={16} color={Colors.primary} />
         <Text style={styles.addItemText}>Adicionar</Text>
       </Pressable>
     </View>
@@ -370,19 +370,19 @@ export default function ViewPlanScreen() {
           onPress={() => { if (editing) { setEditing(false); } else { router.back(); } }}
           style={({ pressed }) => [styles.backBtn, { opacity: pressed ? 0.6 : 1 }]}
         >
-          <Ionicons name={editing ? "close" : "chevron-back"} size={24} color="#fff" />
+          <Icon name={editing ? "close" : "chevron-back"} size={24} color="#fff" />
         </Pressable>
         <Text style={styles.headerTitle} numberOfLines={1}>
           {editing ? "Editar Plano" : plan.tema}
         </Text>
         {editing ? (
           <Pressable onPress={handleSaveEdit} style={({ pressed }) => [styles.saveHeaderBtn, { opacity: pressed ? 0.7 : 1 }]}>
-            <Ionicons name="checkmark" size={24} color={Colors.success} />
+            <Icon name="checkmark" size={24} color={Colors.success} />
           </Pressable>
         ) : (
           <View style={styles.headerActions}>
             <Pressable onPress={startEditing} style={({ pressed }) => [styles.headerActionBtn, { opacity: pressed ? 0.7 : 1 }]}>
-              <Feather name="edit-2" size={18} color={Colors.primary} />
+              <Icon name="edit-2" size={18} color={Colors.primary} />
             </Pressable>
             <Pressable
               onPress={handleDownloadPdf}
@@ -392,7 +392,7 @@ export default function ViewPlanScreen() {
               {generating ? (
                 <ActivityIndicator size="small" color={Colors.primary} />
               ) : (
-                <Feather name="download" size={18} color={Colors.primary} />
+                <Icon name="download" size={18} color={Colors.primary} />
               )}
             </Pressable>
           </View>
@@ -474,13 +474,13 @@ export default function ViewPlanScreen() {
                       onPress={() => setEditAtividades(editAtividades.filter((_, j) => j !== i))}
                       style={styles.removeBtn}
                     >
-                      <Ionicons name="close" size={18} color={Colors.error} />
+                      <Icon name="close" size={18} color={Colors.error} />
                     </Pressable>
                   )}
                 </View>
               ))}
               <Pressable onPress={() => setEditAtividades([...editAtividades, { descricao: "", tempo: "" }])} style={styles.addItemBtn}>
-                <Ionicons name="add" size={16} color={Colors.primary} />
+                <Icon name="add" size={16} color={Colors.primary} />
                 <Text style={styles.addItemText}>Adicionar atividade</Text>
               </Pressable>
             </View>
@@ -489,7 +489,7 @@ export default function ViewPlanScreen() {
             {renderEditableList("Perguntas de Tarefa", editPerguntasTarefa, setEditPerguntasTarefa, "Tarefa")}
 
             <Pressable onPress={handleSaveEdit} style={({ pressed }) => [styles.saveEditBtn, { opacity: pressed ? 0.9 : 1 }]}>
-              <Feather name="check" size={20} color="#fff" />
+              <Icon name="check" size={20} color="#fff" />
               <Text style={styles.saveEditBtnText}>Guardar Alteracoes</Text>
             </Pressable>
           </>
@@ -503,7 +503,7 @@ export default function ViewPlanScreen() {
                 <Text style={styles.metaChipText}>{plan.disciplina}</Text>
               </View>
               <View style={styles.metaChip}>
-                <Feather name="clock" size={12} color={Colors.primary} />
+                <Icon name="clock" size={12} color={Colors.primary} />
                 <Text style={styles.metaChipText}>{plan.duracao} min</Text>
               </View>
               {plan.score > 0 && (
@@ -611,7 +611,7 @@ export default function ViewPlanScreen() {
                 <Text style={styles.sectionTitle}>Perguntas de Controlo</Text>
                 {plan.perguntasControlo.map((p, i) => (
                   <View key={i} style={styles.bulletItem}>
-                    <Feather name="help-circle" size={14} color={Colors.primary} />
+                    <Icon name="help-circle" size={14} color={Colors.primary} />
                     <Text style={styles.bulletText}>{p}</Text>
                   </View>
                 ))}
@@ -623,7 +623,7 @@ export default function ViewPlanScreen() {
                 <Text style={styles.sectionTitle}>TPC — Tarefa de Casa</Text>
                 {plan.tarefaDeCasa.map((t, i) => (
                   <View key={i} style={styles.tpcItem}>
-                    <Feather name="book-open" size={14} color={Colors.accent} />
+                    <Icon name="book-open" size={14} color={Colors.accent} />
                     <View style={{ flex: 1 }}>
                       <Text style={styles.bulletText}>{t.descricao}</Text>
                       {t.referencia ? <Text style={styles.tpcMeta}>{t.referencia}</Text> : null}
@@ -637,7 +637,7 @@ export default function ViewPlanScreen() {
                 <Text style={styles.sectionTitle}>Tarefa Pratica</Text>
                 {(plan.tarefasPraticas || plan.perguntasTarefa || []).map((t, i) => (
                   <View key={i} style={styles.bulletItem}>
-                    <Feather name="clipboard" size={14} color={Colors.accent} />
+                    <Icon name="clipboard" size={14} color={Colors.accent} />
                     <Text style={styles.bulletText}>{t}</Text>
                   </View>
                 ))}
@@ -673,7 +673,7 @@ export default function ViewPlanScreen() {
                 <Text style={styles.sectionTitle}>Sugestoes de Melhoria</Text>
                 {plan.sugestoes.map((s, i) => (
                   <View key={i} style={styles.bulletItem}>
-                    <Feather name="zap" size={14} color={Colors.accent} />
+                    <Icon name="zap" size={14} color={Colors.accent} />
                     <Text style={styles.bulletText}>{s}</Text>
                   </View>
                 ))}
@@ -692,7 +692,7 @@ export default function ViewPlanScreen() {
                 <ActivityIndicator color="#fff" />
               ) : (
                 <>
-                  <Feather name="download" size={18} color="#fff" />
+                  <Icon name="download" size={18} color="#fff" />
                   <Text style={styles.downloadBtnText}>Baixar PDF</Text>
                 </>
               )}

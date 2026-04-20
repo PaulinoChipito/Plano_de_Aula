@@ -12,7 +12,7 @@ import {
 } from "react-native";
 import { router, useFocusEffect } from "expo-router";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
-import { Ionicons, Feather } from "@expo/vector-icons";
+import Icon from "@/components/Icon";
 import { LinearGradient } from "expo-linear-gradient";
 import * as Haptics from "expo-haptics";
 import Colors from "@/constants/colors";
@@ -76,7 +76,7 @@ export default function ClassesScreen() {
         start={{ x: 0, y: 0 }}
         end={{ x: 1, y: 1 }}
       >
-        <Ionicons name="people" size={20} color="#fff" />
+        <Icon name="people" size={20} color="#fff" />
       </LinearGradient>
       <View style={styles.cardContent}>
         <Text style={styles.cardTitle}>{item.designacao}</Text>
@@ -85,7 +85,7 @@ export default function ClassesScreen() {
       <View style={styles.cardBadge}>
         <Text style={styles.cardBadgeText}>{item.alunos.length}</Text>
       </View>
-      <Ionicons name="chevron-forward" size={18} color={Colors.textMuted} />
+      <Icon name="chevron-forward" size={18} color={Colors.textMuted} />
     </Pressable>
   );
 
@@ -100,14 +100,14 @@ export default function ClassesScreen() {
 
       <View style={[styles.header, { paddingTop: topPadding + 12 }]}>
         <Pressable onPress={() => router.back()} style={({ pressed }) => [styles.backBtn, { opacity: pressed ? 0.6 : 1 }]}>
-          <Ionicons name="chevron-back" size={24} color="#fff" />
+          <Icon name="chevron-back" size={24} color="#fff" />
         </Pressable>
         <Text style={styles.headerTitle}>Turmas</Text>
         <Pressable
           onPress={() => setShowModal(true)}
           style={({ pressed }) => [styles.addBtn, { opacity: pressed ? 0.7 : 1 }]}
         >
-          <Ionicons name="add" size={24} color={Colors.primaryLight} />
+          <Icon name="add" size={24} color={Colors.primaryLight} />
         </Pressable>
       </View>
 
@@ -119,7 +119,7 @@ export default function ClassesScreen() {
         showsVerticalScrollIndicator={false}
         ListEmptyComponent={
           <View style={styles.emptyContainer}>
-            <Ionicons name="people-outline" size={48} color={Colors.textMuted} />
+            <Icon name="people-outline" size={48} color={Colors.textMuted} />
             <Text style={styles.emptyTitle}>Sem turmas</Text>
             <Text style={styles.emptySubtitle}>Crie a sua primeira turma</Text>
           </View>

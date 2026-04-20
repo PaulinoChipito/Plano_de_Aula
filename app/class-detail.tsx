@@ -13,7 +13,7 @@ import {
 } from "react-native";
 import { router, useLocalSearchParams } from "expo-router";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
-import { Ionicons, Feather } from "@expo/vector-icons";
+import Icon from "@/components/Icon";
 import { LinearGradient } from "expo-linear-gradient";
 import { Image } from "expo-image";
 import * as ImagePicker from "expo-image-picker";
@@ -153,14 +153,14 @@ export default function ClassDetailScreen() {
         <Image source={{ uri: item.fotoUri }} style={styles.studentPhoto} contentFit="cover" />
       ) : (
         <View style={styles.studentAvatar}>
-          <Ionicons name="person" size={18} color={Colors.textMuted} />
+          <Icon name="person" size={18} color={Colors.textMuted} />
         </View>
       )}
       <View style={styles.studentInfo}>
         <Text style={styles.studentName}>{item.nome}</Text>
         {item.idade ? <Text style={styles.studentAge}>{item.idade} anos</Text> : null}
       </View>
-      <Ionicons name="chevron-forward" size={16} color={Colors.textMuted} />
+      <Icon name="chevron-forward" size={16} color={Colors.textMuted} />
     </Pressable>
   );
 
@@ -182,7 +182,7 @@ export default function ClassDetailScreen() {
       />
       <View style={[styles.header, { paddingTop: topPadding + 12 }]}>
         <Pressable onPress={() => router.back()} style={({ pressed }) => [styles.backBtn, { opacity: pressed ? 0.6 : 1 }]}>
-          <Ionicons name="chevron-back" size={24} color="#fff" />
+          <Icon name="chevron-back" size={24} color="#fff" />
         </Pressable>
         <View style={styles.headerCenter}>
           <Text style={styles.headerTitle}>{classGroup.designacao}</Text>
@@ -193,13 +193,13 @@ export default function ClassDetailScreen() {
             onPress={() => setShowCsvModal(true)}
             style={({ pressed }) => [styles.headerActionBtn, { opacity: pressed ? 0.7 : 1 }]}
           >
-            <Feather name="upload" size={18} color={Colors.primary} />
+            <Icon name="upload" size={18} color={Colors.primary} />
           </Pressable>
           <Pressable
             onPress={() => setShowAddModal(true)}
             style={({ pressed }) => [styles.headerActionBtn, { opacity: pressed ? 0.7 : 1 }]}
           >
-            <Ionicons name="person-add" size={18} color={Colors.primary} />
+            <Icon name="person-add" size={18} color={Colors.primary} />
           </Pressable>
         </View>
       </View>
@@ -212,14 +212,14 @@ export default function ClassDetailScreen() {
         showsVerticalScrollIndicator={false}
         ListEmptyComponent={
           <View style={styles.emptyContainer}>
-            <Ionicons name="people-outline" size={48} color={Colors.textMuted} />
+            <Icon name="people-outline" size={48} color={Colors.textMuted} />
             <Text style={styles.emptyTitle}>Sem alunos</Text>
             <Text style={styles.emptySubtitle}>Adicione manualmente ou importe via CSV</Text>
             <Pressable
               onPress={() => setShowCsvModal(true)}
               style={({ pressed }) => [styles.emptyImportBtn, { opacity: pressed ? 0.8 : 1 }]}
             >
-              <Feather name="upload" size={16} color={Colors.primary} />
+              <Icon name="upload" size={16} color={Colors.primary} />
               <Text style={styles.emptyImportBtnText}>Importar lista CSV</Text>
             </Pressable>
           </View>
@@ -237,7 +237,7 @@ export default function ClassDetailScreen() {
                 <Image source={{ uri: fotoUri }} style={styles.photoPicker} contentFit="cover" />
               ) : (
                 <View style={styles.photoPicker}>
-                  <Ionicons name="camera" size={24} color={Colors.textMuted} />
+                  <Icon name="camera" size={24} color={Colors.textMuted} />
                   <Text style={styles.photoPickerLabel}>Foto</Text>
                 </View>
               )}
@@ -259,7 +259,7 @@ export default function ClassDetailScreen() {
                 disabled={!nome.trim()}
                 style={({ pressed }) => [styles.modalBtn, !nome.trim() && styles.modalBtnDisabled, { opacity: pressed ? 0.9 : 1 }]}
               >
-                <Feather name="user-plus" size={16} color="#fff" />
+                <Icon name="user-plus" size={16} color="#fff" />
                 <Text style={styles.modalBtnText}>Adicionar</Text>
               </Pressable>
             </View>
@@ -277,12 +277,12 @@ export default function ClassDetailScreen() {
                 <Text style={styles.csvSubtitle}>Cole o conteúdo do ficheiro abaixo</Text>
               </View>
               <Pressable onPress={() => setShowCsvModal(false)} style={styles.csvCloseBtn}>
-                <Feather name="x" size={20} color={Colors.textSecondary} />
+                <Icon name="x" size={20} color={Colors.textSecondary} />
               </Pressable>
             </View>
 
             <View style={styles.csvFormatBox}>
-              <Feather name="info" size={13} color={Colors.primary} />
+              <Icon name="info" size={13} color={Colors.primary} />
               <Text style={styles.csvFormatText}>
                 Formato: <Text style={styles.csvFormatCode}>Nome, Idade, Telefone</Text>{"\n"}(uma linha por aluno, vírgula ou ponto e vírgula)
               </Text>
@@ -332,7 +332,7 @@ export default function ClassDetailScreen() {
                 disabled={csvPreview.length === 0}
                 style={({ pressed }) => [styles.modalBtn, csvPreview.length === 0 && styles.modalBtnDisabled, { opacity: pressed ? 0.9 : 1 }]}
               >
-                <Feather name="upload" size={16} color="#fff" />
+                <Icon name="upload" size={16} color="#fff" />
                 <Text style={styles.modalBtnText}>
                   Importar {csvPreview.length > 0 ? `(${csvPreview.length})` : ""}
                 </Text>
@@ -353,7 +353,7 @@ export default function ClassDetailScreen() {
                     <Image source={{ uri: showStudentModal.fotoUri }} style={styles.profilePhoto} contentFit="cover" />
                   ) : (
                     <View style={[styles.profilePhoto, styles.profilePhotoPlaceholder]}>
-                      <Ionicons name="person" size={32} color={Colors.textMuted} />
+                      <Icon name="person" size={32} color={Colors.textMuted} />
                     </View>
                   )}
                   <Text style={styles.profileName}>{showStudentModal.nome}</Text>
@@ -361,7 +361,7 @@ export default function ClassDetailScreen() {
                 </View>
                 {showStudentModal.telefoneEncarregado ? (
                   <View style={styles.profileField}>
-                    <Feather name="phone" size={16} color={Colors.primary} />
+                    <Icon name="phone" size={16} color={Colors.primary} />
                     <Text style={styles.profileFieldText}>{showStudentModal.telefoneEncarregado}</Text>
                   </View>
                 ) : null}
@@ -372,7 +372,7 @@ export default function ClassDetailScreen() {
                   }}
                   style={({ pressed }) => [styles.removeStudentBtn, { opacity: pressed ? 0.8 : 1 }]}
                 >
-                  <Feather name="trash-2" size={16} color={Colors.error} />
+                  <Icon name="trash-2" size={16} color={Colors.error} />
                   <Text style={styles.removeStudentBtnText}>Remover aluno</Text>
                 </Pressable>
               </>

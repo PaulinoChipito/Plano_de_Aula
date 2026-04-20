@@ -9,7 +9,7 @@ import {
 } from "react-native";
 import { router, useFocusEffect } from "expo-router";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
-import { Ionicons, MaterialCommunityIcons } from "@expo/vector-icons";
+import Icon from "@/components/Icon";
 import { LinearGradient } from "expo-linear-gradient";
 import Colors from "@/constants/colors";
 import { getClasses, getAttendance, ClassGroup, AttendanceRecord } from "@/lib/storage";
@@ -51,7 +51,7 @@ export default function AttendanceScreen() {
         style={({ pressed }) => [styles.card, { opacity: pressed ? 0.95 : 1 }]}
       >
         <View style={styles.cardIcon}>
-          <MaterialCommunityIcons name="account-check" size={22} color="#15803D" />
+          <Icon name="account-check" size={22} color="#15803D" />
         </View>
         <View style={styles.cardContent}>
           <Text style={styles.cardTitle}>{item.designacao}</Text>
@@ -63,7 +63,7 @@ export default function AttendanceScreen() {
             <Text style={styles.statLabel}>{stats.totalSessions} aulas</Text>
           </View>
         )}
-        <Ionicons name="chevron-forward" size={18} color={Colors.textMuted} />
+        <Icon name="chevron-forward" size={18} color={Colors.textMuted} />
       </Pressable>
     );
   };
@@ -78,7 +78,7 @@ export default function AttendanceScreen() {
       />
       <View style={[styles.header, { paddingTop: topPadding + 12 }]}>
         <Pressable onPress={() => router.back()} style={({ pressed }) => [styles.backBtn, { opacity: pressed ? 0.6 : 1 }]}>
-          <Ionicons name="chevron-back" size={24} color="#fff" />
+          <Icon name="chevron-back" size={24} color="#fff" />
         </Pressable>
         <Text style={styles.headerTitle}>Controlo de Presenca</Text>
         <View style={{ width: 40 }} />
@@ -92,7 +92,7 @@ export default function AttendanceScreen() {
         showsVerticalScrollIndicator={false}
         ListEmptyComponent={
           <View style={styles.emptyContainer}>
-            <MaterialCommunityIcons name="account-check-outline" size={48} color={Colors.textMuted} />
+            <Icon name="account-check-outline" size={48} color={Colors.textMuted} />
             <Text style={styles.emptyTitle}>Sem turmas</Text>
             <Text style={styles.emptySubtitle}>Crie turmas para marcar presenca</Text>
           </View>

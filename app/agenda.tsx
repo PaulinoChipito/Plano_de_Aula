@@ -12,7 +12,7 @@ import {
 } from "react-native";
 import { router, useFocusEffect } from "expo-router";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
-import { Ionicons, Feather, MaterialCommunityIcons } from "@expo/vector-icons";
+import Icon, { IconName } from "@/components/Icon";
 import { LinearGradient } from "expo-linear-gradient";
 import * as Haptics from "expo-haptics";
 import Colors from "@/constants/colors";
@@ -116,11 +116,11 @@ export default function AgendaScreen() {
       />
       <View style={[styles.header, { paddingTop: topPadding + 12 }]}>
         <Pressable onPress={() => router.back()} style={({ pressed }) => [styles.backBtn, { opacity: pressed ? 0.6 : 1 }]}>
-          <Ionicons name="chevron-back" size={24} color="#fff" />
+          <Icon name="chevron-back" size={24} color="#fff" />
         </Pressable>
         <Text style={styles.headerTitle}>Agenda</Text>
         <Pressable onPress={() => setShowModal(true)} style={({ pressed }) => [styles.addBtn, { opacity: pressed ? 0.7 : 1 }]}>
-          <Ionicons name="add" size={24} color={Colors.primary} />
+          <Icon name="add" size={24} color={Colors.primary} />
         </Pressable>
       </View>
 
@@ -148,7 +148,7 @@ export default function AgendaScreen() {
                     </View>
                     <View style={styles.eventMeta}>
                       <View style={[styles.eventTypeBadge, { backgroundColor: config.color + "15" }]}>
-                        <Feather name={config.icon as any} size={12} color={config.color} />
+                        <Icon name={config.icon as IconName} size={12} color={config.color} />
                         <Text style={[styles.eventTypeText, { color: config.color }]}>{config.label}</Text>
                       </View>
                     </View>
@@ -163,7 +163,7 @@ export default function AgendaScreen() {
         )}
         ListEmptyComponent={
           <View style={styles.emptyContainer}>
-            <Ionicons name="calendar-outline" size={48} color={Colors.textMuted} />
+            <Icon name="calendar-outline" size={48} color={Colors.textMuted} />
             <Text style={styles.emptyTitle}>Agenda vazia</Text>
             <Text style={styles.emptySubtitle}>Adicione eventos ao seu calendario</Text>
           </View>
@@ -193,7 +193,7 @@ export default function AgendaScreen() {
                     tipo === et.value && { backgroundColor: et.color + "20", borderColor: et.color },
                   ]}
                 >
-                  <Feather name={et.icon as any} size={14} color={tipo === et.value ? et.color : Colors.textMuted} />
+                  <Icon name={et.icon as IconName} size={14} color={tipo === et.value ? et.color : Colors.textMuted} />
                   <Text style={[styles.typeOptionText, tipo === et.value && { color: et.color }]}>
                     {et.label}
                   </Text>

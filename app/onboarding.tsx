@@ -12,7 +12,7 @@ import {
 } from "react-native";
 import { router } from "expo-router";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
-import { Ionicons, Feather, MaterialCommunityIcons } from "@expo/vector-icons";
+import Icon from "@/components/Icon";
 import { LinearGradient } from "expo-linear-gradient";
 import * as Haptics from "expo-haptics";
 import Colors from "@/constants/colors";
@@ -89,7 +89,7 @@ export default function OnboardingScreen() {
               start={{ x: 0, y: 0 }}
               end={{ x: 1, y: 1 }}
             >
-              <MaterialCommunityIcons name="school" size={36} color="#fff" />
+              <Icon name="school" size={36} color="#fff" />
             </LinearGradient>
             <Text style={styles.brandName}>EcoEducacional</Text>
             <Text style={styles.brandSub}>Gestão Pedagógica</Text>
@@ -101,7 +101,7 @@ export default function OnboardingScreen() {
           <View style={styles.card}>
             <View style={styles.fieldGroup}>
               <View style={styles.fieldLabel}>
-                <Feather name="user" size={14} color={Colors.primary} />
+                <Icon name="user" size={14} color={Colors.primary} />
                 <Text style={styles.labelText}>Nome completo <Text style={styles.required}>*</Text></Text>
               </View>
               <TextInput
@@ -117,7 +117,7 @@ export default function OnboardingScreen() {
 
             <View style={styles.fieldGroup}>
               <View style={styles.fieldLabel}>
-                <Feather name="mail" size={14} color={Colors.primary} />
+                <Icon name="mail" size={14} color={Colors.primary} />
                 <Text style={styles.labelText}>Endereço de e-mail</Text>
               </View>
               <TextInput
@@ -134,7 +134,7 @@ export default function OnboardingScreen() {
 
             <View style={styles.fieldGroup}>
               <View style={styles.fieldLabel}>
-                <Feather name="home" size={14} color={Colors.primary} />
+                <Icon name="home" size={14} color={Colors.primary} />
                 <Text style={styles.labelText}>Instituição de ensino <Text style={styles.required}>*</Text></Text>
               </View>
               <TextInput
@@ -149,7 +149,7 @@ export default function OnboardingScreen() {
 
             <View style={styles.fieldGroup}>
               <View style={styles.fieldLabel}>
-                <Feather name="layers" size={14} color={Colors.primary} />
+                <Icon name="layers" size={14} color={Colors.primary} />
                 <Text style={styles.labelText}>Nível de ensino <Text style={styles.required}>*</Text></Text>
               </View>
               <Pressable
@@ -163,13 +163,13 @@ export default function OnboardingScreen() {
                 <Text style={nivelEnsino ? styles.selectBtnText : styles.selectBtnPlaceholder}>
                   {nivelEnsino || "Selecionar nível de ensino"}
                 </Text>
-                <Feather name="chevron-down" size={16} color={nivelEnsino ? Colors.primary : Colors.textMuted} />
+                <Icon name="chevron-down" size={16} color={nivelEnsino ? Colors.primary : Colors.textMuted} />
               </Pressable>
             </View>
 
             <View style={styles.fieldGroup}>
               <View style={styles.fieldLabel}>
-                <MaterialCommunityIcons name="book-open-variant" size={14} color={Colors.primary} />
+                <Icon name="book-open-variant" size={14} color={Colors.primary} />
                 <Text style={styles.labelText}>Disciplinas que lecciona <Text style={styles.required}>*</Text></Text>
               </View>
               <TextInput
@@ -204,7 +204,7 @@ export default function OnboardingScreen() {
               <Text style={styles.continueBtnText}>
                 {saving ? "A guardar..." : "Começar a usar"}
               </Text>
-              {!saving && <Feather name="arrow-right" size={18} color="#fff" />}
+              {!saving && <Icon name="arrow-right" size={18} color="#fff" />}
             </LinearGradient>
           </Pressable>
 
@@ -236,7 +236,7 @@ export default function OnboardingScreen() {
                 <Text style={[styles.nivelOptionText, nivelEnsino === opt && styles.nivelOptionTextSelected]}>
                   {opt}
                 </Text>
-                {nivelEnsino === opt && <Feather name="check" size={16} color={Colors.primary} />}
+                {nivelEnsino === opt && <Icon name="check" size={16} color={Colors.primary} />}
               </Pressable>
             ))}
           </Pressable>
