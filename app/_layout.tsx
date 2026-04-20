@@ -13,6 +13,7 @@ import {
   Inter_600SemiBold,
   Inter_700Bold,
 } from "@expo-google-fonts/inter";
+import { Ionicons, MaterialCommunityIcons, Feather } from "@expo/vector-icons";
 import { isOnboardingDone } from "@/lib/storage";
 import { router } from "expo-router";
 
@@ -53,6 +54,9 @@ export default function RootLayout() {
     Inter_500Medium,
     Inter_600SemiBold,
     Inter_700Bold,
+    ...Ionicons.font,
+    ...MaterialCommunityIcons.font,
+    ...Feather.font,
   });
 
   useEffect(() => {
