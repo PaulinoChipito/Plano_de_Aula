@@ -12,6 +12,17 @@ export interface DesenvolvimentoEtapa {
   actividadesAlunos: string;
 }
 
+export interface TarefaDeCasa {
+  descricao: string;
+  referencia?: string;
+  tempoEstimado?: string;
+}
+
+export interface DiferenciacaoPedagogica {
+  dificuldades: string;
+  avancados: string;
+}
+
 export interface LessonPlan {
   id: string;
   classe: string;
@@ -19,6 +30,7 @@ export interface LessonPlan {
   tema: string;
   duracao: string;
   numAlunos?: string;
+  faixaEtaria?: string;
   sumario: string;
   objetivoGeral: string;
   objetivosEspecificos: string[];
@@ -31,7 +43,9 @@ export interface LessonPlan {
   perguntasControlo: string[];
   tarefasPraticas?: string[];
   perguntasTarefa: string[];
+  tarefaDeCasa?: TarefaDeCasa[];
   avaliacao?: string;
+  diferenciacaoPedagogica?: DiferenciacaoPedagogica;
   observacoes?: string;
   score: number;
   sugestoes: string[];

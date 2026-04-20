@@ -121,7 +121,11 @@ export default function ViewPlanScreen() {
     const objEspHtml = p.objetivosEspecificos.map((o) => `<li>${o}</li>`).join("");
     const conteudosHtml = (p.conteudos || []).map((c) => `<li>${c}</li>`).join("");
     const pergControloHtml = p.perguntasControlo.map((q) => `<li>${q}</li>`).join("");
-    const tarefasPraticasHtml = (p.tarefasPraticas || p.perguntasTarefa || []).map((t) => `<li>${t}</li>`).join("");
+    const tpcHtml = p.tarefaDeCasa && p.tarefaDeCasa.length > 0
+      ? p.tarefaDeCasa.map((t) =>
+          `<li>${t.descricao}${t.referencia ? ` <em style="color:#0D7377;">(${t.referencia})</em>` : ""}${t.tempoEstimado ? ` — <span style="color:#555;">Tempo: ${t.tempoEstimado}</span>` : ""}</li>`
+        ).join("")
+      : (p.tarefasPraticas || p.perguntasTarefa || []).map((t) => `<li>${t}</li>`).join("");
 
     const desenvolvimentoHtml = (p.desenvolvimentoAula && p.desenvolvimentoAula.length > 0)
       ? p.desenvolvimentoAula.map((e) =>
@@ -166,6 +170,7 @@ export default function ViewPlanScreen() {
   table.dev td { padding: 7px 8px; border: 1px solid #ddd; font-size: 10pt; vertical-align: top; }
   table.dev tr:nth-child(even) td { background: #f9f9f9; }
   .avaliacao-box { background: #f0f9f9; border-left: 3px solid #0D7377; padding: 10px 14px; border-radius: 4px; font-size: 10pt; }
+  .dif-box { background: #f3f0ff; border-left: 3px solid #7c4dff; padding: 10px 14px; border-radius: 4px; font-size: 10pt; }
   .obs-box { background: #fffde7; border-left: 3px solid #f9a825; padding: 10px 14px; border-radius: 4px; font-size: 10pt; }
   .footer { margin-top: 30px; text-align: center; font-size: 9pt; color: #999; border-top: 1px solid #ddd; padding-top: 8px; }
 </style>
@@ -246,16 +251,25 @@ export default function ViewPlanScreen() {
     <ul>${pergControloHtml}</ul>
   </div>` : ""}
 
-  ${tarefasPraticasHtml ? `
+  ${tpcHtml ? `
   <div class="section">
-    <div class="section-title">Tarefa Pratica</div>
-    <ul>${tarefasPraticasHtml}</ul>
+    <div class="section-title">Tarefa de Casa (TPC)</div>
+    <ul>${tpcHtml}</ul>
   </div>` : ""}
 
   ${p.avaliacao ? `
   <div class="section">
-    <div class="section-title">Avaliacao</div>
+    <div class="section-title">Avaliacao Formativa</div>
     <div class="avaliacao-box">${p.avaliacao}</div>
+  </div>` : ""}
+
+  ${p.diferenciacaoPedagogica ? `
+  <div class="section">
+    <div class="section-title">Diferenciacao Pedagogica</div>
+    <div class="dif-box">
+      <p><strong>Alunos com dificuldades:</strong> ${p.diferenciacaoPedagogica.dificuldades}</p>
+      <p style="margin-top:8px;"><strong>Alunos avancados:</strong> ${p.diferenciacaoPedagogica.avancados}</p>
+    </div>
   </div>` : ""}
 
   ${p.observacoes ? `
@@ -597,7 +611,21 @@ export default function ViewPlanScreen() {
               </View>
             )}
 
-            {(plan.tarefasPraticas || plan.perguntasTarefa || []).length > 0 && (
+            {plan.tarefaDeCasa && plan.tarefaDeCasa.length > 0 ? (
+              <View style={styles.section}>
+                <Text style={styles.sectionTitle}>TPC — Tarefa de Casa</Text>
+                {plan.tarefaDeCasa.map((t, i) => (
+                  <View key={i} style={styles.tpcItem}>
+                    <Feather name="book-open" size={14} color={Colors.accent} />
+                    <View style={{ flex: 1 }}>
+                      <Text style={styles.bulletText}>{t.descricao}</Text>
+                      {t.referencia ? <Text style={styles.tpcMeta}>{t.referencia}</Text> : null}
+                      {t.tempoEstimado ? <Text style={styles.tpcMeta}>Tempo estimado: {t.tempoEstimado}</Text> : null}
+                    </View>
+                  </View>
+                ))}
+              </View>
+            ) : (plan.tarefasPraticas || plan.perguntasTarefa || []).length > 0 ? (
               <View style={styles.section}>
                 <Text style={styles.sectionTitle}>Tarefa Pratica</Text>
                 {(plan.tarefasPraticas || plan.perguntasTarefa || []).map((t, i) => (
@@ -607,12 +635,22 @@ export default function ViewPlanScreen() {
                   </View>
                 ))}
               </View>
-            )}
+            ) : null}
 
             {plan.avaliacao ? (
               <View style={[styles.section, styles.avaliacaoSection]}>
-                <Text style={styles.sectionTitle}>Avaliacao</Text>
+                <Text style={styles.sectionTitle}>Avaliacao Formativa</Text>
                 <Text style={styles.sectionText}>{plan.avaliacao}</Text>
+              </View>
+            ) : null}
+
+            {plan.diferenciacaoPedagogica ? (
+              <View style={[styles.section, styles.diferenciacaoSection]}>
+                <Text style={styles.sectionTitle}>Diferenciacao Pedagogica</Text>
+                <Text style={styles.tpcSubLabel}>Alunos com dificuldades:</Text>
+                <Text style={styles.sectionText}>{plan.diferenciacaoPedagogica.dificuldades}</Text>
+                <Text style={[styles.tpcSubLabel, { marginTop: 10 }]}>Alunos avancados:</Text>
+                <Text style={styles.sectionText}>{plan.diferenciacaoPedagogica.avancados}</Text>
               </View>
             ) : null}
 
@@ -744,4 +782,8 @@ const styles = StyleSheet.create({
   etapaRoleText: { flex: 1, fontFamily: "Inter_400Regular", fontSize: 13, color: Colors.textSecondary, lineHeight: 18 },
   avaliacaoSection: { backgroundColor: Colors.primary + "08", borderWidth: 1, borderColor: Colors.primary + "20" },
   observacoesSection: { backgroundColor: "#FFF9E6", borderWidth: 1, borderColor: "#F9A82520" },
+  diferenciacaoSection: { backgroundColor: "#F3F0FF", borderWidth: 1, borderColor: "#7C4DFF20" },
+  tpcItem: { flexDirection: "row", alignItems: "flex-start", gap: 8, paddingVertical: 4 },
+  tpcMeta: { fontFamily: "Inter_400Regular", fontSize: 12, color: Colors.primary, marginTop: 2, fontStyle: "italic" },
+  tpcSubLabel: { fontFamily: "Inter_600SemiBold", fontSize: 13, color: Colors.text },
 });

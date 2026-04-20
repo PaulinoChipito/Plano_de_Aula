@@ -84,9 +84,12 @@ export default function CreatePlanScreen() {
           tempo: e.duracao,
         })),
         perguntasControlo: result.perguntasControlo,
+        tarefaDeCasa: result.tarefaDeCasa,
         tarefasPraticas: result.tarefasPraticas,
         perguntasTarefa: result.tarefasPraticas,
         avaliacao: result.avaliacao,
+        diferenciacaoPedagogica: result.diferenciacaoPedagogica,
+        faixaEtaria: result.faixaEtaria,
         observacoes: result.observacoes,
         score: result.score,
         sugestoes: result.sugestoes,
@@ -498,13 +501,17 @@ export default function CreatePlanScreen() {
                 ))}
               </View>
 
-              {aiPlan.tarefasPraticas && aiPlan.tarefasPraticas.length > 0 && (
+              {aiPlan.tarefaDeCasa && aiPlan.tarefaDeCasa.length > 0 && (
                 <View style={styles.readOnlySection}>
-                  <Text style={styles.editLabel}>Tarefa Pratica</Text>
-                  {aiPlan.tarefasPraticas.map((t, i) => (
-                    <View key={i} style={styles.bulletItem}>
-                      <Feather name="clipboard" size={14} color={Colors.accent} />
-                      <Text style={styles.bulletText}>{t}</Text>
+                  <Text style={styles.editLabel}>TPC — Tarefa de Casa</Text>
+                  {aiPlan.tarefaDeCasa.map((t, i) => (
+                    <View key={i} style={styles.tpcItem}>
+                      <Feather name="book-open" size={14} color={Colors.accent} />
+                      <View style={{ flex: 1 }}>
+                        <Text style={styles.bulletText}>{t.descricao}</Text>
+                        {t.referencia ? <Text style={styles.tpcMeta}>{t.referencia}</Text> : null}
+                        {t.tempoEstimado ? <Text style={styles.tpcMeta}>Tempo: {t.tempoEstimado}</Text> : null}
+                      </View>
                     </View>
                   ))}
                 </View>
@@ -512,15 +519,18 @@ export default function CreatePlanScreen() {
 
               {aiPlan.avaliacao && (
                 <View style={styles.readOnlySection}>
-                  <Text style={styles.editLabel}>Avaliacao</Text>
+                  <Text style={styles.editLabel}>Avaliacao Formativa</Text>
                   <Text style={styles.readOnlyText}>{aiPlan.avaliacao}</Text>
                 </View>
               )}
 
-              {aiPlan.observacoes && (
+              {aiPlan.diferenciacaoPedagogica && (
                 <View style={styles.readOnlySection}>
-                  <Text style={styles.editLabel}>Observacoes</Text>
-                  <Text style={styles.readOnlyText}>{aiPlan.observacoes}</Text>
+                  <Text style={styles.editLabel}>Diferenciacao Pedagogica</Text>
+                  <Text style={[styles.tpcMeta, { marginBottom: 2 }]}>Alunos com dificuldades:</Text>
+                  <Text style={styles.readOnlyText}>{aiPlan.diferenciacaoPedagogica.dificuldades}</Text>
+                  <Text style={[styles.tpcMeta, { marginTop: 8, marginBottom: 2 }]}>Alunos avancados:</Text>
+                  <Text style={styles.readOnlyText}>{aiPlan.diferenciacaoPedagogica.avancados}</Text>
                 </View>
               )}
 
@@ -645,4 +655,6 @@ const styles = StyleSheet.create({
   },
   etapaRoleLabel: { fontFamily: "Inter_600SemiBold", fontSize: 12, color: Colors.textSecondary, marginTop: 4 },
   etapaRoleText: { fontFamily: "Inter_400Regular", fontSize: 13, color: Colors.textSecondary, lineHeight: 18, marginTop: 2 },
+  tpcItem: { flexDirection: "row", alignItems: "flex-start", gap: 8, paddingVertical: 4 },
+  tpcMeta: { fontFamily: "Inter_400Regular", fontSize: 12, color: Colors.primary, marginTop: 2, fontStyle: "italic" },
 });
