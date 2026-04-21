@@ -55,14 +55,25 @@ const SYSTEM_PROMPT = `És um especialista em pedagogia e planificação didáct
 — 10ª–12ª (15–18 anos): pensamento crítico, rigor científico, argumentação elaborada.
 REGRA: classes diferentes DEVEM ter profundidade, exigência e complexidade visivelmente diferentes.
 
-═══ 2. PROTOCOLO DE COERÊNCIA INTERNA (executa ANTES de escrever) ═══
-PASSO 1: identifica o tema real a partir do título e do sumário.
-PASSO 2: classifica o tema (A conceptual, B procedimental, C misto — ver §4).
-PASSO 3: garante que TODAS as secções (objectivos, conteúdos, desenvolvimento, perguntas, TPC) tratam DESSE tema.
-ERRO GRAVE: descrever no desenvolvimento uma aula de outro tema (ex: tema "Pronomes" com desenvolvimento de leitura de texto; tema "Equações" com leitura de poema; tema "A célula" com problemas numéricos). Se um observador lesse só o desenvolvimento, deveria reconhecer imediatamente a disciplina e o tema.
+═══ 2. REGRA CRÍTICA — TEMA vs. SUMÁRIO (LÊ COM ATENÇÃO) ═══
+O TEMA é o título amplo da aula (ex: "A célula"). O SUMÁRIO é a descrição CONCRETA do que o professor vai efectivamente leccionar nesta aula em particular (ex: "Estrutura da célula eucariótica animal: membrana plasmática, citoplasma e núcleo — função de cada componente").
+
+REPARTIÇÃO OBRIGATÓRIA — ler com atenção:
+— OBJECTIVO GERAL → deriva EXCLUSIVAMENTE do TEMA. Reflecte a competência ampla associada ao tema da aula (a visão de conjunto).
+— OBJECTIVOS ESPECÍFICOS, CONTEÚDOS PROGRAMÁTICOS, DESENVOLVIMENTO DA AULA, PERGUNTAS DE CONTROLO, TPC, AVALIAÇÃO e DIFERENCIAÇÃO → derivam EXCLUSIVAMENTE do SUMÁRIO. Tratam EXACTAMENTE do que o sumário descreve — nem mais (não inventar matéria fora do sumário), nem menos (cobrir tudo o que o sumário anuncia).
+
+Se o sumário existir, é a fonte primária para tudo excepto o objectivo geral. Se o sumário NÃO existir, todas as secções derivam do tema.
+
+═══ 2B. PROTOCOLO DE COERÊNCIA INTERNA (executa ANTES de escrever) ═══
+PASSO 1: lê o tema E o sumário SEPARADAMENTE. Identifica o âmbito amplo (tema) e o âmbito concreto (sumário).
+PASSO 2: classifica o sumário (A conceptual, B procedimental, C misto — ver §4) — esta classificação rege a forma dos objectivos específicos.
+PASSO 3: redige o OBJECTIVO GERAL a partir do TEMA (visão ampla).
+PASSO 4: redige TODAS as restantes secções estritamente a partir do SUMÁRIO (foco específico).
+PASSO 5: verifica que objectivos específicos, conteúdos, desenvolvimento, perguntas e TPC estão todos focados nos sub-tópicos do SUMÁRIO — sem desvios para outros aspectos do tema que o sumário não menciona.
+ERRO GRAVE: o desenvolvimento ou os objectivos específicos cobrirem matéria que NÃO está no sumário, ou ignorarem matéria que ESTÁ no sumário. Se um observador lesse só o desenvolvimento, deveria reconhecer não só a disciplina e o tema, mas ESTA aula específica descrita no sumário.
 
 ═══ 3. TAXONOMIA DE BLOOM — VERBOS POR NÍVEL ═══
-N1 LEMBRAR: identificar, nomear, listar, enumerar, indicar, recordar, reconhecer, localizar, citar, assinalar.
+N1 CONHECER: identificar, nomear, listar, enumerar, indicar, recordar, reconhecer, localizar, citar, assinalar.
 N2 COMPREENDER: definir, explicar, descrever, resumir, interpretar, classificar, exemplificar, relacionar, distinguir, comparar, esquematizar, inferir.
 N3 APLICAR: resolver, calcular, aplicar, usar, executar, construir, produzir, demonstrar, manipular, redigir, traçar, medir, completar, formular.
 N4 ANALISAR: analisar, examinar, decompor, diferenciar, discriminar, estruturar, separar, mapear, fundamentar, investigar, correlacionar.
@@ -149,9 +160,12 @@ function buildPrompt(
   const classeNum = parseInt(classe.replace(/[^\d]/g, "")) || 0;
   let nivel = "";
   if (classeNum >= 1 && classeNum <= 4) nivel = "Ensino Primário (6–10 anos)";
-  else if (classeNum >= 5 && classeNum <= 6) nivel = "Ensino Primário avançado (10–12 anos)";
-  else if (classeNum >= 7 && classeNum <= 9) nivel = "I Ciclo do Ensino Secundário (12–15 anos)";
-  else if (classeNum >= 10 && classeNum <= 12) nivel = "II Ciclo do Ensino Secundário (15–18 anos)";
+  else if (classeNum >= 5 && classeNum <= 6)
+    nivel = "Ensino Primário avançado (10–12 anos)";
+  else if (classeNum >= 7 && classeNum <= 9)
+    nivel = "I Ciclo do Ensino Secundário (12–15 anos)";
+  else if (classeNum >= 10 && classeNum <= 12)
+    nivel = "II Ciclo do Ensino Secundário (15–18 anos)";
   else nivel = "Ensino Superior (+18 anos)";
 
   const sumarioLine = sumario
@@ -165,11 +179,16 @@ Tema: ${tema}
 ${sumarioLine}
 Duração: ${duracao} minutos
 
+ATENÇÃO — REPARTIÇÃO DE FONTES (regra absoluta):
+• OBJECTIVO GERAL → baseado APENAS no TEMA "${tema}" (visão ampla da aula).
+• OBJECTIVOS ESPECÍFICOS, CONTEÚDOS, DESENVOLVIMENTO, PERGUNTAS DE CONTROLO, TPC, AVALIAÇÃO e DIFERENCIAÇÃO → baseados APENAS no SUMÁRIO${sumario ? ` "${sumario}"` : " (se ausente, usar o tema)"}. Devem cobrir exactamente o que o sumário descreve, sem inventar matéria fora dele e sem omitir matéria dentro dele.
+
 ANTES de escrever, executa mentalmente o protocolo de coerência:
-1) Identifica o tema real (a partir do título e do sumário).
-2) Classifica o tema: A (conceptual) / B (procedimental) / C (misto). Se B, os objectivos descrevem o que o ALUNO FAZ — nunca "definir" ou "explicar a importância" do procedimento.
-3) Garante que objectivos, conteúdos, desenvolvimento, perguntas e TPC tratam EXACTAMENTE deste tema, desta disciplina e desta classe (profundidade adequada).
-4) Sem o nome "${disciplina}" no enunciado, alguém deveria reconhecer a disciplina e o tema só pelo desenvolvimento.
+1) Lê o TEMA e o SUMÁRIO separadamente. O tema dá o âmbito amplo; o sumário dá os sub-tópicos concretos desta aula.
+2) Classifica o sumário: A (conceptual) / B (procedimental) / C (misto). Se B, os objectivos específicos descrevem o que o ALUNO FAZ — nunca "definir" ou "explicar a importância" do procedimento.
+3) Redige o objectivo geral a partir do TEMA "${tema}".
+4) Redige objectivos específicos, conteúdos, desenvolvimento, perguntas e TPC estritamente a partir do SUMÁRIO${sumario ? "" : " (ou do tema, na sua ausência)"}.
+5) Verifica que o desenvolvimento descreve exactamente esta aula (tema + sumário) — não outra. Sem o nome "${disciplina}" no enunciado, alguém deveria reconhecer a disciplina e o tema só pelo desenvolvimento.
 
 Tempos no desenvolvimento: múltiplos de 5 minutos, somando exactamente ${duracao}.
 Verbo do objectivo geral: 1 só, no infinitivo, NUNCA repetido nos específicos.
@@ -179,36 +198,36 @@ Responde APENAS com este JSON (sem markdown, sem comentários, sem texto fora do
 {
   "sumario": "${sumario ? sumario : "título descritivo concreto da aula (tema + foco específico, em 1 frase)"}",
   "faixaEtaria": "${nivel}",
-  "tipoTema": "A | B | C — classifica em uma só letra com breve justificação (ex: 'B — procedimental: o tema é a competência de resolver…')",
-  "objetivoGeral": "1 verbo no infinitivo (escolhido entre: desenvolver/promover/capacitar/consolidar/introduzir/estudar/analisar/compreender/explorar/dominar/sistematizar/aplicar/interpretar/construir/aprofundar) + competência central — SEM 'e', SEM encadeamento",
+  "tipoTema": "A | B | C — classifica o SUMÁRIO em uma só letra com breve justificação (ex: 'B — procedimental: o sumário descreve a competência de resolver…')",
+  "objetivoGeral": "[DERIVA DO TEMA \"${tema}\"] 1 verbo no infinitivo (escolhido entre: desenvolver/promover/capacitar/consolidar/introduzir/estudar/analisar/compreender/explorar/dominar/sistematizar/aplicar/interpretar/construir/aprofundar) + competência ampla associada ao tema — SEM 'e', SEM encadeamento",
   "objetivosEspecificos": [
-    "VERBO_INFINITIVO_NÍVEL_BAIXO + [o quê, específico ao tema] + [a partir de quê] + [critério mensurável: nº acertos / extensão / precisão]",
-    "VERBO_INFINITIVO_NÍVEL_MÉDIO (diferente do anterior) + [o quê] + [a partir de quê] + [critério]",
-    "VERBO_INFINITIVO_NÍVEL_MAIS_ALTO (diferente dos anteriores e do geral) + [o quê] + [a partir de quê] + [critério mais exigente]"
+    "[DERIVA DO SUMÁRIO] VERBO_INFINITIVO_NÍVEL_BAIXO + [sub-tópico CONCRETO do sumário] + [a partir de quê] + [critério mensurável: nº acertos / extensão / precisão]",
+    "[DERIVA DO SUMÁRIO] VERBO_INFINITIVO_NÍVEL_MÉDIO (diferente do anterior) + [outro sub-tópico do sumário] + [a partir de quê] + [critério]",
+    "[DERIVA DO SUMÁRIO] VERBO_INFINITIVO_NÍVEL_MAIS_ALTO (diferente dos anteriores e do geral) + [outro sub-tópico do sumário] + [a partir de quê] + [critério mais exigente]"
   ],
-  "conteudos": ["subtema CONCRETO 1 do tema", "subtema CONCRETO 2", "subtema CONCRETO 3", "subtema CONCRETO 4"],
-  "metodosPrincipais": "Método A + Método B (adequados ao tipo de tema e à disciplina ${disciplina})",
-  "metodos": "MÉTODO [NOME]: justificação breve adequada à disciplina. TÉCNICAS: técnicas específicas (ex: resolução de problemas / análise de fontes / trabalho laboratorial / leitura comentada / demonstração técnica).",
-  "meios": "recursos concretos da disciplina (quadro negro, manual ${disciplina} INIDE, ficha, mapa de Angola, materiais laboratoriais, bola, instrumentos de desenho, etc.)",
+  "conteudos": ["[DO SUMÁRIO] sub-tópico CONCRETO 1 mencionado no sumário", "sub-tópico CONCRETO 2 do sumário", "sub-tópico CONCRETO 3 do sumário", "sub-tópico CONCRETO 4 do sumário"],
+  "metodosPrincipais": "Método A + Método B (adequados ao tipo de sumário e à disciplina ${disciplina})",
+  "metodos": "MÉTODO [NOME]: justificação breve adequada à disciplina e ao que o sumário descreve. TÉCNICAS: técnicas específicas (ex: resolução de problemas / análise de fontes / trabalho laboratorial / leitura comentada / demonstração técnica).",
+  "meios": "recursos concretos da disciplina necessários para leccionar o que está no sumário (quadro negro, manual ${disciplina} INIDE, ficha, mapa de Angola, materiais laboratoriais, bola, instrumentos de desenho, etc.)",
   "desenvolvimentoAula": [
-    {"etapa": "Motivação", "duracao": "X min", "actividadesProfessor": "situação angolana concreta que introduz ESTE tema (não genérica)", "actividadesAlunos": "resposta e participação"},
-    {"etapa": "Desenvolvimento", "duracao": "X min", "actividadesProfessor": "actividades ESPECÍFICAS do tema e da disciplina, com exemplos progressivos contextualizados em Angola; demonstração no quadro ou com fonte/material adequado", "actividadesAlunos": "registo, resolução, observação, leitura — adequado ao tipo de tema"},
-    {"etapa": "Consolidação", "duracao": "X min", "actividadesProfessor": "distribui ficha de exercícios sobre ESTE tema; orienta correcção colectiva no quadro", "actividadesAlunos": "exercício individual; correcção no quadro"},
-    {"etapa": "Síntese e Avaliação", "duracao": "X min", "actividadesProfessor": "síntese dos conceitos/passos do tema; perguntas de controlo; registo do sumário e TPC", "actividadesAlunos": "respostas; registo do sumário e TPC"}
+    {"etapa": "Motivação", "duracao": "X min", "actividadesProfessor": "[DO SUMÁRIO] situação angolana concreta que introduz os sub-tópicos descritos no sumário", "actividadesAlunos": "resposta e participação"},
+    {"etapa": "Desenvolvimento", "duracao": "X min", "actividadesProfessor": "[DO SUMÁRIO] actividades que cobrem EXACTAMENTE os sub-tópicos do sumário, com exemplos progressivos contextualizados em Angola; demonstração no quadro ou com fonte/material adequado", "actividadesAlunos": "registo, resolução, observação, leitura — adequado ao tipo de sumário"},
+    {"etapa": "Consolidação", "duracao": "X min", "actividadesProfessor": "[DO SUMÁRIO] distribui ficha com exercícios sobre os sub-tópicos do sumário; orienta correcção colectiva no quadro", "actividadesAlunos": "exercício individual; correcção no quadro"},
+    {"etapa": "Síntese e Avaliação", "duracao": "X min", "actividadesProfessor": "síntese dos sub-tópicos do sumário; perguntas de controlo; registo do sumário e TPC", "actividadesAlunos": "respostas; registo do sumário e TPC"}
   ],
   "perguntasControlo": [
-    "1ª (recordação): pergunta directa sobre um conceito/passo ENSINADO nesta aula",
-    "2ª (compreensão): 'Explica por palavras tuas…' sobre algo do tema",
-    "3ª (aplicação): situação angolana CONCRETA e COMPLETA (com nome de pessoa, lugar e valores reais — ex: vendedeira do mercado do Roque Santeiro / lavrador em Malanje / aluno de uma escola do Huambo). NUNCA placeholders."
+    "[DO SUMÁRIO] 1ª (recordação): pergunta directa sobre um conceito/passo do sumário ensinado nesta aula",
+    "[DO SUMÁRIO] 2ª (compreensão): 'Explica por palavras tuas…' sobre um sub-tópico do sumário",
+    "[DO SUMÁRIO] 3ª (aplicação): situação angolana CONCRETA e COMPLETA aplicando os sub-tópicos do sumário (com nome de pessoa, lugar e valores reais — ex: vendedeira do mercado do Roque Santeiro / lavrador em Malanje / aluno de uma escola do Huambo). NUNCA placeholders."
   ],
   "tarefaDeCasa": [
-    {"descricao": "exercício específico do tema", "referencia": "Manual de ${disciplina} ${classe} (INIDE), Unidade sobre ${tema}. Confirmar página com a edição da escola.", "tempoEstimado": "15 min"},
-    {"descricao": "tarefa de aplicação ou produção contextualizada na realidade angolana sobre o mesmo tema", "referencia": "Caderno do aluno", "tempoEstimado": "10 min"}
+    {"descricao": "[DO SUMÁRIO] exercício específico sobre os sub-tópicos do sumário", "referencia": "Manual de ${disciplina} ${classe} (INIDE), Unidade sobre ${tema}. Confirmar página com a edição da escola.", "tempoEstimado": "15 min"},
+    {"descricao": "[DO SUMÁRIO] tarefa de aplicação ou produção contextualizada na realidade angolana, sobre os sub-tópicos do sumário", "referencia": "Caderno do aluno", "tempoEstimado": "10 min"}
   ],
-  "avaliacao": "instrumentos com critérios e ponderações somando 100% (ex: participação 20% + ficha 50% + perguntas de controlo 30%)",
+  "avaliacao": "instrumentos com critérios e ponderações somando 100% (ex: participação 20% + ficha 50% + perguntas de controlo 30%) — sobre os sub-tópicos do sumário",
   "diferenciacaoPedagogica": {
-    "dificuldades": "adaptação CONCRETA referida ao conteúdo desta aula (ex: ficha simplificada com X exercícios resolvidos como modelo; trabalho a pares com colega tutor no exercício Y)",
-    "avancados": "extensão CONCRETA do mesmo tema (ex: exercício adicional de ${tema} com nível Z; pequena investigação sobre…)"
+    "dificuldades": "[DO SUMÁRIO] adaptação CONCRETA referida aos sub-tópicos do sumário (ex: ficha simplificada com X exercícios resolvidos como modelo; trabalho a pares com colega tutor no exercício Y)",
+    "avancados": "[DO SUMÁRIO] extensão CONCRETA dos sub-tópicos do sumário (ex: exercício adicional sobre o sub-tópico X com nível Z; pequena investigação sobre…)"
   },
   "observacoes": "notas adicionais para o professor sobre a leccionação deste tema nesta classe",
   "score": 85,
@@ -223,27 +242,44 @@ function extractJSON(text: string): string {
   return cleaned;
 }
 
-async function loadPipeline(onStatus: (s: GenerationStatus) => void): Promise<void> {
+async function loadPipeline(
+  onStatus: (s: GenerationStatus) => void,
+): Promise<void> {
   if (pipelineInstance) return;
   if (pipelineLoading) {
     return new Promise((resolve, reject) => {
-      pipelineLoadCallbacks.push((err) => { if (err) reject(err); else resolve(); });
+      pipelineLoadCallbacks.push((err) => {
+        if (err) reject(err);
+        else resolve();
+      });
     });
   }
   pipelineLoading = true;
   try {
-    onStatus({ stage: "downloading", progress: 0, message: "A iniciar descarga do modelo Qwen2.5..." });
+    onStatus({
+      stage: "downloading",
+      progress: 0,
+      message: "A iniciar descarga do modelo Qwen2.5...",
+    });
     const { pipeline } = await import("@huggingface/transformers");
     pipelineInstance = await pipeline("text-generation", MODEL_ID, {
       dtype: "q4f16" as any,
       progress_callback: (info: any) => {
         if (info.status === "downloading" || info.status === "progress") {
-          const pct = info.total > 0 ? Math.round((info.loaded / info.total) * 100) : 0;
-          onStatus({ stage: "downloading", progress: pct, message: `A descarregar modelo: ${pct}%` });
+          const pct =
+            info.total > 0 ? Math.round((info.loaded / info.total) * 100) : 0;
+          onStatus({
+            stage: "downloading",
+            progress: pct,
+            message: `A descarregar modelo: ${pct}%`,
+          });
         } else if (info.status === "initiate") {
           onStatus({ stage: "downloading", message: "A preparar modelo..." });
         } else if (info.status === "done") {
-          onStatus({ stage: "loading", message: "A carregar modelo na memória..." });
+          onStatus({
+            stage: "loading",
+            message: "A carregar modelo na memória...",
+          });
         }
       },
     });
@@ -268,10 +304,16 @@ async function generateWithQwen(
   sumario?: string,
 ): Promise<LessonPlanAIResult> {
   await loadPipeline(onStatus);
-  onStatus({ stage: "generating", message: "A gerar plano de aula com IA local..." });
+  onStatus({
+    stage: "generating",
+    message: "A gerar plano de aula com IA local...",
+  });
   const messages = [
     { role: "system", content: SYSTEM_PROMPT },
-    { role: "user", content: buildPrompt(classe, disciplina, tema, duracao, sumario) },
+    {
+      role: "user",
+      content: buildPrompt(classe, disciplina, tema, duracao, sumario),
+    },
   ];
   const result = await pipelineInstance(messages, {
     max_new_tokens: 1800,
@@ -283,7 +325,8 @@ async function generateWithQwen(
   let rawText = "";
   if (Array.isArray(generated)) {
     const assistantMsg = generated.find((m: any) => m.role === "assistant");
-    rawText = assistantMsg?.content ?? generated[generated.length - 1]?.content ?? "";
+    rawText =
+      assistantMsg?.content ?? generated[generated.length - 1]?.content ?? "";
   } else {
     rawText = String(generated ?? "");
   }
@@ -293,7 +336,11 @@ async function generateWithQwen(
     parsed = JSON.parse(jsonStr);
   } catch {
     const partial = jsonStr.replace(/,?\s*$/, "}");
-    try { parsed = JSON.parse(partial); } catch { return buildTemplatePlan(classe, disciplina, tema, duracao, sumario); }
+    try {
+      parsed = JSON.parse(partial);
+    } catch {
+      return buildTemplatePlan(classe, disciplina, tema, duracao, sumario);
+    }
   }
   return mergeWithDefaults(parsed, classe, disciplina, tema, duracao, sumario);
 }
@@ -311,31 +358,60 @@ function mergeWithDefaults(
     sumario: sumario || parsed.sumario || tmpl.sumario,
     faixaEtaria: parsed.faixaEtaria || tmpl.faixaEtaria,
     objetivoGeral: parsed.objetivoGeral || tmpl.objetivoGeral,
-    objetivosEspecificos: parsed.objetivosEspecificos?.length ? parsed.objetivosEspecificos : tmpl.objetivosEspecificos,
+    objetivosEspecificos: parsed.objetivosEspecificos?.length
+      ? parsed.objetivosEspecificos
+      : tmpl.objetivosEspecificos,
     conteudos: parsed.conteudos?.length ? parsed.conteudos : tmpl.conteudos,
     metodosPrincipais: parsed.metodosPrincipais || tmpl.metodosPrincipais,
     metodos: parsed.metodos || tmpl.metodos,
     meios: parsed.meios || tmpl.meios,
-    desenvolvimentoAula: parsed.desenvolvimentoAula?.length ? parsed.desenvolvimentoAula : tmpl.desenvolvimentoAula,
-    perguntasControlo: parsed.perguntasControlo?.length ? parsed.perguntasControlo : tmpl.perguntasControlo,
-    tarefaDeCasa: parsed.tarefaDeCasa?.length ? parsed.tarefaDeCasa : tmpl.tarefaDeCasa,
+    desenvolvimentoAula: parsed.desenvolvimentoAula?.length
+      ? parsed.desenvolvimentoAula
+      : tmpl.desenvolvimentoAula,
+    perguntasControlo: parsed.perguntasControlo?.length
+      ? parsed.perguntasControlo
+      : tmpl.perguntasControlo,
+    tarefaDeCasa: parsed.tarefaDeCasa?.length
+      ? parsed.tarefaDeCasa
+      : tmpl.tarefaDeCasa,
     tarefasPraticas: parsed.tarefaDeCasa?.length
       ? parsed.tarefaDeCasa.map((t: any) => t.descricao || t)
       : tmpl.tarefasPraticas,
     avaliacao: parsed.avaliacao || tmpl.avaliacao,
-    diferenciacaoPedagogica: parsed.diferenciacaoPedagogica || tmpl.diferenciacaoPedagogica,
+    diferenciacaoPedagogica:
+      parsed.diferenciacaoPedagogica || tmpl.diferenciacaoPedagogica,
     observacoes: parsed.observacoes || tmpl.observacoes,
     score: typeof parsed.score === "number" ? parsed.score : tmpl.score,
     sugestoes: parsed.sugestoes?.length ? parsed.sugestoes : tmpl.sugestoes,
   };
 }
 
-function detectFaixaEtaria(classe: string): { faixa: string; nivel: string; classeNum: number } {
+function detectFaixaEtaria(classe: string): {
+  faixa: string;
+  nivel: string;
+  classeNum: number;
+} {
   const n = parseInt(classe.replace(/[^\d]/g, "")) || 0;
-  if (n >= 1 && n <= 4) return { faixa: "6–10 anos", nivel: "Ensino Primário", classeNum: n };
-  if (n >= 5 && n <= 6) return { faixa: "10–12 anos", nivel: "Ensino Primário avançado", classeNum: n };
-  if (n >= 7 && n <= 9) return { faixa: "12–15 anos", nivel: "I Ciclo do Ensino Secundário", classeNum: n };
-  if (n >= 10 && n <= 12) return { faixa: "15–18 anos", nivel: "II Ciclo do Ensino Secundário", classeNum: n };
+  if (n >= 1 && n <= 4)
+    return { faixa: "6–10 anos", nivel: "Ensino Primário", classeNum: n };
+  if (n >= 5 && n <= 6)
+    return {
+      faixa: "10–12 anos",
+      nivel: "Ensino Primário avançado",
+      classeNum: n,
+    };
+  if (n >= 7 && n <= 9)
+    return {
+      faixa: "12–15 anos",
+      nivel: "I Ciclo do Ensino Secundário",
+      classeNum: n,
+    };
+  if (n >= 10 && n <= 12)
+    return {
+      faixa: "15–18 anos",
+      nivel: "II Ciclo do Ensino Secundário",
+      classeNum: n,
+    };
   return { faixa: "+18 anos", nivel: "Ensino Superior", classeNum: n };
 }
 
@@ -344,19 +420,75 @@ type TemaNatureza = "conceptual" | "procedimental" | "misto";
 function detectTemaNatureza(tema: string): TemaNatureza {
   const t = tema.toLowerCase();
   const procedimentalKeywords = [
-    "leitura", "interpretação", "interpretacao", "produção", "producao", "redacção", "redacao",
-    "resolução", "resolucao", "cálculo", "calculo", "construção", "construcao",
-    "análise", "analise", "aplicação", "aplicacao", "representação", "representacao",
-    "resumo", "resumir", "elaboração", "elaboracao", "escrita", "composição", "composicao",
-    "leitura e interpretação", "texto narrativo", "texto descritivo", "texto argumentativo",
+    "leitura",
+    "interpretação",
+    "interpretacao",
+    "produção",
+    "producao",
+    "redacção",
+    "redacao",
+    "resolução",
+    "resolucao",
+    "cálculo",
+    "calculo",
+    "construção",
+    "construcao",
+    "análise",
+    "analise",
+    "aplicação",
+    "aplicacao",
+    "representação",
+    "representacao",
+    "resumo",
+    "resumir",
+    "elaboração",
+    "elaboracao",
+    "escrita",
+    "composição",
+    "composicao",
+    "leitura e interpretação",
+    "texto narrativo",
+    "texto descritivo",
+    "texto argumentativo",
   ];
   const conceptualKeywords = [
-    "classe", "categorias", "conceito", "definição", "definicao", "estrutura",
-    "tipos", "características", "caracteristicas", "propriedades", "regras",
-    "adjetivos", "adjectivos", "verbo", "substantivo", "pronome", "advérbio",
-    "adverbio", "pontuação", "pontuacao", "morfologia", "sintaxe", "gramática",
-    "gramatica", "equação", "equacao", "teorema", "lei de", "princípio", "principio",
-    "célula", "celula", "função", "funcao", "sistema", "processo", "ciclo",
+    "classe",
+    "categorias",
+    "conceito",
+    "definição",
+    "definicao",
+    "estrutura",
+    "tipos",
+    "características",
+    "caracteristicas",
+    "propriedades",
+    "regras",
+    "adjetivos",
+    "adjectivos",
+    "verbo",
+    "substantivo",
+    "pronome",
+    "advérbio",
+    "adverbio",
+    "pontuação",
+    "pontuacao",
+    "morfologia",
+    "sintaxe",
+    "gramática",
+    "gramatica",
+    "equação",
+    "equacao",
+    "teorema",
+    "lei de",
+    "princípio",
+    "principio",
+    "célula",
+    "celula",
+    "função",
+    "funcao",
+    "sistema",
+    "processo",
+    "ciclo",
   ];
   const isProcedimental = procedimentalKeywords.some((k) => t.includes(k));
   const isConceptual = conceptualKeywords.some((k) => t.includes(k));
@@ -365,7 +497,11 @@ function detectTemaNatureza(tema: string): TemaNatureza {
   return "conceptual";
 }
 
-function gerarObjetivosConceptual(tema: string, disc: string, faixa: ReturnType<typeof detectFaixaEtaria>): { geral: string; especificos: string[] } {
+function gerarObjetivosConceptual(
+  tema: string,
+  disc: string,
+  faixa: ReturnType<typeof detectFaixaEtaria>,
+): { geral: string; especificos: string[] } {
   const { nivel, classeNum } = faixa;
   const isSuperior = classeNum === 0 || nivel === "Ensino Superior";
 
@@ -414,11 +550,22 @@ function gerarObjetivosConceptual(tema: string, disc: string, faixa: ReturnType<
   };
 }
 
-function gerarObjetivosProcedimental(tema: string, disc: string, faixa: ReturnType<typeof detectFaixaEtaria>): { geral: string; especificos: string[] } {
+function gerarObjetivosProcedimental(
+  tema: string,
+  disc: string,
+  faixa: ReturnType<typeof detectFaixaEtaria>,
+): { geral: string; especificos: string[] } {
   const { nivel, classeNum } = faixa;
   const discLow = disc.toLowerCase();
-  const isMat = discLow.includes("matem") || discLow.includes("física") || discLow.includes("fisica");
-  const isLing = discLow.includes("português") || discLow.includes("portugues") || discLow.includes("língua") || discLow.includes("lingua");
+  const isMat =
+    discLow.includes("matem") ||
+    discLow.includes("física") ||
+    discLow.includes("fisica");
+  const isLing =
+    discLow.includes("português") ||
+    discLow.includes("portugues") ||
+    discLow.includes("língua") ||
+    discLow.includes("lingua");
 
   if (isMat) {
     return {
@@ -475,28 +622,47 @@ function gerarObjetivosProcedimental(tema: string, disc: string, faixa: ReturnTy
   };
 }
 
-function gerarConteudos(tema: string, disc: string, faixa: ReturnType<typeof detectFaixaEtaria>, natureza: TemaNatureza): string[] {
+function gerarConteudos(
+  tema: string,
+  disc: string,
+  faixa: ReturnType<typeof detectFaixaEtaria>,
+  natureza: TemaNatureza,
+): string[] {
   const discLow = disc.toLowerCase();
-  const isMat = discLow.includes("matem") || discLow.includes("física") || discLow.includes("fisica") || discLow.includes("quím") || discLow.includes("quim");
-  const isLing = discLow.includes("português") || discLow.includes("portugues") || discLow.includes("língua") || discLow.includes("lingua");
+  const isMat =
+    discLow.includes("matem") ||
+    discLow.includes("física") ||
+    discLow.includes("fisica") ||
+    discLow.includes("quím") ||
+    discLow.includes("quim");
+  const isLing =
+    discLow.includes("português") ||
+    discLow.includes("portugues") ||
+    discLow.includes("língua") ||
+    discLow.includes("lingua");
   const isHist = discLow.includes("histór") || discLow.includes("histor");
-  const isBio = discLow.includes("biolog") || discLow.includes("ciênc") || discLow.includes("cienc");
+  const isBio =
+    discLow.includes("biolog") ||
+    discLow.includes("ciênc") ||
+    discLow.includes("cienc");
   const { classeNum } = faixa;
 
   if (natureza === "procedimental" && isLing) {
-    if (classeNum <= 6) return [
-      `Texto sobre ${tema}: vocabulário e estrutura`,
-      "Compreensão oral e escrita: perguntas de interpretação",
-      "Vocabulário novo: palavras do texto",
-      "Produção escrita guiada",
-    ];
-    if (classeNum <= 9) return [
-      `Tipo de texto: características do texto sobre ${tema}`,
-      "Interpretação literal e inferencial",
-      "Vocabulário contextual: palavras e expressões",
-      "Resumo e síntese de ideias",
-      "Produção de parágrafo",
-    ];
+    if (classeNum <= 6)
+      return [
+        `Texto sobre ${tema}: vocabulário e estrutura`,
+        "Compreensão oral e escrita: perguntas de interpretação",
+        "Vocabulário novo: palavras do texto",
+        "Produção escrita guiada",
+      ];
+    if (classeNum <= 9)
+      return [
+        `Tipo de texto: características do texto sobre ${tema}`,
+        "Interpretação literal e inferencial",
+        "Vocabulário contextual: palavras e expressões",
+        "Resumo e síntese de ideias",
+        "Produção de parágrafo",
+      ];
     return [
       `Análise estrutural e estilística: ${tema}`,
       "Recursos linguísticos e sua função",
@@ -506,29 +672,32 @@ function gerarConteudos(tema: string, disc: string, faixa: ReturnType<typeof det
     ];
   }
 
-  if (isMat) return [
-    `Conceito e definição de ${tema}`,
-    `Propriedades e regras de ${tema}`,
-    `Algoritmo/procedimento de ${tema}`,
-    "Problemas contextualizados no quotidiano angolano",
-    "Verificação e correcção dos resultados",
-  ];
+  if (isMat)
+    return [
+      `Conceito e definição de ${tema}`,
+      `Propriedades e regras de ${tema}`,
+      `Algoritmo/procedimento de ${tema}`,
+      "Problemas contextualizados no quotidiano angolano",
+      "Verificação e correcção dos resultados",
+    ];
 
-  if (isHist) return [
-    `Contexto histórico e cronológico de ${tema}`,
-    `Causas e factores de ${tema}`,
-    `Desenvolvimento e consequências de ${tema}`,
-    `Personagens e fontes históricas relevantes`,
-    `Impacto de ${tema} em Angola e em África`,
-  ];
+  if (isHist)
+    return [
+      `Contexto histórico e cronológico de ${tema}`,
+      `Causas e factores de ${tema}`,
+      `Desenvolvimento e consequências de ${tema}`,
+      `Personagens e fontes históricas relevantes`,
+      `Impacto de ${tema} em Angola e em África`,
+    ];
 
-  if (isBio) return [
-    `Definição e características de ${tema}`,
-    `Estrutura e componentes de ${tema}`,
-    `Funções e mecanismos biológicos de ${tema}`,
-    `Relação com a saúde e o ambiente angolano`,
-    `Cuidados e aplicações práticas`,
-  ];
+  if (isBio)
+    return [
+      `Definição e características de ${tema}`,
+      `Estrutura e componentes de ${tema}`,
+      `Funções e mecanismos biológicos de ${tema}`,
+      `Relação com a saúde e o ambiente angolano`,
+      `Cuidados e aplicações práticas`,
+    ];
 
   return [
     `Conceito e características de ${tema}`,
@@ -538,48 +707,82 @@ function gerarConteudos(tema: string, disc: string, faixa: ReturnType<typeof det
   ];
 }
 
-function gerarMetodos(disc: string, faixa: ReturnType<typeof detectFaixaEtaria>, natureza: TemaNatureza): { principais: string; detalhado: string; meios: string } {
+function gerarMetodos(
+  disc: string,
+  faixa: ReturnType<typeof detectFaixaEtaria>,
+  natureza: TemaNatureza,
+): { principais: string; detalhado: string; meios: string } {
   const { classeNum } = faixa;
   const discLow = disc.toLowerCase();
-  const isMat = discLow.includes("matem") || discLow.includes("física") || discLow.includes("fisica");
+  const isMat =
+    discLow.includes("matem") ||
+    discLow.includes("física") ||
+    discLow.includes("fisica");
   const isLing = discLow.includes("português") || discLow.includes("portugues");
 
-  if (isMat) return {
-    principais: "Demonstrativo + Resolução de Problemas + Trabalho Independente",
-    detalhado: `MÉTODO DEMONSTRATIVO: resolução progressiva e comentada no quadro negro, do exemplo simples ao complexo. MÉTODO DE RESOLUÇÃO DE PROBLEMAS: situações contextualizadas do quotidiano angolano para modelação matemática. MÉTODO DE TRABALHO INDEPENDENTE: exercícios individuais com correcção colectiva no quadro. TÉCNICAS: resolução progressiva por níveis de dificuldade; correcção colectiva no quadro; trabalho em pares.`,
-    meios: `Quadro negro e giz, manual escolar de ${disc}, ficha de exercícios com 2 níveis de dificuldade, caderno do aluno`,
-  };
+  if (isMat)
+    return {
+      principais:
+        "Demonstrativo + Resolução de Problemas + Trabalho Independente",
+      detalhado: `MÉTODO DEMONSTRATIVO: resolução progressiva e comentada no quadro negro, do exemplo simples ao complexo. MÉTODO DE RESOLUÇÃO DE PROBLEMAS: situações contextualizadas do quotidiano angolano para modelação matemática. MÉTODO DE TRABALHO INDEPENDENTE: exercícios individuais com correcção colectiva no quadro. TÉCNICAS: resolução progressiva por níveis de dificuldade; correcção colectiva no quadro; trabalho em pares.`,
+      meios: `Quadro negro e giz, manual escolar de ${disc}, ficha de exercícios com 2 níveis de dificuldade, caderno do aluno`,
+    };
 
-  if (isLing && natureza === "procedimental") return {
-    principais: "Analítico-Sintético + Activo-Participativo + Produção Escrita",
-    detalhado: `MÉTODO ANALÍTICO-SINTÉTICO: análise do texto por partes e síntese das ideias. MÉTODO ACTIVO-PARTICIPATIVO: leitura em voz alta, questionamento oral, produção escrita guiada. TÉCNICAS: leitura em cadeia; questionamento oral com progressão cognitiva (da recordação à aplicação); produção orientada; correcção colectiva no quadro.`,
-    meios: `Texto impresso de autor angolano, ficha de interpretação, quadro negro e giz, caderno do aluno, manual escolar de ${disc}`,
-  };
+  if (isLing && natureza === "procedimental")
+    return {
+      principais:
+        "Analítico-Sintético + Activo-Participativo + Produção Escrita",
+      detalhado: `MÉTODO ANALÍTICO-SINTÉTICO: análise do texto por partes e síntese das ideias. MÉTODO ACTIVO-PARTICIPATIVO: leitura em voz alta, questionamento oral, produção escrita guiada. TÉCNICAS: leitura em cadeia; questionamento oral com progressão cognitiva (da recordação à aplicação); produção orientada; correcção colectiva no quadro.`,
+      meios: `Texto impresso de autor angolano, ficha de interpretação, quadro negro e giz, caderno do aluno, manual escolar de ${disc}`,
+    };
 
-  if (classeNum <= 6) return {
-    principais: "Expositivo Dialogado + Activo-Participativo + Demonstrativo",
-    detalhado: `MÉTODO EXPOSITIVO DIALOGADO: explicação simples e dialogada, com recurso a exemplos concretos do quotidiano. MÉTODO ACTIVO-PARTICIPATIVO: actividades práticas e lúdicas para fixação. MÉTODO DEMONSTRATIVO: exemplificação clara no quadro. TÉCNICAS: questionamento oral simples; exercícios práticos; trabalho em pares.`,
-    meios: `Quadro negro e giz, cartaz ilustrativo, fichas de exercícios, manual escolar, material manipulável`,
-  };
+  if (classeNum <= 6)
+    return {
+      principais: "Expositivo Dialogado + Activo-Participativo + Demonstrativo",
+      detalhado: `MÉTODO EXPOSITIVO DIALOGADO: explicação simples e dialogada, com recurso a exemplos concretos do quotidiano. MÉTODO ACTIVO-PARTICIPATIVO: actividades práticas e lúdicas para fixação. MÉTODO DEMONSTRATIVO: exemplificação clara no quadro. TÉCNICAS: questionamento oral simples; exercícios práticos; trabalho em pares.`,
+      meios: `Quadro negro e giz, cartaz ilustrativo, fichas de exercícios, manual escolar, material manipulável`,
+    };
 
   return {
-    principais: "Expositivo Dialogado + Elaboração Conjunta + Trabalho Independente",
+    principais:
+      "Expositivo Dialogado + Elaboração Conjunta + Trabalho Independente",
     detalhado: `MÉTODO EXPOSITIVO DIALOGADO: apresentação dos conceitos com participação activa dos alunos. MÉTODO DE ELABORAÇÃO CONJUNTA: construção do conhecimento em conjunto professor-alunos com exemplos progressivos. MÉTODO DE TRABALHO INDEPENDENTE: exercícios individuais para consolidação. TÉCNICAS: questionamento oral graduado; análise de exemplos; produção individual; correcção colectiva no quadro.`,
     meios: `Quadro negro e giz, manual escolar de ${disc}, fichas de exercícios, caderno do aluno`,
   };
 }
 
-function gerarDesenvolvimento(tema: string, disc: string, duracao: string, faixa: ReturnType<typeof detectFaixaEtaria>): DesenvolvimentoEtapaAI[] {
+function gerarDesenvolvimento(
+  tema: string,
+  disc: string,
+  duracao: string,
+  faixa: ReturnType<typeof detectFaixaEtaria>,
+): DesenvolvimentoEtapaAI[] {
   const total = parseInt(duracao) || 45;
   let motivMin: number, devMin: number, consMin: number, sintMin: number;
 
-  if (total <= 45) { motivMin = 5; devMin = 20; consMin = 15; sintMin = 5; }
-  else if (total <= 60) { motivMin = 5; devMin = 25; consMin = 20; sintMin = 10; }
-  else { motivMin = 10; devMin = 40; consMin = 30; sintMin = 10; }
+  if (total <= 45) {
+    motivMin = 5;
+    devMin = 20;
+    consMin = 15;
+    sintMin = 5;
+  } else if (total <= 60) {
+    motivMin = 5;
+    devMin = 25;
+    consMin = 20;
+    sintMin = 10;
+  } else {
+    motivMin = 10;
+    devMin = 40;
+    consMin = 30;
+    sintMin = 10;
+  }
 
   const { classeNum } = faixa;
   const discLow = disc.toLowerCase();
-  const isLing = discLow.includes("português") || discLow.includes("lingua") || discLow.includes("língua");
+  const isLing =
+    discLow.includes("português") ||
+    discLow.includes("lingua") ||
+    discLow.includes("língua");
   const isMat = discLow.includes("matem");
 
   let motivProf: string, motivAlun: string;
@@ -612,9 +815,24 @@ function gerarDesenvolvimento(tema: string, disc: string, duracao: string, faixa
   }
 
   return [
-    { etapa: "Motivação", duracao: `${motivMin} min`, actividadesProfessor: motivProf, actividadesAlunos: motivAlun },
-    { etapa: "Desenvolvimento", duracao: `${devMin} min`, actividadesProfessor: devProf, actividadesAlunos: devAlun },
-    { etapa: "Consolidação", duracao: `${consMin} min`, actividadesProfessor: consProf, actividadesAlunos: consAlun },
+    {
+      etapa: "Motivação",
+      duracao: `${motivMin} min`,
+      actividadesProfessor: motivProf,
+      actividadesAlunos: motivAlun,
+    },
+    {
+      etapa: "Desenvolvimento",
+      duracao: `${devMin} min`,
+      actividadesProfessor: devProf,
+      actividadesAlunos: devAlun,
+    },
+    {
+      etapa: "Consolidação",
+      duracao: `${consMin} min`,
+      actividadesProfessor: consProf,
+      actividadesAlunos: consAlun,
+    },
     {
       etapa: "Síntese e Avaliação",
       duracao: `${sintMin} min`,
@@ -624,24 +842,37 @@ function gerarDesenvolvimento(tema: string, disc: string, duracao: string, faixa
   ];
 }
 
-function gerarPerguntasControlo(tema: string, disc: string, faixa: ReturnType<typeof detectFaixaEtaria>, natureza: TemaNatureza): string[] {
+function gerarPerguntasControlo(
+  tema: string,
+  disc: string,
+  faixa: ReturnType<typeof detectFaixaEtaria>,
+  natureza: TemaNatureza,
+): string[] {
   const { classeNum } = faixa;
   const discLow = disc.toLowerCase();
-  const isLing = discLow.includes("português") || discLow.includes("lingua") || discLow.includes("língua");
-  const isMat = discLow.includes("matem") || discLow.includes("física") || discLow.includes("fisica");
+  const isLing =
+    discLow.includes("português") ||
+    discLow.includes("lingua") ||
+    discLow.includes("língua");
+  const isMat =
+    discLow.includes("matem") ||
+    discLow.includes("física") ||
+    discLow.includes("fisica");
 
-  if (isMat) return [
-    `1ª (recordação): O que é ${tema}? Dá a definição com as tuas próprias palavras.`,
-    `2ª (compreensão): Explica, passo a passo, como se resolve um exercício de ${tema}. Que erros devemos evitar?`,
-    `3ª (aplicação): Cria um problema sobre ${tema} baseado numa situação real do teu bairro ou mercado em Angola. Resolve-o.`,
-  ];
+  if (isMat)
+    return [
+      `1ª (recordação): O que é ${tema}? Dá a definição com as tuas próprias palavras.`,
+      `2ª (compreensão): Explica, passo a passo, como se resolve um exercício de ${tema}. Que erros devemos evitar?`,
+      `3ª (aplicação): Cria um problema sobre ${tema} baseado numa situação real do teu bairro ou mercado em Angola. Resolve-o.`,
+    ];
 
   if (isLing && natureza === "procedimental") {
-    if (classeNum <= 6) return [
-      `1ª (recordação): Quais são as personagens do texto que lemos? O que aconteceu na história?`,
-      `2ª (compreensão): Explica com as tuas palavras o que significa a parte mais importante do texto.`,
-      `3ª (aplicação): Se fosses um dos personagens do texto, o que farias de diferente? Porquê?`,
-    ];
+    if (classeNum <= 6)
+      return [
+        `1ª (recordação): Quais são as personagens do texto que lemos? O que aconteceu na história?`,
+        `2ª (compreensão): Explica com as tuas palavras o que significa a parte mais importante do texto.`,
+        `3ª (aplicação): Se fosses um dos personagens do texto, o que farias de diferente? Porquê?`,
+      ];
     return [
       `1ª (recordação): Qual é a ideia central do texto que analisámos? Resume-a numa frase.`,
       `2ª (compreensão): Explica com as tuas próprias palavras o significado da expressão mais importante do texto. Porque a escolheste?`,
@@ -649,11 +880,12 @@ function gerarPerguntasControlo(tema: string, disc: string, faixa: ReturnType<ty
     ];
   }
 
-  if (classeNum <= 6) return [
-    `1ª (recordação): O que é ${tema}? Dá um exemplo que viste hoje na aula.`,
-    `2ª (compreensão): Explica com as tuas palavras a diferença entre ${tema} e algo parecido que já conhecias.`,
-    `3ª (aplicação): Onde podes encontrar ${tema} na tua escola ou em casa? Dá um exemplo real.`,
-  ];
+  if (classeNum <= 6)
+    return [
+      `1ª (recordação): O que é ${tema}? Dá um exemplo que viste hoje na aula.`,
+      `2ª (compreensão): Explica com as tuas palavras a diferença entre ${tema} e algo parecido que já conhecias.`,
+      `3ª (aplicação): Onde podes encontrar ${tema} na tua escola ou em casa? Dá um exemplo real.`,
+    ];
 
   return [
     `1ª (recordação): Define ${tema} com as características essenciais aprendidas hoje.`,
@@ -662,38 +894,51 @@ function gerarPerguntasControlo(tema: string, disc: string, faixa: ReturnType<ty
   ];
 }
 
-function gerarTPC(tema: string, disc: string, faixa: ReturnType<typeof detectFaixaEtaria>): TarefaDeCasaAI[] {
+function gerarTPC(
+  tema: string,
+  disc: string,
+  faixa: ReturnType<typeof detectFaixaEtaria>,
+): TarefaDeCasaAI[] {
   const { classeNum } = faixa;
   const discLow = disc.toLowerCase();
-  const isMat = discLow.includes("matem") || discLow.includes("física") || discLow.includes("fisica");
-  const isLing = discLow.includes("português") || discLow.includes("lingua") || discLow.includes("língua");
+  const isMat =
+    discLow.includes("matem") ||
+    discLow.includes("física") ||
+    discLow.includes("fisica");
+  const isLing =
+    discLow.includes("português") ||
+    discLow.includes("lingua") ||
+    discLow.includes("língua");
 
-  if (isMat) return [
-    {
-      descricao: `Resolve os exercícios de ${tema} do manual, apresentando todos os passos e verificando os resultados`,
-      referencia: `Manual de ${disc}, pág. ____, exercícios n.º ____ a ____`,
-      tempoEstimado: "20 min",
-    },
-    {
-      descricao: `Cria 2 problemas originais sobre ${tema} baseados em situações reais que conheces em Angola (mercado, escola, família). Resolve-os e traz para a próxima aula`,
-      referencia: "Caderno do aluno",
-      tempoEstimado: "15 min",
-    },
-  ];
-
-  if (isLing) {
-    if (classeNum <= 6) return [
+  if (isMat)
+    return [
       {
-        descricao: `Lê o texto da aula para um familiar em casa. Pede-lhe que te faça 2 perguntas sobre o texto e responde-as por escrito`,
-        referencia: `Manual de ${disc}, pág. ____`,
+        descricao: `Resolve os exercícios de ${tema} do manual, apresentando todos os passos e verificando os resultados`,
+        referencia: `Manual de ${disc}, pág. ____, exercícios n.º ____ a ____`,
+        tempoEstimado: "20 min",
+      },
+      {
+        descricao: `Cria 2 problemas originais sobre ${tema} baseados em situações reais que conheces em Angola (mercado, escola, família). Resolve-os e traz para a próxima aula`,
+        referencia: "Caderno do aluno",
         tempoEstimado: "15 min",
       },
-      {
-        descricao: "Escreve 3 frases sobre o que fizeste hoje, usando pelo menos 3 palavras novas que aprendeste na aula",
-        referencia: "Caderno do aluno",
-        tempoEstimado: "10 min",
-      },
     ];
+
+  if (isLing) {
+    if (classeNum <= 6)
+      return [
+        {
+          descricao: `Lê o texto da aula para um familiar em casa. Pede-lhe que te faça 2 perguntas sobre o texto e responde-as por escrito`,
+          referencia: `Manual de ${disc}, pág. ____`,
+          tempoEstimado: "15 min",
+        },
+        {
+          descricao:
+            "Escreve 3 frases sobre o que fizeste hoje, usando pelo menos 3 palavras novas que aprendeste na aula",
+          referencia: "Caderno do aluno",
+          tempoEstimado: "10 min",
+        },
+      ];
     return [
       {
         descricao: `Completa os exercícios de ${tema} do manual`,
@@ -722,10 +967,17 @@ function gerarTPC(tema: string, disc: string, faixa: ReturnType<typeof detectFai
   ];
 }
 
-function gerarDiferenciacaoPedagogica(tema: string, disc: string, faixa: ReturnType<typeof detectFaixaEtaria>): { dificuldades: string; avancados: string } {
+function gerarDiferenciacaoPedagogica(
+  tema: string,
+  disc: string,
+  faixa: ReturnType<typeof detectFaixaEtaria>,
+): { dificuldades: string; avancados: string } {
   const { classeNum } = faixa;
   const discLow = disc.toLowerCase();
-  const isMat = discLow.includes("matem") || discLow.includes("física") || discLow.includes("fisica");
+  const isMat =
+    discLow.includes("matem") ||
+    discLow.includes("física") ||
+    discLow.includes("fisica");
 
   const dificuldades = isMat
     ? `Para alunos com dificuldades: fornecer ficha de nível 1 com exercícios simplificados de ${tema}; usar material manipulável (pedras, palitos) para tornar o conceito concreto; trabalho em pares com colega de apoio; reduzir o número de exercícios na consolidação.`
@@ -740,11 +992,16 @@ function gerarDiferenciacaoPedagogica(tema: string, disc: string, faixa: ReturnT
 
 function gerarAvaliacao(disc: string, natureza: TemaNatureza): string {
   const discLow = disc.toLowerCase();
-  const isMat = discLow.includes("matem") || discLow.includes("física") || discLow.includes("fisica");
+  const isMat =
+    discLow.includes("matem") ||
+    discLow.includes("física") ||
+    discLow.includes("fisica");
 
-  if (isMat) return `Avaliação formativa: observação da resolução dos exercícios (50%) + correcção da ficha (30%) + participação oral nas perguntas de controlo (20%). Total = 100%. O professor circula durante os exercícios para feedback imediato e regista as dificuldades observadas.`;
+  if (isMat)
+    return `Avaliação formativa: observação da resolução dos exercícios (50%) + correcção da ficha (30%) + participação oral nas perguntas de controlo (20%). Total = 100%. O professor circula durante os exercícios para feedback imediato e regista as dificuldades observadas.`;
 
-  if (natureza === "procedimental") return `Avaliação formativa: qualidade da leitura/produção (40%) + correcção da ficha de interpretação/exercícios (40%) + participação oral nas perguntas de controlo (20%). Total = 100%.`;
+  if (natureza === "procedimental")
+    return `Avaliação formativa: qualidade da leitura/produção (40%) + correcção da ficha de interpretação/exercícios (40%) + participação oral nas perguntas de controlo (20%). Total = 100%.`;
 
   return `Avaliação formativa: correcção dos exercícios da ficha (50%) + participação oral (30%) + qualidade das respostas às perguntas de controlo (20%). Total = 100%. O professor regista observações sobre os alunos com dificuldades para planificação de apoio.`;
 }
@@ -766,9 +1023,23 @@ export function buildTemplatePlan(
       : gerarObjetivosConceptual(tema, disciplina, faixa);
 
   const conteudos = gerarConteudos(tema, disciplina, faixa, natureza);
-  const { principais, detalhado, meios } = gerarMetodos(disciplina, faixa, natureza);
-  const desenvolvimento = gerarDesenvolvimento(tema, disciplina, duracao, faixa);
-  const perguntasControlo = gerarPerguntasControlo(tema, disciplina, faixa, natureza);
+  const { principais, detalhado, meios } = gerarMetodos(
+    disciplina,
+    faixa,
+    natureza,
+  );
+  const desenvolvimento = gerarDesenvolvimento(
+    tema,
+    disciplina,
+    duracao,
+    faixa,
+  );
+  const perguntasControlo = gerarPerguntasControlo(
+    tema,
+    disciplina,
+    faixa,
+    natureza,
+  );
   const tpc = gerarTPC(tema, disciplina, faixa);
   const diferenciacao = gerarDiferenciacaoPedagogica(tema, disciplina, faixa);
   const avaliacao = gerarAvaliacao(disciplina, natureza);
@@ -808,7 +1079,14 @@ export async function generateLessonPlanOffline(
 ): Promise<LessonPlanAIResult> {
   if (Platform.OS === "web") {
     try {
-      return await generateWithQwen(classe, disciplina, tema, duracao, onStatus, sumario);
+      return await generateWithQwen(
+        classe,
+        disciplina,
+        tema,
+        duracao,
+        onStatus,
+        sumario,
+      );
     } catch (err: any) {
       onStatus({ stage: "error", error: err.message });
       throw err;
@@ -816,7 +1094,13 @@ export async function generateLessonPlanOffline(
   } else {
     onStatus({ stage: "generating", message: "A gerar plano pedagógico..." });
     await new Promise((r) => setTimeout(r, 500));
-    const result = buildTemplatePlan(classe, disciplina, tema, duracao, sumario);
+    const result = buildTemplatePlan(
+      classe,
+      disciplina,
+      tema,
+      duracao,
+      sumario,
+    );
     onStatus({ stage: "done" });
     return result;
   }
