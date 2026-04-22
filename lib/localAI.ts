@@ -497,13 +497,36 @@ function detectTemaNatureza(tema: string): TemaNatureza {
   return "conceptual";
 }
 
+function extrairSubtopicos(sumario?: string): string[] {
+  if (!sumario) return [];
+  const limpo = sumario.replace(/\s+/g, " ").trim();
+  const partes = limpo
+    .split(/[;,—–]| - | e (?=[a-záéíóúãõç])/i)
+    .map((s) => s.trim())
+    .filter((s) => s.length >= 3);
+  const unicos: string[] = [];
+  for (const p of partes) {
+    const norm = p.toLowerCase();
+    if (!unicos.some((u) => u.toLowerCase() === norm)) unicos.push(p);
+  }
+  return unicos;
+}
+
+function focoDoSumario(sumario: string | undefined, tema: string): string {
+  const subs = extrairSubtopicos(sumario);
+  if (subs.length === 0) return tema;
+  return subs[0];
+}
+
 function gerarObjetivosConceptual(
   tema: string,
   disc: string,
   faixa: ReturnType<typeof detectFaixaEtaria>,
+  sumario?: string,
 ): { geral: string; especificos: string[] } {
   const { nivel, classeNum } = faixa;
   const isSuperior = classeNum === 0 || nivel === "Ensino Superior";
+  const foco = focoDoSumario(sumario, tema);
 
   const geral = `Identificar e caracterizar os conceitos fundamentais de ${tema} no domínio de ${disc}.`;
 
@@ -511,9 +534,9 @@ function gerarObjetivosConceptual(
     return {
       geral,
       especificos: [
-        `Reconhecer ${tema} em exemplos concretos do quotidiano, identificando correctamente pelo menos 4 dos 5 exemplos apresentados.`,
-        `Distinguir ${tema} de outras categorias semelhantes, completando correctamente pelo menos 3 dos 5 exercícios de classificação da ficha.`,
-        `Exemplificar ${tema} usando situações do seu bairro ou escola, produzindo pelo menos 2 exemplos originais correctos.`,
+        `Reconhecer ${foco} em exemplos concretos do quotidiano, identificando correctamente pelo menos 4 dos 5 exemplos apresentados.`,
+        `Distinguir ${foco} de outras categorias semelhantes, completando correctamente pelo menos 3 dos 5 exercícios de classificação da ficha.`,
+        `Exemplificar ${foco} usando situações do seu bairro ou escola, produzindo pelo menos 2 exemplos originais correctos.`,
       ],
     };
   }
@@ -521,10 +544,10 @@ function gerarObjetivosConceptual(
     return {
       geral,
       especificos: [
-        `Definir ${tema} com as características essenciais, sem consulta, em pelo menos 3 linhas correctas.`,
-        `Classificar exemplos de ${tema} a partir de uma ficha com 10 frases/casos, acertando pelo menos 7.`,
-        `Distinguir ${tema} de categorias próximas, justificando a diferença com pelo menos 2 critérios correctos.`,
-        `Produzir 3 exemplos originais de ${tema} contextualizados na realidade angolana, todos gramaticalmente correctos.`,
+        `Definir ${foco} com as características essenciais, sem consulta, em pelo menos 3 linhas correctas.`,
+        `Classificar exemplos de ${foco} a partir de uma ficha com 10 frases/casos, acertando pelo menos 7.`,
+        `Distinguir ${foco} de categorias próximas, justificando a diferença com pelo menos 2 critérios correctos.`,
+        `Produzir 3 exemplos originais de ${foco} contextualizados na realidade angolana, todos gramaticalmente correctos.`,
       ],
     };
   }
@@ -532,20 +555,20 @@ function gerarObjetivosConceptual(
     return {
       geral: `Analisar e aplicar os conceitos de ${tema} em situações concretas no âmbito de ${disc}.`,
       especificos: [
-        `Definir ${tema} com precisão terminológica, incluindo todos os critérios de classificação, sem consulta.`,
-        `Classificar e caracterizar exemplos de ${tema} a partir de textos/situações propostas, acertando pelo menos 80% dos casos.`,
-        `Comparar ${tema} com categorias relacionadas, identificando semelhanças e diferenças com base em pelo menos 3 critérios.`,
-        `Analisar exemplos autênticos de ${tema} em textos/situações da realidade angolana, justificando a classificação.`,
+        `Definir ${foco} com precisão terminológica, incluindo todos os critérios de classificação, sem consulta.`,
+        `Classificar e caracterizar exemplos de ${foco} a partir de textos/situações propostas, acertando pelo menos 80% dos casos.`,
+        `Comparar ${foco} com categorias relacionadas, identificando semelhanças e diferenças com base em pelo menos 3 critérios.`,
+        `Analisar exemplos autênticos de ${foco} em textos/situações da realidade angolana, justificando a classificação.`,
       ],
     };
   }
   return {
     geral: `Analisar criticamente os fundamentos teóricos e aplicações práticas de ${tema} no contexto de ${disc}.`,
     especificos: [
-      `Definir ${tema} com rigor terminológico e científico, citando pelo menos 2 autores de referência.`,
-      `Analisar as diferentes perspectivas teóricas sobre ${tema}, comparando pelo menos 2 abordagens.`,
-      `Aplicar os conceitos de ${tema} na resolução de pelo menos 3 casos práticos do contexto angolano.`,
-      `Avaliar criticamente as implicações de ${tema} para a prática profissional em Angola.`,
+      `Definir ${foco} com rigor terminológico e científico, citando pelo menos 2 autores de referência.`,
+      `Analisar as diferentes perspectivas teóricas sobre ${foco}, comparando pelo menos 2 abordagens.`,
+      `Aplicar os conceitos de ${foco} na resolução de pelo menos 3 casos práticos do contexto angolano.`,
+      `Avaliar criticamente as implicações de ${foco} para a prática profissional em Angola.`,
     ],
   };
 }
@@ -554,9 +577,11 @@ function gerarObjetivosProcedimental(
   tema: string,
   disc: string,
   faixa: ReturnType<typeof detectFaixaEtaria>,
+  sumario?: string,
 ): { geral: string; especificos: string[] } {
   const { nivel, classeNum } = faixa;
   const discLow = disc.toLowerCase();
+  const foco = focoDoSumario(sumario, tema);
   const isMat =
     discLow.includes("matem") ||
     discLow.includes("física") ||
@@ -571,10 +596,10 @@ function gerarObjetivosProcedimental(
     return {
       geral: `Resolver problemas envolvendo ${tema}, aplicando os procedimentos matemáticos correctos.`,
       especificos: [
-        `Identificar os dados e a operação adequada em pelo menos 4 dos 5 problemas propostos sobre ${tema}.`,
-        `Resolver exercícios de ${tema} aplicando o algoritmo correcto, com pelo menos 70% de acertos na ficha.`,
-        `Verificar os resultados obtidos em ${tema} por um método alternativo (estimativa ou substituição) em pelo menos 3 exercícios.`,
-        `Resolver 2 problemas contextualizados sobre ${tema} usando dados da realidade angolana, apresentando todos os passos.`,
+        `Identificar os dados e a operação adequada em pelo menos 4 dos 5 problemas propostos sobre ${foco}.`,
+        `Resolver exercícios de ${foco} aplicando o algoritmo correcto, com pelo menos 70% de acertos na ficha.`,
+        `Verificar os resultados obtidos em ${foco} por um método alternativo (estimativa ou substituição) em pelo menos 3 exercícios.`,
+        `Resolver 2 problemas contextualizados sobre ${foco} usando dados da realidade angolana, apresentando todos os passos.`,
       ],
     };
   }
@@ -583,9 +608,9 @@ function gerarObjetivosProcedimental(
       return {
         geral: `Realizar actividades de ${tema} com compreensão e expressão adequadas ao nível da ${faixa.classeNum}ª classe.`,
         especificos: [
-          `Ler o texto proposto em voz alta com entoação correcta, fazendo pausas nos sinais de pontuação.`,
-          `Identificar as ideias principais do texto, respondendo correctamente a pelo menos 3 das 5 perguntas de interpretação.`,
-          `Produzir 3 frases correctas sobre o tema do texto, usando vocabulário novo aprendido na aula.`,
+          `Ler o texto proposto sobre ${foco} em voz alta com entoação correcta, fazendo pausas nos sinais de pontuação.`,
+          `Identificar as ideias principais do texto sobre ${foco}, respondendo correctamente a pelo menos 3 das 5 perguntas de interpretação.`,
+          `Produzir 3 frases correctas sobre ${foco}, usando vocabulário novo aprendido na aula.`,
         ],
       };
     }
@@ -593,20 +618,20 @@ function gerarObjetivosProcedimental(
       return {
         geral: `Interpretar e analisar textos relacionados com ${tema}, desenvolvendo competências de compreensão crítica.`,
         especificos: [
-          `Identificar a ideia central e as ideias secundárias de um texto sobre ${tema}, respondendo correctamente a pelo menos 4 das 6 questões de interpretação.`,
+          `Identificar a ideia central e as ideias secundárias de um texto sobre ${foco}, respondendo correctamente a pelo menos 4 das 6 questões de interpretação.`,
           `Inferir o significado de pelo menos 3 palavras desconhecidas a partir do contexto do texto, sem recurso ao dicionário.`,
-          `Resumir o texto em não mais de 5 linhas, preservando as ideias principais e a coerência textual.`,
-          `Produzir um parágrafo de 6 a 8 linhas sobre ${tema}, usando os recursos linguísticos estudados na aula.`,
+          `Resumir o texto sobre ${foco} em não mais de 5 linhas, preservando as ideias principais e a coerência textual.`,
+          `Produzir um parágrafo de 6 a 8 linhas sobre ${foco}, usando os recursos linguísticos estudados na aula.`,
         ],
       };
     }
     return {
       geral: `Analisar e produzir textos relacionados com ${tema}, aplicando competências de leitura crítica e escrita elaborada.`,
       especificos: [
-        `Identificar os elementos estruturais e os recursos linguísticos de um texto sobre ${tema}, justificando as escolhas do autor.`,
-        `Analisar criticamente o ponto de vista do autor sobre ${tema}, fundamentando a análise com citações do texto.`,
-        `Comparar dois textos sobre ${tema} identificando pelo menos 3 semelhanças e 3 diferenças na abordagem.`,
-        `Produzir um texto de 15 a 20 linhas sobre ${tema}, respeitando a estrutura e os recursos linguísticos estudados.`,
+        `Identificar os elementos estruturais e os recursos linguísticos de um texto sobre ${foco}, justificando as escolhas do autor.`,
+        `Analisar criticamente o ponto de vista do autor sobre ${foco}, fundamentando a análise com citações do texto.`,
+        `Comparar dois textos sobre ${foco} identificando pelo menos 3 semelhanças e 3 diferenças na abordagem.`,
+        `Produzir um texto de 15 a 20 linhas sobre ${foco}, respeitando a estrutura e os recursos linguísticos estudados.`,
       ],
     };
   }
@@ -614,10 +639,10 @@ function gerarObjetivosProcedimental(
   return {
     geral: `Aplicar os procedimentos e competências de ${tema} em situações concretas no âmbito de ${disc}.`,
     especificos: [
-      `Identificar os elementos essenciais de ${tema} a partir de casos práticos, acertando pelo menos 70% dos exemplos propostos.`,
-      `Executar correctamente os procedimentos de ${tema}, completando pelo menos 3 das 4 tarefas práticas propostas.`,
-      `Verificar e corrigir os resultados de ${tema} usando os critérios aprendidos, em pelo menos 2 casos.`,
-      `Aplicar ${tema} na resolução de um problema contextualizado na realidade angolana, apresentando todo o processo.`,
+      `Identificar os elementos essenciais de ${foco} a partir de casos práticos, acertando pelo menos 70% dos exemplos propostos.`,
+      `Executar correctamente os procedimentos de ${foco}, completando pelo menos 3 das 4 tarefas práticas propostas.`,
+      `Verificar e corrigir os resultados de ${foco} usando os critérios aprendidos, em pelo menos 2 casos.`,
+      `Aplicar ${foco} na resolução de um problema contextualizado na realidade angolana, apresentando todo o processo.`,
     ],
   };
 }
@@ -627,7 +652,12 @@ function gerarConteudos(
   disc: string,
   faixa: ReturnType<typeof detectFaixaEtaria>,
   natureza: TemaNatureza,
+  sumario?: string,
 ): string[] {
+  const subs = extrairSubtopicos(sumario);
+  if (subs.length >= 3) {
+    return subs.slice(0, 6);
+  }
   const discLow = disc.toLowerCase();
   const isMat =
     discLow.includes("matem") ||
@@ -847,9 +877,11 @@ function gerarPerguntasControlo(
   disc: string,
   faixa: ReturnType<typeof detectFaixaEtaria>,
   natureza: TemaNatureza,
+  sumario?: string,
 ): string[] {
   const { classeNum } = faixa;
   const discLow = disc.toLowerCase();
+  const foco = focoDoSumario(sumario, tema);
   const isLing =
     discLow.includes("português") ||
     discLow.includes("lingua") ||
@@ -861,36 +893,36 @@ function gerarPerguntasControlo(
 
   if (isMat)
     return [
-      `1ª (recordação): O que é ${tema}? Dá a definição com as tuas próprias palavras.`,
-      `2ª (compreensão): Explica, passo a passo, como se resolve um exercício de ${tema}. Que erros devemos evitar?`,
-      `3ª (aplicação): Cria um problema sobre ${tema} baseado numa situação real do teu bairro ou mercado em Angola. Resolve-o.`,
+      `1ª (recordação): O que é ${foco}? Dá a definição com as tuas próprias palavras.`,
+      `2ª (compreensão): Explica, passo a passo, como se resolve um exercício de ${foco}. Que erros devemos evitar?`,
+      `3ª (aplicação): A Joana vende peixe no mercado do Roque Santeiro. Cria um problema sobre ${foco} a partir desta situação concreta e resolve-o, mostrando todos os passos.`,
     ];
 
   if (isLing && natureza === "procedimental") {
     if (classeNum <= 6)
       return [
-        `1ª (recordação): Quais são as personagens do texto que lemos? O que aconteceu na história?`,
-        `2ª (compreensão): Explica com as tuas palavras o que significa a parte mais importante do texto.`,
-        `3ª (aplicação): Se fosses um dos personagens do texto, o que farias de diferente? Porquê?`,
+        `1ª (recordação): Quais são as personagens do texto sobre ${foco}? O que aconteceu na história?`,
+        `2ª (compreensão): Explica com as tuas palavras o que significa a parte mais importante do texto sobre ${foco}.`,
+        `3ª (aplicação): Imagina que o Mateus, do teu bairro no Lubango, vive a mesma situação do texto. O que faria de diferente? Porquê?`,
       ];
     return [
-      `1ª (recordação): Qual é a ideia central do texto que analisámos? Resume-a numa frase.`,
-      `2ª (compreensão): Explica com as tuas próprias palavras o significado da expressão mais importante do texto. Porque a escolheste?`,
-      `3ª (aplicação): Como se relaciona o tema do texto com a realidade que vives em Angola? Dá um exemplo concreto do teu bairro ou escola.`,
+      `1ª (recordação): Qual é a ideia central do texto sobre ${foco} que analisámos? Resume-a numa frase.`,
+      `2ª (compreensão): Explica com as tuas próprias palavras o significado da expressão mais importante do texto sobre ${foco}. Porque a escolheste?`,
+      `3ª (aplicação): O Kiala, aluno da tua escola em Luanda, lê este texto. Como se relaciona ${foco} com a realidade do bairro dele? Dá um exemplo concreto.`,
     ];
   }
 
   if (classeNum <= 6)
     return [
-      `1ª (recordação): O que é ${tema}? Dá um exemplo que viste hoje na aula.`,
-      `2ª (compreensão): Explica com as tuas palavras a diferença entre ${tema} e algo parecido que já conhecias.`,
-      `3ª (aplicação): Onde podes encontrar ${tema} na tua escola ou em casa? Dá um exemplo real.`,
+      `1ª (recordação): O que é ${foco}? Dá um exemplo que viste hoje na aula.`,
+      `2ª (compreensão): Explica com as tuas palavras a diferença entre ${foco} e algo parecido que já conhecias.`,
+      `3ª (aplicação): Onde podes encontrar ${foco} na tua escola ou no teu bairro? Dá um exemplo real.`,
     ];
 
   return [
-    `1ª (recordação): Define ${tema} com as características essenciais aprendidas hoje.`,
-    `2ª (compreensão): Explica com as tuas próprias palavras por que razão ${tema} é importante em ${disc}. Usa um exemplo concreto.`,
-    `3ª (aplicação): Analisa esta situação do contexto angolano: [situação relacionada com ${tema}]. Como aplicarias o que aprendeste hoje para a resolver ou explicar?`,
+    `1ª (recordação): Define ${foco} com as características essenciais aprendidas hoje.`,
+    `2ª (compreensão): Explica com as tuas próprias palavras por que razão ${foco} é importante em ${disc}. Usa um exemplo concreto do teu quotidiano.`,
+    `3ª (aplicação): A Ana, vendedeira no mercado do Roque Santeiro em Luanda, encontra uma situação ligada a ${foco}. Descreve um caso concreto do dia-a-dia dela e explica como aplicarias o que aprendeste hoje para o resolver.`,
   ];
 }
 
@@ -898,9 +930,12 @@ function gerarTPC(
   tema: string,
   disc: string,
   faixa: ReturnType<typeof detectFaixaEtaria>,
+  sumario?: string,
 ): TarefaDeCasaAI[] {
   const { classeNum } = faixa;
   const discLow = disc.toLowerCase();
+  const foco = focoDoSumario(sumario, tema);
+  const refManual = `Manual de ${disc} ${classeNum > 0 ? classeNum + "ª classe " : ""}(INIDE), Unidade sobre ${tema}. Confirmar página com a edição da escola.`;
   const isMat =
     discLow.includes("matem") ||
     discLow.includes("física") ||
@@ -913,12 +948,12 @@ function gerarTPC(
   if (isMat)
     return [
       {
-        descricao: `Resolve os exercícios de ${tema} do manual, apresentando todos os passos e verificando os resultados`,
-        referencia: `Manual de ${disc}, pág. ____, exercícios n.º ____ a ____`,
+        descricao: `Resolve os exercícios sobre ${foco} do manual, apresentando todos os passos e verificando os resultados`,
+        referencia: refManual,
         tempoEstimado: "20 min",
       },
       {
-        descricao: `Cria 2 problemas originais sobre ${tema} baseados em situações reais que conheces em Angola (mercado, escola, família). Resolve-os e traz para a próxima aula`,
+        descricao: `Cria 2 problemas originais sobre ${foco} baseados em situações reais do teu bairro em Angola (mercado, escola, família). Resolve-os e traz para a próxima aula`,
         referencia: "Caderno do aluno",
         tempoEstimado: "15 min",
       },
@@ -928,25 +963,24 @@ function gerarTPC(
     if (classeNum <= 6)
       return [
         {
-          descricao: `Lê o texto da aula para um familiar em casa. Pede-lhe que te faça 2 perguntas sobre o texto e responde-as por escrito`,
-          referencia: `Manual de ${disc}, pág. ____`,
+          descricao: `Lê o texto sobre ${foco} para um familiar em casa. Pede-lhe que te faça 2 perguntas sobre o texto e responde-as por escrito`,
+          referencia: refManual,
           tempoEstimado: "15 min",
         },
         {
-          descricao:
-            "Escreve 3 frases sobre o que fizeste hoje, usando pelo menos 3 palavras novas que aprendeste na aula",
+          descricao: `Escreve 3 frases sobre ${foco}, usando pelo menos 3 palavras novas que aprendeste na aula`,
           referencia: "Caderno do aluno",
           tempoEstimado: "10 min",
         },
       ];
     return [
       {
-        descricao: `Completa os exercícios de ${tema} do manual`,
-        referencia: `Manual de ${disc}, pág. ____, exercícios n.º ____`,
+        descricao: `Completa os exercícios sobre ${foco} do manual`,
+        referencia: refManual,
         tempoEstimado: "20 min",
       },
       {
-        descricao: `Escreve um texto de 10 a 15 linhas sobre ${tema}, usando um exemplo da realidade angolana que conheces bem (bairro, escola, mercado, família)`,
+        descricao: `Escreve um texto de 10 a 15 linhas sobre ${foco}, usando um exemplo da realidade angolana que conheces bem (bairro, escola, mercado, família)`,
         referencia: "Caderno do aluno",
         tempoEstimado: "20 min",
       },
@@ -955,12 +989,12 @@ function gerarTPC(
 
   return [
     {
-      descricao: `Estuda os conteúdos de ${tema} e responde às perguntas do manual`,
-      referencia: `Manual de ${disc}, pág. ____, exercícios n.º ____`,
+      descricao: `Estuda os conteúdos de ${foco} e responde às perguntas do manual`,
+      referencia: refManual,
       tempoEstimado: "15 min",
     },
     {
-      descricao: `Pesquisa um exemplo real de ${tema} na tua comunidade ou cidade. Descreve-o em 5 linhas e explica a relação com o que aprendeste`,
+      descricao: `Pesquisa um exemplo real de ${foco} na tua comunidade ou cidade angolana. Descreve-o em 5 linhas e explica a relação com o que aprendeste`,
       referencia: "Caderno do aluno",
       tempoEstimado: "15 min",
     },
@@ -971,7 +1005,9 @@ function gerarDiferenciacaoPedagogica(
   tema: string,
   disc: string,
   faixa: ReturnType<typeof detectFaixaEtaria>,
+  sumario?: string,
 ): { dificuldades: string; avancados: string } {
+  const foco = focoDoSumario(sumario, tema);
   const { classeNum } = faixa;
   const discLow = disc.toLowerCase();
   const isMat =
@@ -980,12 +1016,12 @@ function gerarDiferenciacaoPedagogica(
     discLow.includes("fisica");
 
   const dificuldades = isMat
-    ? `Para alunos com dificuldades: fornecer ficha de nível 1 com exercícios simplificados de ${tema}; usar material manipulável (pedras, palitos) para tornar o conceito concreto; trabalho em pares com colega de apoio; reduzir o número de exercícios na consolidação.`
-    : `Para alunos com dificuldades: fornecer ficha simplificada sobre ${tema} com vocabulário acessível; permitir consulta do manual durante os exercícios; reduzir a extensão da produção escrita; trabalhar em par com um colega mais avançado.`;
+    ? `Para alunos com dificuldades: fornecer ficha de nível 1 com exercícios simplificados sobre ${foco}; usar material manipulável (pedras, palitos) para tornar o conceito concreto; trabalho em pares com colega de apoio; reduzir o número de exercícios na consolidação.`
+    : `Para alunos com dificuldades: fornecer ficha simplificada sobre ${foco} com vocabulário acessível; permitir consulta do manual durante os exercícios; reduzir a extensão da produção escrita; trabalhar em par com um colega mais avançado.`;
 
   const avancados = isMat
-    ? `Para alunos avançados: propor exercícios de nível 2 com maior grau de complexidade sobre ${tema}; desafiar a criar 2 problemas originais com dados do quotidiano angolano; pedir explicação do raciocínio ao resto da turma.`
-    : `Para alunos avançados: propor análise adicional mais aprofundada sobre ${tema}; solicitar produção escrita mais extensa com argumentação elaborada; desafiar a pesquisar e apresentar um exemplo adicional não abordado na aula.`;
+    ? `Para alunos avançados: propor exercícios de nível 2 com maior grau de complexidade sobre ${foco}; desafiar a criar 2 problemas originais com dados do quotidiano angolano; pedir explicação do raciocínio ao resto da turma.`
+    : `Para alunos avançados: propor análise adicional mais aprofundada sobre ${foco}; solicitar produção escrita mais extensa com argumentação elaborada; desafiar a pesquisar e apresentar um exemplo adicional não abordado na aula.`;
 
   return { dificuldades, avancados };
 }
@@ -1019,10 +1055,10 @@ export function buildTemplatePlan(
 
   const { geral: objGeral, especificos: objEspecificos } =
     natureza === "procedimental"
-      ? gerarObjetivosProcedimental(tema, disciplina, faixa)
-      : gerarObjetivosConceptual(tema, disciplina, faixa);
+      ? gerarObjetivosProcedimental(tema, disciplina, faixa, sumario)
+      : gerarObjetivosConceptual(tema, disciplina, faixa, sumario);
 
-  const conteudos = gerarConteudos(tema, disciplina, faixa, natureza);
+  const conteudos = gerarConteudos(tema, disciplina, faixa, natureza, sumario);
   const { principais, detalhado, meios } = gerarMetodos(
     disciplina,
     faixa,
@@ -1039,9 +1075,10 @@ export function buildTemplatePlan(
     disciplina,
     faixa,
     natureza,
+    sumario,
   );
-  const tpc = gerarTPC(tema, disciplina, faixa);
-  const diferenciacao = gerarDiferenciacaoPedagogica(tema, disciplina, faixa);
+  const tpc = gerarTPC(tema, disciplina, faixa, sumario);
+  const diferenciacao = gerarDiferenciacaoPedagogica(tema, disciplina, faixa, sumario);
   const avaliacao = gerarAvaliacao(disciplina, natureza);
 
   return {
