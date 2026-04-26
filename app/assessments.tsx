@@ -6,25 +6,47 @@ import {
   FlatList,
   Pressable,
   Platform,
+  Alert,
 } from "react-native";
 import { router, useFocusEffect } from "expo-router";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import Icon from "@/components/Icon";
 import { LinearGradient } from "expo-linear-gradient";
 import Colors from "@/constants/colors";
-import { getClasses, ClassGroup } from "@/lib/storage";
+import { getClasses, getGrades, getTeacherProfile, ClassGroup } from "@/lib/storage";
+import ExportMenu from "@/components/ExportMenu";
+import { exportPdfFromHtml, exportExcel } from "@/lib/exports";
+import { miniPautaHtml, miniPautaExcel } from "@/lib/exportTemplates";
 
 export default function AssessmentsScreen() {
   const insets = useSafeAreaInsets();
   const topPadding = Platform.OS === "web" ? 67 : insets.top;
   const bottomPadding = Platform.OS === "web" ? 34 : insets.bottom;
   const [classes, setClasses] = useState<ClassGroup[]>([]);
+  const [exportTarget, setExportTarget] = useState<ClassGroup | null>(null);
 
   useFocusEffect(
     useCallback(() => {
       getClasses().then(setClasses);
     }, []),
   );
+
+  const handleExportPdf = async () => {
+    if (!exportTarget) return;
+    const [grades, profile] = await Promise.all([getGrades(), getTeacherProfile()]);
+    const html = miniPautaHtml(exportTarget, grades, profile);
+    await exportPdfFromHtml(html, `Mini_Pauta_${exportTarget.designacao}`);
+  };
+
+  const handleExportExcel = async () => {
+    if (!exportTarget) return;
+    const [grades, profile] = await Promise.all([getGrades(), getTeacherProfile()]);
+    const sheet = miniPautaExcel(exportTarget, grades, profile);
+    await exportExcel(sheet.rows, `Mini_Pauta_${exportTarget.designacao}`, sheet.name, {
+      merges: sheet.merges,
+      colWidths: sheet.colWidths,
+    });
+  };
 
   const renderClass = ({ item }: { item: ClassGroup }) => (
     <Pressable
@@ -38,6 +60,20 @@ export default function AssessmentsScreen() {
         <Text style={styles.cardTitle}>{item.designacao}</Text>
         <Text style={styles.cardSubtitle}>{item.disciplina} - {item.alunos.length} alunos</Text>
       </View>
+      <Pressable
+        onPress={(e) => {
+          e.stopPropagation?.();
+          if (item.alunos.length === 0) {
+            Alert.alert("Sem alunos", "Adicione alunos antes de exportar a mini-pauta.");
+            return;
+          }
+          setExportTarget(item);
+        }}
+        hitSlop={8}
+        style={({ pressed }) => [styles.downloadBtn, { opacity: pressed ? 0.6 : 1 }]}
+      >
+        <Icon name="download" size={18} color="#D97706" />
+      </Pressable>
       <Icon name="chevron-forward" size={18} color={Colors.textMuted} />
     </Pressable>
   );
@@ -72,6 +108,15 @@ export default function AssessmentsScreen() {
           </View>
         }
       />
+
+      <ExportMenu
+        visible={!!exportTarget}
+        title="Exportar mini-pauta"
+        subtitle={exportTarget ? `${exportTarget.designacao} · ${exportTarget.disciplina}` : undefined}
+        onClose={() => setExportTarget(null)}
+        onPdf={handleExportPdf}
+        onExcel={handleExportExcel}
+      />
     </View>
   );
 }
@@ -92,6 +137,10 @@ const styles = StyleSheet.create({
     borderWidth: 1, borderColor: Colors.border,
   },
   cardIcon: { width: 44, height: 44, borderRadius: 12, backgroundColor: "rgba(245,158,11,0.15)", alignItems: "center", justifyContent: "center" },
+  downloadBtn: {
+    width: 36, height: 36, borderRadius: 10, alignItems: "center", justifyContent: "center",
+    backgroundColor: "rgba(217,119,6,0.15)", borderWidth: 1, borderColor: "rgba(217,119,6,0.3)",
+  },
   cardContent: { flex: 1 },
   cardTitle: { fontFamily: "Inter_600SemiBold", fontSize: 16, color: Colors.text },
   cardSubtitle: { fontFamily: "Inter_400Regular", fontSize: 13, color: Colors.textSecondary, marginTop: 2 },

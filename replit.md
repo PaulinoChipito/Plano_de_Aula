@@ -48,7 +48,7 @@ Preferred communication style: Simple, everyday language.
 | `attendance-mark.tsx` | Mark daily attendance |
 | `statistics.tsx` | Analytics dashboard |
 | `agenda.tsx` | Event calendar |
-| `settings.tsx` | AI model status & teacher profile |
+| `settings.tsx` | AI model status, teacher profile & security (PIN/biometria) |
 
 ### Backend (Express)
 
@@ -85,6 +85,13 @@ Preferred communication style: Simple, everyday language.
 - **AttendanceRecord** — Daily attendance per class
 - **AgendaEvent** — Scheduled events with type (aula/prova/reuniao/lembrete)
 - **TeacherProfile** — Name, institution, subject
+- **AuthSettings** (`lib/auth.ts`) — Optional 6-digit PIN (SHA-256 + salt via expo-crypto) and biometric flag (expo-local-authentication). Stored in `auth_settings_v1` AsyncStorage key. Enforced at app start by `components/AuthGate.tsx` (re-locks after 60s in background)
+
+### Export / Download
+
+- **`lib/exports.ts`** — Cross-platform helpers: `exportPdfFromHtml` (uses `expo-print` on native, `window.print()` on web) and `exportExcel` (xlsx → base64 → expo-sharing on native, blob download on web)
+- **`lib/exportTemplates.ts`** — Builds HTML and worksheet rows for: students list per class, mini-pauta per class (faithful to the official anexo with 3 trimestres + MAC/NPT/MT/MFD/MF + class statistics), and attendance map per class
+- **`components/ExportMenu.tsx`** — Bottom sheet with PDF / Excel options; wired in `classes.tsx`, `assessments.tsx`, and `attendance.tsx`
 
 ### Path Aliases
 

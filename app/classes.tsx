@@ -16,7 +16,10 @@ import Icon from "@/components/Icon";
 import { LinearGradient } from "expo-linear-gradient";
 import * as Haptics from "expo-haptics";
 import Colors from "@/constants/colors";
-import { getClasses, saveClass, deleteClass, generateId, ClassGroup } from "@/lib/storage";
+import { getClasses, saveClass, deleteClass, generateId, ClassGroup, getTeacherProfile } from "@/lib/storage";
+import ExportMenu from "@/components/ExportMenu";
+import { exportPdfFromHtml, exportExcel } from "@/lib/exports";
+import { studentsListHtml, studentsListExcel } from "@/lib/exportTemplates";
 
 export default function ClassesScreen() {
   const insets = useSafeAreaInsets();
@@ -26,6 +29,7 @@ export default function ClassesScreen() {
   const [showModal, setShowModal] = useState(false);
   const [newDesignacao, setNewDesignacao] = useState("");
   const [newDisciplina, setNewDisciplina] = useState("");
+  const [exportTarget, setExportTarget] = useState<ClassGroup | null>(null);
 
   useFocusEffect(
     useCallback(() => {
@@ -64,6 +68,23 @@ export default function ClassesScreen() {
     ]);
   };
 
+  const handleExportPdf = async () => {
+    if (!exportTarget) return;
+    const profile = await getTeacherProfile();
+    const html = studentsListHtml(exportTarget, profile);
+    await exportPdfFromHtml(html, `Lista_Alunos_${exportTarget.designacao}`);
+  };
+
+  const handleExportExcel = async () => {
+    if (!exportTarget) return;
+    const profile = await getTeacherProfile();
+    const sheet = studentsListExcel(exportTarget, profile);
+    await exportExcel(sheet.rows, `Lista_Alunos_${exportTarget.designacao}`, sheet.name, {
+      merges: sheet.merges,
+      colWidths: sheet.colWidths,
+    });
+  };
+
   const renderClass = ({ item }: { item: ClassGroup }) => (
     <Pressable
       onPress={() => router.push({ pathname: "/class-detail", params: { id: item.id } })}
@@ -85,6 +106,20 @@ export default function ClassesScreen() {
       <View style={styles.cardBadge}>
         <Text style={styles.cardBadgeText}>{item.alunos.length}</Text>
       </View>
+      <Pressable
+        onPress={(e) => {
+          e.stopPropagation?.();
+          if (item.alunos.length === 0) {
+            Alert.alert("Sem alunos", "Adicione alunos antes de exportar.");
+            return;
+          }
+          setExportTarget(item);
+        }}
+        hitSlop={8}
+        style={({ pressed }) => [styles.downloadBtn, { opacity: pressed ? 0.6 : 1 }]}
+      >
+        <Icon name="download" size={18} color={Colors.primaryLight} />
+      </Pressable>
       <Icon name="chevron-forward" size={18} color={Colors.textMuted} />
     </Pressable>
   );
@@ -124,6 +159,15 @@ export default function ClassesScreen() {
             <Text style={styles.emptySubtitle}>Crie a sua primeira turma</Text>
           </View>
         }
+      />
+
+      <ExportMenu
+        visible={!!exportTarget}
+        title="Exportar lista de alunos"
+        subtitle={exportTarget ? `${exportTarget.designacao} · ${exportTarget.alunos.length} alunos` : undefined}
+        onClose={() => setExportTarget(null)}
+        onPdf={handleExportPdf}
+        onExcel={handleExportExcel}
       />
 
       <Modal visible={showModal} transparent animationType="fade" onRequestClose={() => setShowModal(false)}>
@@ -181,6 +225,10 @@ const styles = StyleSheet.create({
   cardSubtitle: { fontFamily: "Inter_400Regular", fontSize: 13, color: Colors.textSecondary, marginTop: 2 },
   cardBadge: { backgroundColor: "rgba(96,165,250,0.2)", paddingHorizontal: 8, paddingVertical: 4, borderRadius: 8 },
   cardBadgeText: { fontFamily: "Inter_600SemiBold", fontSize: 12, color: "#60A5FA" },
+  downloadBtn: {
+    width: 36, height: 36, borderRadius: 10, alignItems: "center", justifyContent: "center",
+    backgroundColor: "rgba(20,184,166,0.12)", borderWidth: 1, borderColor: "rgba(20,184,166,0.25)",
+  },
   emptyContainer: { alignItems: "center", justifyContent: "center", paddingTop: 80, gap: 8 },
   emptyTitle: { fontFamily: "Inter_600SemiBold", fontSize: 18, color: Colors.text, marginTop: 8 },
   emptySubtitle: { fontFamily: "Inter_400Regular", fontSize: 14, color: Colors.textSecondary },

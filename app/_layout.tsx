@@ -15,6 +15,7 @@ import {
 } from "@expo-google-fonts/inter";
 import { isOnboardingDone } from "@/lib/storage";
 import { router } from "expo-router";
+import { AuthGate } from "@/components/AuthGate";
 
 SplashScreen.preventAutoHideAsync();
 
@@ -68,7 +69,9 @@ export default function RootLayout() {
       <QueryClientProvider client={queryClient}>
         <GestureHandlerRootView style={{ flex: 1 }}>
           <KeyboardProvider>
-            <RootLayoutNav />
+            <AuthGate>
+              <RootLayoutNav />
+            </AuthGate>
           </KeyboardProvider>
         </GestureHandlerRootView>
       </QueryClientProvider>

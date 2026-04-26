@@ -6,13 +6,17 @@ import {
   FlatList,
   Pressable,
   Platform,
+  Alert,
 } from "react-native";
 import { router, useFocusEffect } from "expo-router";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import Icon from "@/components/Icon";
 import { LinearGradient } from "expo-linear-gradient";
 import Colors from "@/constants/colors";
-import { getClasses, getAttendance, ClassGroup, AttendanceRecord } from "@/lib/storage";
+import { getClasses, getAttendance, getTeacherProfile, ClassGroup, AttendanceRecord } from "@/lib/storage";
+import ExportMenu from "@/components/ExportMenu";
+import { exportPdfFromHtml, exportExcel } from "@/lib/exports";
+import { attendanceMapHtml, attendanceMapExcel } from "@/lib/exportTemplates";
 
 export default function AttendanceScreen() {
   const insets = useSafeAreaInsets();
@@ -20,6 +24,7 @@ export default function AttendanceScreen() {
   const bottomPadding = Platform.OS === "web" ? 34 : insets.bottom;
   const [classes, setClasses] = useState<ClassGroup[]>([]);
   const [attendance, setAttendance] = useState<AttendanceRecord[]>([]);
+  const [exportTarget, setExportTarget] = useState<ClassGroup | null>(null);
 
   useFocusEffect(
     useCallback(() => {
@@ -43,6 +48,23 @@ export default function AttendanceScreen() {
     return { totalSessions, pct };
   };
 
+  const handleExportPdf = async () => {
+    if (!exportTarget) return;
+    const profile = await getTeacherProfile();
+    const html = attendanceMapHtml(exportTarget, attendance, profile);
+    await exportPdfFromHtml(html, `Mapa_Presencas_${exportTarget.designacao}`);
+  };
+
+  const handleExportExcel = async () => {
+    if (!exportTarget) return;
+    const profile = await getTeacherProfile();
+    const sheet = attendanceMapExcel(exportTarget, attendance, profile);
+    await exportExcel(sheet.rows, `Mapa_Presencas_${exportTarget.designacao}`, sheet.name, {
+      merges: sheet.merges,
+      colWidths: sheet.colWidths,
+    });
+  };
+
   const renderClass = ({ item }: { item: ClassGroup }) => {
     const stats = getAttendanceStats(item.id);
     return (
@@ -63,6 +85,21 @@ export default function AttendanceScreen() {
             <Text style={styles.statLabel}>{stats.totalSessions} aulas</Text>
           </View>
         )}
+        <Pressable
+          onPress={(e) => {
+            e.stopPropagation?.();
+            const has = attendance.some((r) => r.turmaId === item.id);
+            if (!has) {
+              Alert.alert("Sem registos", "Marque presenças antes de exportar o mapa.");
+              return;
+            }
+            setExportTarget(item);
+          }}
+          hitSlop={8}
+          style={({ pressed }) => [styles.downloadBtn, { opacity: pressed ? 0.6 : 1 }]}
+        >
+          <Icon name="download" size={18} color="#15803D" />
+        </Pressable>
         <Icon name="chevron-forward" size={18} color={Colors.textMuted} />
       </Pressable>
     );
@@ -98,6 +135,15 @@ export default function AttendanceScreen() {
           </View>
         }
       />
+
+      <ExportMenu
+        visible={!!exportTarget}
+        title="Exportar mapa de presenças"
+        subtitle={exportTarget ? `${exportTarget.designacao} · ${exportTarget.disciplina}` : undefined}
+        onClose={() => setExportTarget(null)}
+        onPdf={handleExportPdf}
+        onExcel={handleExportExcel}
+      />
     </View>
   );
 }
@@ -118,6 +164,10 @@ const styles = StyleSheet.create({
     borderWidth: 1, borderColor: Colors.border,
   },
   cardIcon: { width: 44, height: 44, borderRadius: 12, backgroundColor: "rgba(34,197,94,0.15)", alignItems: "center", justifyContent: "center" },
+  downloadBtn: {
+    width: 36, height: 36, borderRadius: 10, alignItems: "center", justifyContent: "center",
+    backgroundColor: "rgba(21,128,61,0.15)", borderWidth: 1, borderColor: "rgba(21,128,61,0.3)",
+  },
   cardContent: { flex: 1 },
   cardTitle: { fontFamily: "Inter_600SemiBold", fontSize: 16, color: Colors.text },
   cardSubtitle: { fontFamily: "Inter_400Regular", fontSize: 13, color: Colors.textSecondary, marginTop: 2 },
