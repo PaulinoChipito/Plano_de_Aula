@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useCallback } from "react";
 import {
   View,
   Text,
@@ -6,6 +6,7 @@ import {
   FlatList,
   Pressable,
   Platform,
+  SectionList,
 } from "react-native";
 import { router, useLocalSearchParams } from "expo-router";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
@@ -22,18 +23,30 @@ import {
   AttendanceRecord,
 } from "@/lib/storage";
 
+type Tab = "hoje" | "historico";
+
+function formatDateLabel(isoDate: string): string {
+  const d = new Date(isoDate);
+  if (isNaN(d.getTime())) return isoDate;
+  const days = ["Domingo", "Segunda", "Terça", "Quarta", "Quinta", "Sexta", "Sábado"];
+  const months = ["Jan", "Fev", "Mar", "Abr", "Mai", "Jun", "Jul", "Ago", "Set", "Out", "Nov", "Dez"];
+  return `${days[d.getDay()]}, ${d.getDate()} ${months[d.getMonth()]} ${d.getFullYear()}`;
+}
+
 export default function AttendanceMarkScreen() {
   const { turmaId } = useLocalSearchParams<{ turmaId: string }>();
   const insets = useSafeAreaInsets();
   const topPadding = Platform.OS === "web" ? 67 : insets.top;
   const bottomPadding = Platform.OS === "web" ? 34 : insets.bottom;
 
+  const [activeTab, setActiveTab] = useState<Tab>("hoje");
   const [classGroup, setClassGroup] = useState<ClassGroup | null>(null);
   const [attendance, setAttendanceState] = useState<Map<string, boolean>>(new Map());
   const [allRecords, setAllRecords] = useState<AttendanceRecord[]>([]);
+  const [expandedDate, setExpandedDate] = useState<string | null>(null);
   const today = new Date().toISOString().split("T")[0];
 
-  useEffect(() => {
+  const load = useCallback(() => {
     Promise.all([getClasses(), getAttendance()]).then(([classes, records]) => {
       const found = classes.find((c) => c.id === turmaId);
       if (found) {
@@ -51,6 +64,8 @@ export default function AttendanceMarkScreen() {
       }
     });
   }, [turmaId]);
+
+  useEffect(() => { load(); }, [load]);
 
   const toggleAttendance = (alunoId: string) => {
     if (Platform.OS !== "web") Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
@@ -73,6 +88,7 @@ export default function AttendanceMarkScreen() {
     };
     await saveAttendance(record);
     if (Platform.OS !== "web") Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+    load();
     router.back();
   };
 
@@ -93,6 +109,10 @@ export default function AttendanceMarkScreen() {
     ).length;
     return { total, present, pct: total > 0 ? Math.round((present / total) * 100) : 0 };
   };
+
+  const pastRecords = allRecords
+    .filter((r) => r.data !== today)
+    .sort((a, b) => b.data.localeCompare(a.data));
 
   const renderStudent = ({ item, index }: { item: Student; index: number }) => {
     const isPresent = attendance.get(item.id) ?? true;
@@ -127,6 +147,85 @@ export default function AttendanceMarkScreen() {
     );
   };
 
+  const renderHistoryRecord = ({ item: record }: { item: AttendanceRecord }) => {
+    const isExpanded = expandedDate === record.data;
+    const presentRegistos = record.registos.filter((r) => r.presente);
+    const absentRegistos = record.registos.filter((r) => !r.presente);
+    const total = record.registos.length;
+    const pct = total > 0 ? Math.round((presentRegistos.length / total) * 100) : 0;
+
+    const getStudentName = (alunoId: string) =>
+      classGroup?.alunos.find((a) => a.id === alunoId)?.nome ?? alunoId;
+
+    return (
+      <View style={styles.historyCard}>
+        <Pressable
+          onPress={() => setExpandedDate(isExpanded ? null : record.data)}
+          style={({ pressed }) => [styles.historyHeader, { opacity: pressed ? 0.8 : 1 }]}
+        >
+          <View style={styles.historyDateRow}>
+            <View style={styles.historyDateIcon}>
+              <Icon name="calendar" size={14} color={Colors.primary} />
+            </View>
+            <View style={styles.historyDateInfo}>
+              <Text style={styles.historyDateLabel}>{formatDateLabel(record.data)}</Text>
+              <Text style={styles.historyDateSub}>{record.data}</Text>
+            </View>
+          </View>
+          <View style={styles.historyBadgeRow}>
+            <View style={[styles.historyBadge, { backgroundColor: Colors.success + "20" }]}>
+              <Text style={[styles.historyBadgeText, { color: Colors.success }]}>
+                P: {presentRegistos.length}
+              </Text>
+            </View>
+            <View style={[styles.historyBadge, { backgroundColor: Colors.error + "20" }]}>
+              <Text style={[styles.historyBadgeText, { color: Colors.error }]}>
+                F: {absentRegistos.length}
+              </Text>
+            </View>
+            <Text style={styles.historyPct}>{pct}%</Text>
+            <Icon
+              name={isExpanded ? "chevron-up" : "chevron-down"}
+              size={16}
+              color={Colors.textMuted}
+            />
+          </View>
+        </Pressable>
+
+        {isExpanded && (
+          <View style={styles.historyDetail}>
+            {absentRegistos.length > 0 && (
+              <View style={styles.historyGroup}>
+                <Text style={styles.historyGroupTitle}>
+                  <Icon name="close" size={12} color={Colors.error} /> Faltas ({absentRegistos.length})
+                </Text>
+                {absentRegistos.map((r) => (
+                  <View key={r.alunoId} style={styles.historyRow}>
+                    <View style={[styles.historyDot, { backgroundColor: Colors.error }]} />
+                    <Text style={styles.historyRowName}>{getStudentName(r.alunoId)}</Text>
+                  </View>
+                ))}
+              </View>
+            )}
+            {presentRegistos.length > 0 && (
+              <View style={styles.historyGroup}>
+                <Text style={styles.historyGroupTitle}>
+                  <Icon name="checkmark" size={12} color={Colors.success} /> Presentes ({presentRegistos.length})
+                </Text>
+                {presentRegistos.map((r) => (
+                  <View key={r.alunoId} style={styles.historyRow}>
+                    <View style={[styles.historyDot, { backgroundColor: Colors.success }]} />
+                    <Text style={styles.historyRowName}>{getStudentName(r.alunoId)}</Text>
+                  </View>
+                ))}
+              </View>
+            )}
+          </View>
+        )}
+      </View>
+    );
+  };
+
   if (!classGroup) return null;
 
   return (
@@ -143,31 +242,88 @@ export default function AttendanceMarkScreen() {
         </Pressable>
         <View style={styles.headerCenter}>
           <Text style={styles.headerTitle}>{classGroup.designacao}</Text>
-          <Text style={styles.headerSubtitle}>{today}</Text>
+          <Text style={styles.headerSubtitle}>{classGroup.disciplina}</Text>
         </View>
-        <Pressable onPress={handleSave} style={({ pressed }) => [styles.saveHeaderBtn, { opacity: pressed ? 0.7 : 1 }]}>
-          <Icon name="check" size={20} color={Colors.success} />
+        {activeTab === "hoje" ? (
+          <Pressable onPress={handleSave} style={({ pressed }) => [styles.saveHeaderBtn, { opacity: pressed ? 0.7 : 1 }]}>
+            <Icon name="check" size={20} color={Colors.success} />
+          </Pressable>
+        ) : (
+          <View style={{ width: 40 }} />
+        )}
+      </View>
+
+      <View style={styles.tabBar}>
+        <Pressable
+          onPress={() => setActiveTab("hoje")}
+          style={[styles.tab, activeTab === "hoje" && styles.tabActive]}
+        >
+          <Icon name="checkmark-circle" size={15} color={activeTab === "hoje" ? Colors.primary : Colors.textMuted} />
+          <Text style={[styles.tabText, activeTab === "hoje" && styles.tabTextActive]}>
+            Hoje
+          </Text>
+        </Pressable>
+        <Pressable
+          onPress={() => setActiveTab("historico")}
+          style={[styles.tab, activeTab === "historico" && styles.tabActive]}
+        >
+          <Icon name="time" size={15} color={activeTab === "historico" ? Colors.primary : Colors.textMuted} />
+          <Text style={[styles.tabText, activeTab === "historico" && styles.tabTextActive]}>
+            Histórico {pastRecords.length > 0 ? `(${pastRecords.length})` : ""}
+          </Text>
         </Pressable>
       </View>
 
-      <View style={styles.statsBar}>
-        <View style={styles.statItem}>
-          <View style={[styles.statDot, { backgroundColor: Colors.success }]} />
-          <Text style={styles.statItemText}>Presentes: {presentCount}</Text>
-        </View>
-        <View style={styles.statItem}>
-          <View style={[styles.statDot, { backgroundColor: Colors.error }]} />
-          <Text style={styles.statItemText}>Ausentes: {absentCount}</Text>
-        </View>
-      </View>
-
-      <FlatList
-        data={sortedStudents}
-        keyExtractor={(item) => item.id}
-        renderItem={renderStudent}
-        contentContainerStyle={[styles.list, { paddingBottom: bottomPadding + 20 }]}
-        showsVerticalScrollIndicator={false}
-      />
+      {activeTab === "hoje" ? (
+        <>
+          <View style={styles.statsBar}>
+            <View style={styles.statItem}>
+              <View style={[styles.statDot, { backgroundColor: Colors.success }]} />
+              <Text style={styles.statItemText}>Presentes: {presentCount}</Text>
+            </View>
+            <Text style={styles.statSep}>·</Text>
+            <View style={styles.statItem}>
+              <View style={[styles.statDot, { backgroundColor: Colors.error }]} />
+              <Text style={styles.statItemText}>Ausentes: {absentCount}</Text>
+            </View>
+            <Text style={styles.statSep}>·</Text>
+            <Text style={styles.statDate}>{today}</Text>
+          </View>
+          <FlatList
+            data={sortedStudents}
+            keyExtractor={(item) => item.id}
+            renderItem={renderStudent}
+            contentContainerStyle={[styles.list, { paddingBottom: bottomPadding + 20 }]}
+            showsVerticalScrollIndicator={false}
+          />
+        </>
+      ) : (
+        <FlatList
+          data={pastRecords}
+          keyExtractor={(item) => item.data}
+          renderItem={renderHistoryRecord}
+          contentContainerStyle={[styles.list, { paddingBottom: bottomPadding + 20 }]}
+          showsVerticalScrollIndicator={false}
+          ListEmptyComponent={
+            <View style={styles.emptyHistory}>
+              <Icon name="time" size={44} color={Colors.textMuted} />
+              <Text style={styles.emptyHistoryTitle}>Sem histórico</Text>
+              <Text style={styles.emptyHistorySubtitle}>
+                As chamadas registadas aparecerão aqui por data
+              </Text>
+            </View>
+          }
+          ListHeaderComponent={
+            pastRecords.length > 0 ? (
+              <View style={styles.historyHeader2}>
+                <Text style={styles.historyHeader2Text}>
+                  {pastRecords.length} chamada{pastRecords.length !== 1 ? "s" : ""} registada{pastRecords.length !== 1 ? "s" : ""}
+                </Text>
+              </View>
+            ) : null
+          }
+        />
+      )}
     </View>
   );
 }
@@ -180,19 +336,33 @@ const styles = StyleSheet.create({
     borderBottomWidth: 1, borderBottomColor: Colors.border,
   },
   backBtn: { width: 40, height: 40, alignItems: "center", justifyContent: "center" },
-  headerCenter: { alignItems: "center" },
+  headerCenter: { alignItems: "center", flex: 1 },
   headerTitle: { fontFamily: "Inter_700Bold", fontSize: 18, color: Colors.text },
   headerSubtitle: { fontFamily: "Inter_400Regular", fontSize: 13, color: Colors.textSecondary },
   saveHeaderBtn: { width: 40, height: 40, alignItems: "center", justifyContent: "center", borderRadius: 12, backgroundColor: "rgba(52,211,153,0.15)" },
-  statsBar: {
-    flexDirection: "row", justifyContent: "center", gap: 24,
-    paddingVertical: 12, backgroundColor: "rgba(15,23,42,0.5)",
+  tabBar: {
+    flexDirection: "row", backgroundColor: "rgba(15,23,42,0.5)",
     borderBottomWidth: 1, borderBottomColor: Colors.border,
   },
-  statItem: { flexDirection: "row", alignItems: "center", gap: 6 },
-  statDot: { width: 8, height: 8, borderRadius: 4 },
+  tab: {
+    flex: 1, flexDirection: "row", alignItems: "center", justifyContent: "center",
+    gap: 6, paddingVertical: 12,
+    borderBottomWidth: 2, borderBottomColor: "transparent",
+  },
+  tabActive: { borderBottomColor: Colors.primary },
+  tabText: { fontFamily: "Inter_500Medium", fontSize: 14, color: Colors.textMuted },
+  tabTextActive: { color: Colors.primary },
+  statsBar: {
+    flexDirection: "row", alignItems: "center", justifyContent: "center", gap: 10,
+    paddingVertical: 10, backgroundColor: "rgba(15,23,42,0.4)",
+    borderBottomWidth: 1, borderBottomColor: Colors.border,
+  },
+  statItem: { flexDirection: "row", alignItems: "center", gap: 5 },
+  statDot: { width: 7, height: 7, borderRadius: 4 },
   statItemText: { fontFamily: "Inter_500Medium", fontSize: 13, color: Colors.textSecondary },
-  list: { padding: 20, gap: 8 },
+  statSep: { color: Colors.border, fontSize: 14 },
+  statDate: { fontFamily: "Inter_400Regular", fontSize: 12, color: Colors.textMuted },
+  list: { padding: 16, gap: 8 },
   studentCard: {
     flexDirection: "row", alignItems: "center", backgroundColor: Colors.surface,
     borderRadius: 14, padding: 14, gap: 12,
@@ -208,4 +378,47 @@ const styles = StyleSheet.create({
   toggleBtn: { width: 36, height: 36, borderRadius: 18, alignItems: "center", justifyContent: "center" },
   togglePresent: { backgroundColor: Colors.success },
   toggleAbsent: { backgroundColor: Colors.error },
+  historyCard: {
+    backgroundColor: Colors.surface, borderRadius: 14,
+    borderWidth: 1, borderColor: Colors.border, overflow: "hidden",
+  },
+  historyHeader: {
+    flexDirection: "row", alignItems: "center", justifyContent: "space-between",
+    padding: 14, gap: 10,
+  },
+  historyDateRow: { flexDirection: "row", alignItems: "center", gap: 10, flex: 1 },
+  historyDateIcon: {
+    width: 32, height: 32, borderRadius: 10,
+    backgroundColor: Colors.primary + "15",
+    alignItems: "center", justifyContent: "center",
+  },
+  historyDateInfo: { flex: 1 },
+  historyDateLabel: { fontFamily: "Inter_600SemiBold", fontSize: 14, color: Colors.text },
+  historyDateSub: { fontFamily: "Inter_400Regular", fontSize: 11, color: Colors.textMuted, marginTop: 1 },
+  historyBadgeRow: { flexDirection: "row", alignItems: "center", gap: 6 },
+  historyBadge: { borderRadius: 8, paddingHorizontal: 7, paddingVertical: 3 },
+  historyBadgeText: { fontFamily: "Inter_600SemiBold", fontSize: 12 },
+  historyPct: { fontFamily: "Inter_500Medium", fontSize: 13, color: Colors.textSecondary, minWidth: 36, textAlign: "right" },
+  historyDetail: {
+    borderTopWidth: 1, borderTopColor: Colors.border,
+    padding: 14, gap: 12,
+    backgroundColor: "rgba(255,255,255,0.03)",
+  },
+  historyGroup: { gap: 6 },
+  historyGroupTitle: {
+    fontFamily: "Inter_600SemiBold", fontSize: 12,
+    color: Colors.textSecondary, marginBottom: 2,
+    textTransform: "uppercase", letterSpacing: 0.4,
+  },
+  historyRow: { flexDirection: "row", alignItems: "center", gap: 8, paddingVertical: 2 },
+  historyDot: { width: 6, height: 6, borderRadius: 3 },
+  historyRowName: { fontFamily: "Inter_400Regular", fontSize: 14, color: Colors.text },
+  historyHeader2: { marginBottom: 4, paddingHorizontal: 4 },
+  historyHeader2Text: { fontFamily: "Inter_500Medium", fontSize: 13, color: Colors.textMuted },
+  emptyHistory: { alignItems: "center", paddingTop: 80, gap: 10 },
+  emptyHistoryTitle: { fontFamily: "Inter_600SemiBold", fontSize: 18, color: Colors.text, marginTop: 8 },
+  emptyHistorySubtitle: {
+    fontFamily: "Inter_400Regular", fontSize: 14, color: Colors.textSecondary,
+    textAlign: "center", paddingHorizontal: 32,
+  },
 });

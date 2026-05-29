@@ -97,23 +97,33 @@ export default function ClassDetailScreen() {
     if (Platform.OS !== "web") Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
   };
 
-  const handleDeleteStudent = (studentId: string) => {
+  const doDeleteStudent = async (studentId: string) => {
     if (!classGroup) return;
-    Alert.alert("Remover Aluno", "Tem a certeza?", [
-      { text: "Cancelar", style: "cancel" },
-      {
-        text: "Remover",
-        style: "destructive",
-        onPress: async () => {
-          const updated = {
-            ...classGroup,
-            alunos: classGroup.alunos.filter((a) => a.id !== studentId),
-          };
-          await saveClass(updated);
-          setClassGroup(updated);
-        },
-      },
-    ]);
+    const updated = {
+      ...classGroup,
+      alunos: classGroup.alunos.filter((a) => a.id !== studentId),
+    };
+    await saveClass(updated);
+    setClassGroup(updated);
+    if (Platform.OS !== "web") Haptics.notificationAsync(Haptics.NotificationFeedbackType.Warning);
+  };
+
+  const handleDeleteStudent = (studentId: string, skipConfirm = false) => {
+    if (!classGroup) return;
+    if (skipConfirm) {
+      doDeleteStudent(studentId);
+      return;
+    }
+    if (Platform.OS === "web") {
+      if ((globalThis as any).confirm?.("Remover este aluno da turma?")) {
+        doDeleteStudent(studentId);
+      }
+    } else {
+      Alert.alert("Remover Aluno", "Tem a certeza?", [
+        { text: "Cancelar", style: "cancel" },
+        { text: "Remover", style: "destructive", onPress: () => doDeleteStudent(studentId) },
+      ]);
+    }
   };
 
   const handleCsvChange = (text: string) => {
@@ -367,8 +377,9 @@ export default function ClassDetailScreen() {
                 ) : null}
                 <Pressable
                   onPress={() => {
+                    const id = showStudentModal!.id;
                     setShowStudentModal(null);
-                    handleDeleteStudent(showStudentModal.id);
+                    handleDeleteStudent(id, true);
                   }}
                   style={({ pressed }) => [styles.removeStudentBtn, { opacity: pressed ? 0.8 : 1 }]}
                 >

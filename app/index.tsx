@@ -7,7 +7,7 @@ import {
   Pressable,
   Platform,
   Animated,
-  Dimensions,
+  useWindowDimensions,
 } from "react-native";
 import { router } from "expo-router";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
@@ -17,13 +17,11 @@ import * as Haptics from "expo-haptics";
 import Svg, { Path } from "react-native-svg";
 
 const USE_NATIVE_DRIVER = Platform.OS !== "web";
-const { width: SCREEN_WIDTH } = Dimensions.get("window");
 const CARD_GAP = 16;
 const CARD_PADDING = 20;
-const CARD_WIDTH = (SCREEN_WIDTH - CARD_PADDING * 2 - CARD_GAP) / 2;
 
 interface GridItem {
-  icon: React.ReactNode;
+  iconName: string;
   label: string;
   route: string;
   gradient: [string, string, string];
@@ -31,37 +29,37 @@ interface GridItem {
 
 const GRID_ITEMS: GridItem[] = [
   {
-    icon: <Icon name="book-open-variant" size={32} color="#fff" />,
+    iconName: "book-open-variant",
     label: "Plano de Aula",
     route: "/lesson-plans",
     gradient: ["#34D399", "#14B8A6", "#0891B2"],
   },
   {
-    icon: <Icon name="people" size={32} color="#fff" />,
+    iconName: "people",
     label: "Turmas",
     route: "/classes",
     gradient: ["#60A5FA", "#6366F1", "#9333EA"],
   },
   {
-    icon: <Icon name="clipboard-check" size={32} color="#fff" />,
+    iconName: "clipboard-check",
     label: "Avaliações",
     route: "/assessments",
     gradient: ["#A78BFA", "#A855F7", "#C026D3"],
   },
   {
-    icon: <Icon name="calendar" size={32} color="#fff" />,
+    iconName: "calendar",
     label: "Agenda",
     route: "/agenda",
     gradient: ["#FBBF24", "#F97316", "#DC2626"],
   },
   {
-    icon: <Icon name="account-check" size={32} color="#fff" />,
+    iconName: "account-check",
     label: "Presenças",
     route: "/attendance",
     gradient: ["#22D3EE", "#0EA5E9", "#2563EB"],
   },
   {
-    icon: <Icon name="stats-chart" size={32} color="#fff" />,
+    iconName: "stats-chart",
     label: "Estatísticas",
     route: "/statistics",
     gradient: ["#F472B6", "#F43F5E", "#DC2626"],
@@ -127,7 +125,14 @@ function WaveSvg() {
 
 export default function Dashboard() {
   const insets = useSafeAreaInsets();
+  const { width: screenWidth } = useWindowDimensions();
   const topPadding = Platform.OS === "web" ? 16 : insets.top;
+
+  const cardWidth = (screenWidth - CARD_PADDING * 2 - CARD_GAP) / 2;
+  const iconContainerSize = Math.min(64, Math.max(44, Math.round(cardWidth * 0.36)));
+  const iconSize = Math.min(28, Math.max(20, Math.round(iconContainerSize * 0.44)));
+  const iconBorderRadius = Math.round(iconContainerSize * 0.28);
+  const cardMinHeight = iconContainerSize + 60;
 
   const cardScales = useRef(GRID_ITEMS.map(() => new Animated.Value(1))).current;
 
@@ -211,13 +216,13 @@ export default function Dashboard() {
           <WaveSvg />
         </LinearGradient>
 
-        <View style={styles.gridContainer}>
+        <View style={[styles.gridContainer, { padding: CARD_PADDING, paddingTop: 24 }]}>
           <View style={styles.grid}>
             {GRID_ITEMS.map((item, index) => (
               <Animated.View
                 key={index}
                 style={[
-                  styles.cardWrapper,
+                  { width: cardWidth },
                   { transform: [{ scale: cardScales[index] }] },
                 ]}
               >
@@ -228,14 +233,21 @@ export default function Dashboard() {
                   style={styles.card}
                 >
                   <View style={styles.cardBorder}>
-                    <View style={styles.cardContent}>
+                    <View style={[styles.cardContent, { minHeight: cardMinHeight }]}>
                       <LinearGradient
                         colors={item.gradient}
-                        style={styles.iconContainer}
+                        style={[
+                          styles.iconContainer,
+                          {
+                            width: iconContainerSize,
+                            height: iconContainerSize,
+                            borderRadius: iconBorderRadius,
+                          },
+                        ]}
                         start={{ x: 0, y: 0 }}
                         end={{ x: 1, y: 1 }}
                       >
-                        {item.icon}
+                        <Icon name={item.iconName} size={iconSize} color="#fff" />
                       </LinearGradient>
                       <Text style={styles.cardLabel}>{item.label}</Text>
                     </View>
@@ -328,17 +340,11 @@ const styles = StyleSheet.create({
     alignItems: "center",
     justifyContent: "center",
   },
-  gridContainer: {
-    padding: CARD_PADDING,
-    paddingTop: 24,
-  },
+  gridContainer: {},
   grid: {
     flexDirection: "row",
     flexWrap: "wrap",
     gap: CARD_GAP,
-  },
-  cardWrapper: {
-    width: CARD_WIDTH,
   },
   card: {
     borderRadius: 24,
@@ -351,22 +357,18 @@ const styles = StyleSheet.create({
     backgroundColor: "rgba(255,255,255,0.08)",
   },
   cardContent: {
-    padding: 20,
-    minHeight: 140,
+    padding: 16,
     alignItems: "center",
     justifyContent: "center",
-    gap: 14,
+    gap: 12,
   },
   iconContainer: {
-    width: 72,
-    height: 72,
-    borderRadius: 20,
     alignItems: "center",
     justifyContent: "center",
   },
   cardLabel: {
     fontFamily: "Inter_500Medium",
-    fontSize: 14,
+    fontSize: 13,
     color: "#fff",
     textAlign: "center",
   },

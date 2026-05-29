@@ -42,11 +42,36 @@ function fmtPct(n: number): string {
   return `${(Math.round(n * 10) / 10).toString().replace(".", ",")}`;
 }
 
-const baseStyle = `
+const baseStylePortrait = `
   <style>
-    @page { size: A4 landscape; margin: 12mm; }
+    @page { size: A4 portrait; margin: 14mm 12mm; }
     * { box-sizing: border-box; }
     body { font-family: 'Helvetica', 'Arial', sans-serif; color: #111; margin: 0; padding: 0; font-size: 10pt; }
+    .header { text-align: center; margin-bottom: 8px; }
+    .header .school { font-size: 13pt; font-weight: 700; letter-spacing: .3px; }
+    .header .doc { font-size: 11pt; font-weight: 600; margin-top: 4px; text-transform: uppercase; }
+    .meta { display: flex; justify-content: space-between; margin: 6px 0 8px; font-size: 9.5pt; }
+    .meta .left, .meta .right { white-space: nowrap; }
+    table { width: 100%; border-collapse: collapse; }
+    th, td { border: 1px solid #333; padding: 4px 5px; text-align: center; vertical-align: middle; }
+    thead th { background: #e8e8e8; font-weight: 700; font-size: 9pt; }
+    .name-col { text-align: left; padding-left: 6px; }
+    .num-col { width: 28px; }
+    .small { font-size: 8.5pt; }
+    .footer { display: flex; justify-content: space-between; margin-top: 16px; font-size: 9pt; }
+    .footer .prof { font-style: italic; }
+    .system { text-align: center; margin-top: 24px; font-size: 8pt; color: #555; border-top: 1px solid #ccc; padding-top: 4px; }
+    .stats-table { margin-top: 12px; }
+    .stats-table th { background: #d8d8d8; }
+    .stats-title { font-weight: 700; font-size: 10pt; margin: 12px 0 4px; }
+  </style>
+`;
+
+const baseStyleLandscape = `
+  <style>
+    @page { size: A4 landscape; margin: 10mm 12mm; }
+    * { box-sizing: border-box; }
+    body { font-family: 'Helvetica', 'Arial', sans-serif; color: #111; margin: 0; padding: 0; font-size: 9.5pt; }
     .header { text-align: center; margin-bottom: 8px; }
     .header .school { font-size: 13pt; font-weight: 700; letter-spacing: .3px; }
     .header .doc { font-size: 11pt; font-weight: 600; margin-top: 4px; text-transform: uppercase; }
@@ -67,8 +92,9 @@ const baseStyle = `
   </style>
 `;
 
-function htmlDoc(title: string, body: string): string {
-  return `<!doctype html><html lang="pt"><head><meta charset="utf-8"><title>${title}</title>${baseStyle}</head><body>${body}</body></html>`;
+function htmlDoc(title: string, body: string, landscape = false): string {
+  const style = landscape ? baseStyleLandscape : baseStylePortrait;
+  return `<!doctype html><html lang="pt"><head><meta charset="utf-8"><title>${title}</title>${style}</head><body>${body}</body></html>`;
 }
 
 function escape(s: string): string {
@@ -345,7 +371,7 @@ export function miniPautaHtml(
     </div>
     <div class="system">Processado pelo Sistema EcoEducacional · Gestão Pedagógica · Utilizador: ${escape(profile.nome || "professor")}</div>
   `;
-  return htmlDoc(`Mini-Pauta - ${turma.designacao}`, body);
+  return htmlDoc(`Mini-Pauta - ${turma.designacao}`, body, true);
 }
 
 export function miniPautaExcel(
@@ -541,7 +567,7 @@ export function attendanceMapHtml(
     <div class="system">Processado pelo Sistema EcoEducacional · Gestão Pedagógica · Utilizador: ${escape(profile.nome || "professor")}</div>
     <div style="margin-top:6px;font-size:8.5pt;color:#555">Legenda: P = Presente · F = Falta · — = Sem registo</div>
   `;
-  return htmlDoc(`Mapa de Presenças - ${turma.designacao}`, body);
+  return htmlDoc(`Mapa de Presenças - ${turma.designacao}`, body, true);
 }
 
 export function attendanceMapExcel(
