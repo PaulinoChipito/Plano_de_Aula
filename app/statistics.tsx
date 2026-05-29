@@ -21,6 +21,7 @@ import {
   AttendanceRecord,
   GradeEntry,
 } from "@/lib/storage";
+import { getMacAverage, getNotaFinal } from "@/lib/gradeUtils";
 
 interface Insight {
   type: "warning" | "success" | "info";
@@ -49,11 +50,6 @@ export default function StatisticsScreen() {
     }, []),
   );
 
-  const getMacAvg = (mac: GradeEntry[]) => {
-    if (mac.length === 0) return 0;
-    return Math.round((mac.reduce((s, e) => s + e.nota, 0) / mac.length) * 10) / 10;
-  };
-
   const getStudentName = (alunoId: string): string => {
     for (const c of classes) {
       const s = c.alunos.find((a) => a.id === alunoId);
@@ -73,7 +69,7 @@ export default function StatisticsScreen() {
     ? Math.round(
         (grades
           .filter((g) => g.mac.length > 0)
-          .reduce((acc, g) => acc + getMacAvg(g.mac), 0) /
+          .reduce((acc, g) => acc + getMacAverage(g.mac), 0) /
           Math.max(grades.filter((g) => g.mac.length > 0).length, 1)) * 10,
       ) / 10
     : 0;
@@ -81,11 +77,11 @@ export default function StatisticsScreen() {
   const insights: Insight[] = [];
 
   const lowPerformers = grades
-    .filter((g) => g.mac.length > 0 && getMacAvg(g.mac) < 10)
+    .filter((g) => g.mac.length > 0 && getMacAverage(g.mac) < 10)
     .map((g) => ({
       nome: getStudentName(g.alunoId),
       turma: getClassName(g.turmaId),
-      avg: getMacAvg(g.mac),
+      avg: getMacAverage(g.mac),
     }));
   if (lowPerformers.length > 0) {
     insights.push({
@@ -114,7 +110,7 @@ export default function StatisticsScreen() {
     insights.push({
       type: "success",
       icon: "trending-up",
-      message: `Melhor evolucao: ${topPerformers
+      message: `Melhor evolução: ${topPerformers
         .slice(0, 3)
         .map((p) => `${p.nome} (+${p.evolution.toFixed(1)})`)
         .join(", ")}`,
@@ -144,7 +140,7 @@ export default function StatisticsScreen() {
     insights.push({
       type: "info",
       icon: "alert-circle",
-      message: `Frequencia critica: ${criticalAttendance
+      message: `Frequência crítica: ${criticalAttendance
         .slice(0, 3)
         .map((s) => `${s.nome} (${s.pct}%)`)
         .join(", ")}`,
@@ -155,7 +151,7 @@ export default function StatisticsScreen() {
     insights.push({
       type: "info",
       icon: "info",
-      message: "Adicione turmas, alunos e notas para ver insights automaticos.",
+      message: "Adicione turmas, alunos e notas para ver insights automáticos.",
     });
   }
 
@@ -180,7 +176,7 @@ export default function StatisticsScreen() {
         >
           <Icon name="chevron-back" size={24} color="#fff" />
         </Pressable>
-        <Text style={styles.headerTitle}>Estatisticas</Text>
+        <Text style={styles.headerTitle}>Estatísticas</Text>
         <View style={{ width: 40 }} />
       </View>
 
@@ -202,7 +198,7 @@ export default function StatisticsScreen() {
           <View style={styles.metricCard}>
             <Icon name="bar-chart-2" size={22} color={Colors.accent} />
             <Text style={styles.metricValue}>{globalAvg || "-"}</Text>
-            <Text style={styles.metricLabel}>Media MAC</Text>
+            <Text style={styles.metricLabel}>Média MAC</Text>
           </View>
           <View style={styles.metricCard}>
             <Icon name="calendar" size={22} color={Colors.success} />
@@ -212,7 +208,7 @@ export default function StatisticsScreen() {
         </View>
 
         <View style={styles.insightsSection}>
-          <Text style={styles.insightsTitle}>Insights Pedagogicos</Text>
+          <Text style={styles.insightsTitle}>Insights Pedagógicos</Text>
           {insights.map((insight, i) => (
             <View
               key={i}
@@ -231,16 +227,21 @@ export default function StatisticsScreen() {
           const classGrades = grades.filter((g) => g.turmaId === c.id);
           if (classGrades.length === 0) return null;
 
-          const classAvg =
-            Math.round(
-              (classGrades
-                .filter((g) => g.mac.length > 0)
-                .reduce((acc, g) => acc + getMacAvg(g.mac), 0) /
-                Math.max(
-                  classGrades.filter((g) => g.mac.length > 0).length,
-                  1,
-                )) * 10,
-            ) / 10;
+          const gradesWithMac = classGrades.filter((g) => g.mac.length > 0);
+          const classAvgMac = gradesWithMac.length > 0
+            ? Math.round(
+                (gradesWithMac.reduce((acc, g) => acc + getMacAverage(g.mac), 0) /
+                  gradesWithMac.length) * 10,
+              ) / 10
+            : null;
+
+          const gradesWithNF = classGrades.filter((g) => getNotaFinal(g.mac, g.npt) !== null);
+          const classAvgNF = gradesWithNF.length > 0
+            ? Math.round(
+                (gradesWithNF.reduce((acc, g) => acc + (getNotaFinal(g.mac, g.npt) ?? 0), 0) /
+                  gradesWithNF.length) * 10,
+              ) / 10
+            : null;
 
           const classRecords = attendance.filter((r) => r.turmaId === c.id);
           const classTotalPresent = classRecords.reduce(
@@ -259,12 +260,18 @@ export default function StatisticsScreen() {
               <Text style={styles.classStatSubtitle}>{c.disciplina}</Text>
               <View style={styles.classStatRow}>
                 <View style={styles.classStatItem}>
-                  <Text style={styles.classStatValue}>{classAvg}</Text>
-                  <Text style={styles.classStatLabel}>Media MAC</Text>
+                  <Text style={styles.classStatValue}>{classAvgMac ?? "-"}</Text>
+                  <Text style={styles.classStatLabel}>Média MAC</Text>
+                </View>
+                <View style={styles.classStatItem}>
+                  <Text style={[styles.classStatValue, classAvgNF !== null ? { color: Colors.success } : {}]}>
+                    {classAvgNF ?? "-"}
+                  </Text>
+                  <Text style={styles.classStatLabel}>Nota Final</Text>
                 </View>
                 <View style={styles.classStatItem}>
                   <Text style={styles.classStatValue}>{classPct}%</Text>
-                  <Text style={styles.classStatLabel}>Presenca</Text>
+                  <Text style={styles.classStatLabel}>Presença</Text>
                 </View>
                 <View style={styles.classStatItem}>
                   <Text style={styles.classStatValue}>{c.alunos.length}</Text>

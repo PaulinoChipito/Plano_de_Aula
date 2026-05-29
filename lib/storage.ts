@@ -29,7 +29,7 @@ export interface LessonPlan {
   disciplina: string;
   tema: string;
   duracao: string;
-  numAlunos?: string;
+  numAlunos?: number;
   faixaEtaria?: string;
   sumario: string;
   objetivoGeral: string;

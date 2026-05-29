@@ -426,11 +426,11 @@ export default function ViewPlanScreen() {
               <TextInput style={[styles.editInput, styles.editTextArea]} value={editSumario} onChangeText={setEditSumario} multiline placeholderTextColor={Colors.textMuted} />
             </View>
             <View style={styles.editGroup}>
-              <Text style={styles.editLabel}>Objetivo Geral</Text>
+              <Text style={styles.editLabel}>Objectivo Geral</Text>
               <TextInput style={[styles.editInput, styles.editTextArea]} value={editObjetivoGeral} onChangeText={setEditObjetivoGeral} multiline placeholderTextColor={Colors.textMuted} />
             </View>
 
-            {renderEditableList("Objetivos Especificos", editObjEspecificos, setEditObjEspecificos, "Objetivo")}
+            {renderEditableList("Objectivos Específicos", editObjEspecificos, setEditObjEspecificos, "Objectivo")}
 
             <View style={styles.editGroup}>
               <Text style={styles.editLabel}>Metodos de Ensino</Text>
@@ -514,6 +514,15 @@ export default function ViewPlanScreen() {
                 </View>
               )}
             </View>
+
+            {plan.score === 0 && (
+              <View style={styles.aiOnlyNote}>
+                <Icon name="info" size={13} color={Colors.textMuted} />
+                <Text style={styles.aiOnlyNoteText}>
+                  Avaliação pedagógica disponível apenas para planos gerados com IA
+                </Text>
+              </View>
+            )}
 
             <View style={styles.section}>
               <Text style={styles.sectionTitle}>Sumario</Text>
@@ -722,6 +731,12 @@ const styles = StyleSheet.create({
   content: { padding: 20, gap: 16 },
   emptyText: { fontFamily: "Inter_400Regular", fontSize: 16, color: Colors.textSecondary, textAlign: "center" },
   metaRow: { flexDirection: "row", flexWrap: "wrap", gap: 8 },
+  aiOnlyNote: {
+    flexDirection: "row", alignItems: "center", gap: 8,
+    backgroundColor: Colors.surface, borderRadius: 10, paddingHorizontal: 12, paddingVertical: 8,
+    borderWidth: 1, borderColor: Colors.border, marginBottom: 4,
+  },
+  aiOnlyNoteText: { fontFamily: "Inter_400Regular", fontSize: 12, color: Colors.textMuted, flex: 1 },
   metaChip: {
     flexDirection: "row", alignItems: "center", gap: 4,
     backgroundColor: Colors.primary + "12", paddingHorizontal: 10, paddingVertical: 6, borderRadius: 8,

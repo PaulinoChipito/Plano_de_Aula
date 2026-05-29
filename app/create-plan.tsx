@@ -43,6 +43,7 @@ export default function CreatePlanScreen() {
   const [atividades, setAtividades] = useState<{ descricao: string; tempo: string }[]>([{ descricao: "", tempo: "" }]);
   const [perguntasControlo, setPerguntasControlo] = useState<string[]>([""]);
   const [perguntasTarefa, setPerguntasTarefa] = useState<string[]>([""]);
+  const [tarefasPraticas, setTarefasPraticas] = useState<string[]>([""]);
 
   const [aiPlan, setAiPlan] = useState<LessonPlan | null>(null);
   const [editSumario, setEditSumario] = useState("");
@@ -90,7 +91,7 @@ export default function CreatePlanScreen() {
         perguntasControlo: result.perguntasControlo,
         tarefaDeCasa: result.tarefaDeCasa,
         tarefasPraticas: result.tarefasPraticas,
-        perguntasTarefa: result.tarefasPraticas,
+        perguntasTarefa: result.tarefaDeCasa?.map((t) => t.descricao).filter(Boolean) || [],
         avaliacao: result.avaliacao,
         diferenciacaoPedagogica: result.diferenciacaoPedagogica,
         faixaEtaria: result.faixaEtaria,
@@ -149,7 +150,7 @@ export default function CreatePlanScreen() {
       meios,
       atividades: atividades.filter((a) => a.descricao.trim()),
       perguntasControlo: perguntasControlo.filter((p) => p.trim()),
-      tarefasPraticas: perguntasTarefa.filter((p) => p.trim()),
+      tarefasPraticas: tarefasPraticas.filter((p) => p.trim()),
       perguntasTarefa: perguntasTarefa.filter((p) => p.trim()),
       score: 0,
       sugestoes: [],
@@ -374,11 +375,11 @@ export default function CreatePlanScreen() {
               </View>
 
               <View style={styles.inputGroup}>
-                <Text style={styles.label}>Objetivo Geral</Text>
-                <TextInput style={[styles.input, styles.textArea]} value={objetivoGeral} onChangeText={setObjetivoGeral} multiline placeholder="Objetivo geral da aula..." placeholderTextColor={Colors.textMuted} />
+                <Text style={styles.label}>Objectivo Geral</Text>
+                <TextInput style={[styles.input, styles.textArea]} value={objetivoGeral} onChangeText={setObjetivoGeral} multiline placeholder="Objectivo geral da aula..." placeholderTextColor={Colors.textMuted} />
               </View>
 
-              {renderDynamicList("Objetivos Especificos", objetivosEspecificos, setObjetivosEspecificos, "Objetivo")}
+              {renderDynamicList("Objectivos Específicos", objetivosEspecificos, setObjetivosEspecificos, "Objectivo")}
 
               <View style={styles.inputGroup}>
                 <Text style={styles.label}>Metodos de Ensino</Text>
@@ -391,11 +392,11 @@ export default function CreatePlanScreen() {
               </View>
 
               <View style={styles.inputGroup}>
-                <Text style={styles.label}>Sequencia de Atividades</Text>
+                <Text style={styles.label}>Sequência de Actividades</Text>
                 {atividades.map((at, i) => (
                   <View key={i} style={styles.atividadeInputRow}>
                     <View style={styles.atividadeInputs}>
-                      <TextInput style={[styles.input, { flex: 1 }]} value={at.descricao} onChangeText={(v) => updateAtividade(i, "descricao", v)} placeholder={`Atividade ${i + 1}`} placeholderTextColor={Colors.textMuted} />
+                      <TextInput style={[styles.input, { flex: 1 }]} value={at.descricao} onChangeText={(v) => updateAtividade(i, "descricao", v)} placeholder={`Actividade ${i + 1}`} placeholderTextColor={Colors.textMuted} />
                       <TextInput style={[styles.input, { width: 80 }]} value={at.tempo} onChangeText={(v) => updateAtividade(i, "tempo", v)} placeholder="Tempo" placeholderTextColor={Colors.textMuted} />
                     </View>
                     {atividades.length > 1 && (
@@ -407,12 +408,13 @@ export default function CreatePlanScreen() {
                 ))}
                 <Pressable onPress={addAtividade} style={styles.addItemBtn}>
                   <Icon name="add" size={16} color={Colors.primary} />
-                  <Text style={styles.addItemText}>Adicionar atividade</Text>
+                  <Text style={styles.addItemText}>Adicionar actividade</Text>
                 </Pressable>
               </View>
 
               {renderDynamicList("Perguntas de Controlo", perguntasControlo, setPerguntasControlo, "Pergunta")}
-              {renderDynamicList("Perguntas de Tarefa", perguntasTarefa, setPerguntasTarefa, "Tarefa")}
+              {renderDynamicList("Actividades Práticas (exercícios de sala)", tarefasPraticas, setTarefasPraticas, "Actividade")}
+              {renderDynamicList("Perguntas de TPC (Tarefa de Casa)", perguntasTarefa, setPerguntasTarefa, "Pergunta TPC")}
 
               <Pressable
                 onPress={handleSaveManual}
@@ -456,7 +458,7 @@ export default function CreatePlanScreen() {
               </View>
 
               <View style={styles.editSection}>
-                <Text style={styles.editLabel}>Objetivo Geral</Text>
+                <Text style={styles.editLabel}>Objectivo Geral</Text>
                 <TextInput style={[styles.input, styles.textArea]} value={editObjetivoGeral} onChangeText={setEditObjetivoGeral} multiline numberOfLines={2} />
               </View>
 
@@ -473,7 +475,7 @@ export default function CreatePlanScreen() {
               )}
 
               <View style={styles.readOnlySection}>
-                <Text style={styles.editLabel}>Objetivos Especificos</Text>
+                <Text style={styles.editLabel}>Objectivos Específicos</Text>
                 {aiPlan.objetivosEspecificos.map((obj, i) => (
                   <View key={i} style={styles.bulletItem}>
                     <View style={styles.bullet} />

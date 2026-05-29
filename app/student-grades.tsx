@@ -27,6 +27,7 @@ import {
   StudentGrade,
   GradeEntry,
 } from "@/lib/storage";
+import { getMacAverage, getNotaFinal, MAC_PESO, NPT_PESO } from "@/lib/gradeUtils";
 
 export default function StudentGradesScreen() {
   const { turmaId } = useLocalSearchParams<{ turmaId: string }>();
@@ -54,12 +55,6 @@ export default function StudentGradesScreen() {
 
   const getStudentGrade = (alunoId: string): StudentGrade | undefined => {
     return grades.find((g) => g.alunoId === alunoId);
-  };
-
-  const getMacAverage = (mac: GradeEntry[]): number => {
-    if (mac.length === 0) return 0;
-    const sum = mac.reduce((acc, e) => acc + e.nota, 0);
-    return Math.round((sum / mac.length) * 10) / 10;
   };
 
   const openGradeModal = (student: Student) => {
@@ -93,7 +88,7 @@ export default function StudentGradesScreen() {
     if (!selectedStudent || !newMacNota.trim()) return;
     const nota = parseFloat(newMacNota);
     if (isNaN(nota) || nota < 0 || nota > 20) {
-      Alert.alert("Nota invalida", "A nota deve estar entre 0 e 20.");
+      Alert.alert("Nota inválida", "A nota deve estar entre 0 e 20.");
       return;
     }
 
@@ -127,7 +122,7 @@ export default function StudentGradesScreen() {
     if (!selectedStudent || !editingEntryId) return;
     const nota = parseFloat(editingEntryValue);
     if (isNaN(nota) || nota < 0 || nota > 20) {
-      Alert.alert("Nota invalida", "A nota deve estar entre 0 e 20.");
+      Alert.alert("Nota inválida", "A nota deve estar entre 0 e 20.");
       return;
     }
 
@@ -195,10 +190,14 @@ export default function StudentGradesScreen() {
     : [];
 
   const selectedGrade = selectedStudent ? getStudentGrade(selectedStudent.id) : undefined;
+  const selectedNotaFinal = selectedGrade
+    ? getNotaFinal(selectedGrade.mac, selectedGrade.npt)
+    : null;
 
   const renderStudent = ({ item, index }: { item: Student; index: number }) => {
     const grade = getStudentGrade(item.id);
     const macAvg = grade ? getMacAverage(grade.mac) : null;
+    const notaFinal = grade ? getNotaFinal(grade.mac, grade.npt) : null;
 
     return (
       <Pressable
@@ -224,6 +223,12 @@ export default function StudentGradesScreen() {
               <Text style={[styles.gradeValue, { color: "#6366F1" }]}>{grade.npt}</Text>
             </View>
           )}
+          {notaFinal !== null && grade && (grade.mac.length > 0 || grade.npt !== null) && (
+            <View style={[styles.gradeBadge, styles.nfBadge]}>
+              <Text style={[styles.gradeLabel, { color: Colors.success }]}>NF</Text>
+              <Text style={[styles.gradeValue, { color: Colors.success }]}>{notaFinal}</Text>
+            </View>
+          )}
         </View>
         <Icon name="chevron-forward" size={16} color={Colors.textMuted} />
       </Pressable>
@@ -246,7 +251,7 @@ export default function StudentGradesScreen() {
         </Pressable>
         <View style={styles.headerCenter}>
           <Text style={styles.headerTitle}>{classGroup.designacao}</Text>
-          <Text style={styles.headerSubtitle}>Avaliacoes</Text>
+          <Text style={styles.headerSubtitle}>Avaliações</Text>
         </View>
         <View style={{ width: 40 }} />
       </View>
@@ -257,6 +262,14 @@ export default function StudentGradesScreen() {
         renderItem={renderStudent}
         contentContainerStyle={[styles.list, { paddingBottom: bottomPadding + 20 }]}
         showsVerticalScrollIndicator={false}
+        ListHeaderComponent={
+          <View style={styles.formulaNote}>
+            <Icon name="info" size={13} color={Colors.textMuted} />
+            <Text style={styles.formulaNoteText}>
+              Nota Final = MAC × {MAC_PESO * 100}% + NPT × {NPT_PESO * 100}% (INIDE)
+            </Text>
+          </View>
+        }
         ListEmptyComponent={
           <View style={styles.emptyContainer}>
             <Icon name="users" size={48} color={Colors.textMuted} />
@@ -272,7 +285,7 @@ export default function StudentGradesScreen() {
               <Text style={styles.modalTitle}>{selectedStudent?.nome}</Text>
 
               <View style={styles.modalSection}>
-                <Text style={styles.modalSectionTitle}>MAC (Media Avaliacoes Continuas)</Text>
+                <Text style={styles.modalSectionTitle}>MAC — Médias de Avaliação Contínua</Text>
                 {selectedGrade && selectedGrade.mac.length > 0 && (
                   <View style={styles.macHistory}>
                     {selectedGrade.mac.map((entry, i) => (
@@ -315,7 +328,7 @@ export default function StudentGradesScreen() {
                       </Pressable>
                     ))}
                     <View style={[styles.macEntry, styles.macAvgEntry]}>
-                      <Text style={[styles.macEntryNum, { color: Colors.primary }]}>Media</Text>
+                      <Text style={[styles.macEntryNum, { color: Colors.primary }]}>Média</Text>
                       <Text style={[styles.macEntryValue, { color: Colors.primary, fontFamily: "Inter_700Bold" as const }]}>
                         {getMacAverage(selectedGrade.mac)}
                       </Text>
@@ -328,7 +341,7 @@ export default function StudentGradesScreen() {
                 <View style={styles.addMacRow}>
                   <TextInput
                     style={[styles.modalInput, { flex: 1 }]}
-                    placeholder="Nova nota (0-20)"
+                    placeholder="Nova nota (0–20)"
                     placeholderTextColor={Colors.textMuted}
                     value={newMacNota}
                     onChangeText={setNewMacNota}
@@ -341,10 +354,10 @@ export default function StudentGradesScreen() {
               </View>
 
               <View style={styles.modalSection}>
-                <Text style={styles.modalSectionTitle}>NPT (Nota Prova Trimestral)</Text>
+                <Text style={styles.modalSectionTitle}>NPT — Nota da Prova Trimestral</Text>
                 <TextInput
                   style={styles.modalInput}
-                  placeholder="Nota NPT (0-20)"
+                  placeholder="Nota NPT (0–20)"
                   placeholderTextColor={Colors.textMuted}
                   value={nptValue}
                   onChangeText={setNptValue}
@@ -352,8 +365,17 @@ export default function StudentGradesScreen() {
                 />
               </View>
 
+              {selectedNotaFinal !== null && (
+                <View style={styles.notaFinalBox}>
+                  <Text style={styles.notaFinalLabel}>
+                    Nota Final (MAC×{MAC_PESO * 100}% + NPT×{NPT_PESO * 100}%)
+                  </Text>
+                  <Text style={styles.notaFinalValue}>{selectedNotaFinal}</Text>
+                </View>
+              )}
+
               <View style={styles.modalSection}>
-                <Text style={styles.modalSectionTitle}>Observacao</Text>
+                <Text style={styles.modalSectionTitle}>Observação</Text>
                 <TextInput
                   style={[styles.modalInput, { minHeight: 60, textAlignVertical: "top" }]}
                   placeholder="Notas sobre o aluno..."
@@ -387,6 +409,12 @@ const styles = StyleSheet.create({
   headerTitle: { fontFamily: "Inter_700Bold", fontSize: 18, color: Colors.text },
   headerSubtitle: { fontFamily: "Inter_400Regular", fontSize: 13, color: Colors.textSecondary },
   list: { padding: 20, gap: 10 },
+  formulaNote: {
+    flexDirection: "row", alignItems: "center", gap: 6,
+    backgroundColor: Colors.surface, borderRadius: 10, paddingHorizontal: 12, paddingVertical: 8,
+    borderWidth: 1, borderColor: Colors.border, marginBottom: 4,
+  },
+  formulaNoteText: { fontFamily: "Inter_400Regular", fontSize: 12, color: Colors.textMuted, flex: 1 },
   studentCard: {
     flexDirection: "row", alignItems: "center", backgroundColor: Colors.surface,
     borderRadius: 14, padding: 14, gap: 10,
@@ -396,9 +424,10 @@ const styles = StyleSheet.create({
   studentNumText: { fontFamily: "Inter_600SemiBold", fontSize: 12, color: "#D97706" },
   studentInfo: { flex: 1 },
   studentName: { fontFamily: "Inter_600SemiBold", fontSize: 15, color: Colors.text },
-  gradeInfo: { flexDirection: "row", gap: 6 },
-  gradeBadge: { backgroundColor: Colors.primary + "12", paddingHorizontal: 8, paddingVertical: 4, borderRadius: 6, alignItems: "center" },
+  gradeInfo: { flexDirection: "row", gap: 5 },
+  gradeBadge: { backgroundColor: Colors.primary + "12", paddingHorizontal: 7, paddingVertical: 4, borderRadius: 6, alignItems: "center" },
   nptBadge: { backgroundColor: "#6366F112" },
+  nfBadge: { backgroundColor: Colors.success + "12" },
   gradeLabel: { fontFamily: "Inter_500Medium", fontSize: 10, color: Colors.primary },
   gradeValue: { fontFamily: "Inter_700Bold", fontSize: 13, color: Colors.primary },
   emptyContainer: { alignItems: "center", paddingTop: 80, gap: 8 },
@@ -406,7 +435,7 @@ const styles = StyleSheet.create({
   modalOverlay: { flex: 1, backgroundColor: "rgba(0,0,0,0.7)", justifyContent: "center", paddingHorizontal: 24 },
   modalContent: { backgroundColor: Colors.modalBg, borderRadius: 20, padding: 24, maxHeight: "80%", borderWidth: 1, borderColor: Colors.border },
   modalTitle: { fontFamily: "Inter_700Bold", fontSize: 20, color: Colors.text, marginBottom: 16 },
-  modalSection: { marginBottom: 20 },
+  modalSection: { marginBottom: 16 },
   modalSectionTitle: { fontFamily: "Inter_600SemiBold", fontSize: 14, color: Colors.text, marginBottom: 8 },
   macHistory: { flexDirection: "row", flexWrap: "wrap", gap: 8, marginBottom: 8 },
   macEntry: {
@@ -433,6 +462,13 @@ const styles = StyleSheet.create({
     paddingHorizontal: 14, paddingVertical: 12, fontFamily: "Inter_400Regular", fontSize: 15, color: Colors.text,
   },
   addMacBtn: { width: 48, height: 48, borderRadius: 12, backgroundColor: Colors.primary, alignItems: "center", justifyContent: "center" },
+  notaFinalBox: {
+    flexDirection: "row", alignItems: "center", justifyContent: "space-between",
+    backgroundColor: Colors.success + "12", borderRadius: 12, padding: 14,
+    borderWidth: 1, borderColor: Colors.success + "30", marginBottom: 16,
+  },
+  notaFinalLabel: { fontFamily: "Inter_500Medium", fontSize: 12, color: Colors.success, flex: 1 },
+  notaFinalValue: { fontFamily: "Inter_700Bold", fontSize: 22, color: Colors.success },
   saveBtn: { backgroundColor: Colors.primary, borderRadius: 12, paddingVertical: 14, alignItems: "center", marginTop: 4 },
   saveBtnText: { fontFamily: "Inter_600SemiBold", fontSize: 15, color: "#fff" },
 });

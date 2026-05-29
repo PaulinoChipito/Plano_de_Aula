@@ -50,22 +50,9 @@ Preferred communication style: Simple, everyday language.
 | `agenda.tsx` | Event calendar |
 | `settings.tsx` | AI model status, teacher profile & security (PIN/biometria) |
 
-### Backend (Express)
+### Backend
 
-- **Framework**: Express 5 running on Node.js
-- **Location**: `server/` directory with `index.ts` (entry), `routes.ts` (API registration), `storage.ts` (in-memory data store)
-- **Current State**: Minimal — has CORS setup, user CRUD scaffolding with in-memory storage (`MemStorage`), but no active API routes beyond scaffolding
-- **Build**: Uses `esbuild` for production bundling (`server_dist/`)
-- **Serves**: Landing page HTML and static Expo web build in production mode
-
-### Database Schema (Drizzle ORM + PostgreSQL)
-
-- **ORM**: Drizzle ORM with PostgreSQL dialect
-- **Schema**: `shared/schema.ts` — currently only has a `users` table (id, username, password)
-- **Validation**: `drizzle-zod` for schema-to-Zod type generation
-- **Migrations**: Output to `./migrations` directory
-- **Config**: `drizzle.config.ts` requires `DATABASE_URL` environment variable
-- **Note**: The database schema is minimal/scaffolded. Most app data currently lives in AsyncStorage on the client side. The schema should be expanded if server-side persistence is needed.
+The app is **100% offline** — there is no backend server. All data lives in AsyncStorage on the client. The Express/Drizzle/PostgreSQL scaffolding was removed. No `DATABASE_URL` or API keys are required.
 
 ### Data Models (Client-Side in `lib/storage.ts`)
 
