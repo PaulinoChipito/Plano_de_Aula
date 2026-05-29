@@ -53,15 +53,15 @@ export default function AttendanceScreen() {
   const handleExportPdf = async () => {
     if (!exportTarget) return;
     const profile = await getTeacherProfile();
-    const html = attendanceMapHtml(exportTarget, attendance, profile);
-    await exportPdfFromHtml(html, `Mapa_Presencas_${exportTarget.designacao}`);
+    const html = attendanceMapHtml(exportTarget, attendance, profile, currentPeriodLabel);
+    await exportPdfFromHtml(html, `Mapa_Presencas_${exportTarget.designacao}_${currentPeriodLabel}`);
   };
 
   const handleExportExcel = async () => {
     if (!exportTarget) return;
     const profile = await getTeacherProfile();
-    const sheet = attendanceMapExcel(exportTarget, attendance, profile);
-    await exportExcel(sheet.rows, `Mapa_Presencas_${exportTarget.designacao}`, sheet.name, {
+    const sheet = attendanceMapExcel(exportTarget, attendance, profile, currentPeriodLabel);
+    await exportExcel(sheet.rows, `Mapa_Presencas_${exportTarget.designacao}_${currentPeriodLabel}`, sheet.name, {
       merges: sheet.merges,
       colWidths: sheet.colWidths,
     });

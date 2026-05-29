@@ -17,6 +17,7 @@ import { getClasses, getGrades, getTeacherProfile, ClassGroup } from "@/lib/stor
 import ExportMenu from "@/components/ExportMenu";
 import { exportPdfFromHtml, exportExcel } from "@/lib/exports";
 import { miniPautaHtml, miniPautaExcel } from "@/lib/exportTemplates";
+import { usePeriod } from "@/lib/periodContext";
 
 export default function AssessmentsScreen() {
   const insets = useSafeAreaInsets();
@@ -24,6 +25,7 @@ export default function AssessmentsScreen() {
   const bottomPadding = Platform.OS === "web" ? 34 : insets.bottom;
   const [classes, setClasses] = useState<ClassGroup[]>([]);
   const [exportTarget, setExportTarget] = useState<ClassGroup | null>(null);
+  const { currentPeriod, currentPeriodLabel } = usePeriod();
 
   useFocusEffect(
     useCallback(() => {
@@ -33,16 +35,18 @@ export default function AssessmentsScreen() {
 
   const handleExportPdf = async () => {
     if (!exportTarget) return;
-    const [grades, profile] = await Promise.all([getGrades(), getTeacherProfile()]);
-    const html = miniPautaHtml(exportTarget, grades, profile);
-    await exportPdfFromHtml(html, `Mini_Pauta_${exportTarget.designacao}`);
+    const [allGrades, profile] = await Promise.all([getGrades(), getTeacherProfile()]);
+    const grades = allGrades.filter((g) => (g.periodo ?? "I") === currentPeriod && g.turmaId === exportTarget.id);
+    const html = miniPautaHtml(exportTarget, grades, profile, currentPeriodLabel);
+    await exportPdfFromHtml(html, `Mini_Pauta_${exportTarget.designacao}_${currentPeriodLabel}`);
   };
 
   const handleExportExcel = async () => {
     if (!exportTarget) return;
-    const [grades, profile] = await Promise.all([getGrades(), getTeacherProfile()]);
-    const sheet = miniPautaExcel(exportTarget, grades, profile);
-    await exportExcel(sheet.rows, `Mini_Pauta_${exportTarget.designacao}`, sheet.name, {
+    const [allGrades, profile] = await Promise.all([getGrades(), getTeacherProfile()]);
+    const grades = allGrades.filter((g) => (g.periodo ?? "I") === currentPeriod && g.turmaId === exportTarget.id);
+    const sheet = miniPautaExcel(exportTarget, grades, profile, currentPeriodLabel);
+    await exportExcel(sheet.rows, `Mini_Pauta_${exportTarget.designacao}_${currentPeriodLabel}`, sheet.name, {
       merges: sheet.merges,
       colWidths: sheet.colWidths,
     });
@@ -90,7 +94,10 @@ export default function AssessmentsScreen() {
         <Pressable onPress={() => router.back()} style={({ pressed }) => [styles.backBtn, { opacity: pressed ? 0.6 : 1 }]}>
           <Icon name="chevron-back" size={24} color="#fff" />
         </Pressable>
-        <Text style={styles.headerTitle}>Avaliacoes</Text>
+        <View style={styles.headerCenter}>
+          <Text style={styles.headerTitle}>Avaliações</Text>
+          <Text style={styles.headerPeriod}>{currentPeriodLabel}</Text>
+        </View>
         <View style={{ width: 40 }} />
       </View>
 
@@ -111,7 +118,7 @@ export default function AssessmentsScreen() {
 
       <ExportMenu
         visible={!!exportTarget}
-        title="Exportar mini-pauta"
+        title={`Mini-Pauta · ${currentPeriodLabel}`}
         subtitle={exportTarget ? `${exportTarget.designacao} · ${exportTarget.disciplina}` : undefined}
         onClose={() => setExportTarget(null)}
         onPdf={handleExportPdf}
@@ -129,7 +136,9 @@ const styles = StyleSheet.create({
     borderBottomWidth: 1, borderBottomColor: Colors.border,
   },
   backBtn: { width: 40, height: 40, alignItems: "center", justifyContent: "center" },
+  headerCenter: { alignItems: "center", gap: 2 },
   headerTitle: { fontFamily: "Inter_700Bold", fontSize: 18, color: Colors.text },
+  headerPeriod: { fontFamily: "Inter_400Regular", fontSize: 12, color: Colors.textSecondary },
   list: { padding: 20, gap: 12 },
   card: {
     flexDirection: "row", alignItems: "center", backgroundColor: Colors.surface,

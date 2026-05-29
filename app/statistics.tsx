@@ -17,12 +17,16 @@ import {
   getGrades,
   getAttendance,
   getLessonPlans,
+  getTeacherProfile,
   ClassGroup,
   StudentGrade,
   AttendanceRecord,
 } from "@/lib/storage";
 import { getMacAverage, getNotaFinal } from "@/lib/gradeUtils";
 import { usePeriod } from "@/lib/periodContext";
+import ExportMenu from "@/components/ExportMenu";
+import { exportPdfFromHtml, exportExcel } from "@/lib/exports";
+import { pautaCompletaHtml, pautaCompletaExcel, attendanceMapHtml, attendanceMapExcel } from "@/lib/exportTemplates";
 
 export default function StatisticsScreen() {
   const insets = useSafeAreaInsets();
@@ -32,15 +36,20 @@ export default function StatisticsScreen() {
   const [classes, setClasses] = useState<ClassGroup[]>([]);
   const [grades, setGrades] = useState<StudentGrade[]>([]);
   const [attendance, setAttendance] = useState<AttendanceRecord[]>([]);
+  const [allGrades, setAllGrades] = useState<StudentGrade[]>([]);
+  const [allAttendance, setAllAttendance] = useState<AttendanceRecord[]>([]);
   const [lessonPlansCount, setLessonPlansCount] = useState(0);
   const [expandedClass, setExpandedClass] = useState<string | null>(null);
-  const { currentPeriod, currentPeriodLabel } = usePeriod();
+  const [exportTarget, setExportTarget] = useState<{ turma: ClassGroup; type: "pauta" | "attendance" } | null>(null);
+  const { currentPeriod, currentPeriodLabel, periodKeys, periodLabels } = usePeriod();
 
   useFocusEffect(
     useCallback(() => {
       Promise.all([getClasses(), getGrades(), getAttendance(), getLessonPlans()]).then(
         ([c, g, a, plans]) => {
           setClasses(c);
+          setAllGrades(g);
+          setAllAttendance(a);
           setGrades(g.filter((gr) => (gr.periodo ?? "I") === currentPeriod));
           setAttendance(a.filter((ar) => (ar.periodo ?? "I") === currentPeriod));
           setLessonPlansCount(
@@ -50,6 +59,40 @@ export default function StatisticsScreen() {
       );
     }, [currentPeriod]),
   );
+
+  const handleExportPautaPdf = async () => {
+    if (!exportTarget) return;
+    const profile = await getTeacherProfile();
+    const html = pautaCompletaHtml(exportTarget.turma, allGrades, profile, periodKeys, periodLabels);
+    await exportPdfFromHtml(html, `Pauta_Completa_${exportTarget.turma.designacao}`);
+  };
+
+  const handleExportPautaExcel = async () => {
+    if (!exportTarget) return;
+    const profile = await getTeacherProfile();
+    const sheet = pautaCompletaExcel(exportTarget.turma, allGrades, profile, periodKeys, periodLabels);
+    await exportExcel(sheet.rows, `Pauta_Completa_${exportTarget.turma.designacao}`, sheet.name, {
+      merges: sheet.merges,
+      colWidths: sheet.colWidths,
+    });
+  };
+
+  const handleExportAttendancePdf = async () => {
+    if (!exportTarget) return;
+    const profile = await getTeacherProfile();
+    const html = attendanceMapHtml(exportTarget.turma, allAttendance, profile, "Todos os Períodos");
+    await exportPdfFromHtml(html, `Mapa_Presencas_${exportTarget.turma.designacao}`);
+  };
+
+  const handleExportAttendanceExcel = async () => {
+    if (!exportTarget) return;
+    const profile = await getTeacherProfile();
+    const sheet = attendanceMapExcel(exportTarget.turma, allAttendance, profile, "Todos os Períodos");
+    await exportExcel(sheet.rows, `Mapa_Presencas_${exportTarget.turma.designacao}`, sheet.name, {
+      merges: sheet.merges,
+      colWidths: sheet.colWidths,
+    });
+  };
 
   const getStudentName = (alunoId: string): string => {
     for (const c of classes) {
@@ -307,11 +350,27 @@ export default function StatisticsScreen() {
                             {c.disciplina}
                           </Text>
                         </View>
-                        <Icon
-                          name={isExpanded ? "chevron-up" : "chevron-down"}
-                          size={18}
-                          color={Colors.textMuted}
-                        />
+                        <View style={styles.classCardActions}>
+                          <Pressable
+                            onPress={(e) => { e.stopPropagation?.(); setExportTarget({ turma: c, type: "pauta" }); }}
+                            hitSlop={8}
+                            style={({ pressed }) => [styles.cardExportBtn, { opacity: pressed ? 0.6 : 1 }]}
+                          >
+                            <Icon name="document-text" size={16} color="#6366F1" />
+                          </Pressable>
+                          <Pressable
+                            onPress={(e) => { e.stopPropagation?.(); setExportTarget({ turma: c, type: "attendance" }); }}
+                            hitSlop={8}
+                            style={({ pressed }) => [styles.cardExportBtn, { opacity: pressed ? 0.6 : 1 }]}
+                          >
+                            <Icon name="calendar" size={16} color="#14B8A6" />
+                          </Pressable>
+                          <Icon
+                            name={isExpanded ? "chevron-up" : "chevron-down"}
+                            size={18}
+                            color={Colors.textMuted}
+                          />
+                        </View>
                       </Pressable>
 
                       <View style={styles.classMetaRow}>
@@ -509,6 +568,23 @@ export default function StatisticsScreen() {
           </>
         )}
       </ScrollView>
+
+      <ExportMenu
+        visible={!!exportTarget && exportTarget.type === "pauta"}
+        title="Pauta Completa — Todos os Períodos"
+        subtitle={exportTarget ? `${exportTarget.turma.designacao} · ${exportTarget.turma.disciplina}` : undefined}
+        onClose={() => setExportTarget(null)}
+        onPdf={handleExportPautaPdf}
+        onExcel={handleExportPautaExcel}
+      />
+      <ExportMenu
+        visible={!!exportTarget && exportTarget.type === "attendance"}
+        title="Mapa de Presenças — Todos os Períodos"
+        subtitle={exportTarget ? `${exportTarget.turma.designacao} · ${exportTarget.turma.disciplina}` : undefined}
+        onClose={() => setExportTarget(null)}
+        onPdf={handleExportAttendancePdf}
+        onExcel={handleExportAttendanceExcel}
+      />
     </View>
   );
 }
@@ -559,6 +635,11 @@ const styles = StyleSheet.create({
     padding: 16, paddingBottom: 8,
   },
   classCardTitle: { flex: 1, gap: 2 },
+  classCardActions: { flexDirection: "row", alignItems: "center", gap: 8 },
+  cardExportBtn: {
+    width: 30, height: 30, borderRadius: 8, alignItems: "center", justifyContent: "center",
+    backgroundColor: "rgba(255,255,255,0.06)",
+  },
   classCardName: { fontFamily: "Inter_600SemiBold", fontSize: 15, color: Colors.text },
   classCardDisciplina: { fontFamily: "Inter_400Regular", fontSize: 12, color: Colors.textSecondary },
 

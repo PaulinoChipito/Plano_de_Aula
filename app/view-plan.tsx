@@ -128,23 +128,25 @@ export default function ViewPlanScreen() {
         ).join("")
       : (p.tarefasPraticas || p.perguntasTarefa || []).map((t) => `<li>${t}</li>`).join("");
 
-    const desenvolvimentoHtml = (p.desenvolvimentoAula && p.desenvolvimentoAula.length > 0)
-      ? p.desenvolvimentoAula.map((e) =>
-          `<tr>
+    const normalizedDesenv =
+      p.desenvolvimentoAula && p.desenvolvimentoAula.length > 0
+        ? p.desenvolvimentoAula
+        : p.atividades.map((a, i) => ({
+            etapa: `Momento ${i + 1}`,
+            duracao: a.tempo || "",
+            actividadesProfessor: a.descricao || "",
+            actividadesAlunos: "—",
+          }));
+
+    const desenvolvimentoHtml = normalizedDesenv
+      .map(
+        (e) => `<tr>
             <td style="font-weight:600;width:100px;vertical-align:top;">${e.etapa}<br><span style="font-weight:400;font-size:9pt;color:#0D7377;">${e.duracao}</span></td>
             <td style="vertical-align:top;">${e.actividadesProfessor}</td>
             <td style="vertical-align:top;">${e.actividadesAlunos}</td>
-          </tr>`
-        ).join("")
-      : p.atividades.map((a, i) =>
-          `<tr>
-            <td style="text-align:center;font-weight:600;width:40px;">${i + 1}</td>
-            <td>${a.descricao}</td>
-            <td style="text-align:center;width:80px;">${a.tempo}</td>
-          </tr>`
-        ).join("");
-
-    const hasDesenvolvimento = p.desenvolvimentoAula && p.desenvolvimentoAula.length > 0;
+          </tr>`,
+      )
+      .join("");
 
     return `<!DOCTYPE html>
 <html>
@@ -236,10 +238,9 @@ export default function ViewPlanScreen() {
     <table class="dev">
       <thead>
         <tr>
-          ${hasDesenvolvimento
-            ? `<th style="width:120px;">Etapa / Momento</th><th>Actividades do Professor</th><th>Actividades dos Alunos</th>`
-            : `<th style="width:40px;text-align:center;">N</th><th>Descricao</th><th style="width:80px;text-align:center;">Tempo</th>`
-          }
+          <th style="width:120px;">Etapa / Momento</th>
+          <th>Actividades do Professor</th>
+          <th>Actividades dos Alunos</th>
         </tr>
       </thead>
       <tbody>${desenvolvimentoHtml}</tbody>

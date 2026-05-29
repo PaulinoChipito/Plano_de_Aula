@@ -176,7 +176,7 @@ export function studentsListExcel(turma: ClassGroup, profile: TeacherProfile): E
   };
 }
 
-// ===== Mini-Pauta =====
+// ===== Mini-Pauta (trimestre específico) =====
 
 interface AlunoTrimestre {
   mac: number | null;
@@ -196,35 +196,6 @@ interface AlunoLinha {
   presente: boolean;
 }
 
-function calcLinha(student: Student, grade: StudentGrade | undefined): AlunoLinha {
-  const macA = grade ? macAvg(grade.mac) : null;
-  const nptA = grade?.npt ?? null;
-  const mtA =
-    macA !== null && nptA !== null
-      ? Math.round(((macA + nptA) / 2) * 10) / 10
-      : macA !== null
-        ? macA
-        : nptA;
-  const empty: AlunoTrimestre = { mac: null, npt: null, mt: null };
-  const t1: AlunoTrimestre = { mac: macA, npt: nptA, mt: mtA };
-  const trimestresComNota = [t1.mt, empty.mt, empty.mt].filter((v) => v !== null) as number[];
-  const mfd = trimestresComNota.length > 0
-    ? Math.round((trimestresComNota.reduce((a, b) => a + b, 0) / 3) * 10) / 10
-    : null;
-  const mf = mfd;
-  return {
-    nome: student.nome,
-    t1,
-    t2: empty,
-    t3: empty,
-    mfd,
-    ne: null,
-    recurso: null,
-    mf,
-    presente: !!grade && (grade.mac.length > 0 || grade.npt !== null),
-  };
-}
-
 interface TrimestreStats {
   presentes: number;
   ausentes: number;
@@ -234,11 +205,20 @@ interface TrimestreStats {
   positivasF: number;
 }
 
+function calcTrimestre(grade: StudentGrade | undefined): AlunoTrimestre {
+  const macA = grade ? macAvg(grade.mac) : null;
+  const nptA = grade?.npt ?? null;
+  const mtA =
+    macA !== null && nptA !== null
+      ? Math.round(((macA + nptA) / 2) * 10) / 10
+      : macA !== null
+        ? macA
+        : nptA;
+  return { mac: macA, npt: nptA, mt: mtA };
+}
+
 function calcStats(linhas: AlunoLinha[], trim: "t1" | "t2" | "t3"): TrimestreStats {
-  let presentes = 0,
-    ausentes = 0,
-    negativasMF = 0,
-    positivasMF = 0;
+  let presentes = 0, ausentes = 0, negativasMF = 0, positivasMF = 0;
   for (const l of linhas) {
     const t = l[trim];
     const tem = t.mac !== null || t.npt !== null;
@@ -248,74 +228,207 @@ function calcStats(linhas: AlunoLinha[], trim: "t1" | "t2" | "t3"): TrimestreSta
       else positivasMF++;
     } else ausentes++;
   }
-  return {
-    presentes,
-    ausentes,
-    negativasMF,
-    negativasF: 0,
-    positivasMF,
-    positivasF: 0,
-  };
+  return { presentes, ausentes, negativasMF, negativasF: 0, positivasMF, positivasF: 0 };
 }
 
+function statsRowHtml(label: string, s: TrimestreStats, total: number): string {
+  const denom = total > 0 ? total : 1;
+  const negPct = (s.negativasMF / denom) * 100;
+  const posPct = (s.positivasMF / denom) * 100;
+  return `
+    <tr>
+      <td class="name-col">${label}</td>
+      <td>${s.presentes}</td><td>${s.ausentes}</td>
+      <td>${s.negativasMF}</td><td>${s.negativasF}</td><td>${fmtPct(negPct)}%</td>
+      <td>${s.positivasMF}</td><td>${s.positivasF}</td><td>${fmtPct(posPct)}%</td>
+    </tr>`;
+}
+
+// Mini-pauta de UM único período — chamada a partir de assessments.tsx com grades já filtradas
 export function miniPautaHtml(
   turma: ClassGroup,
-  grades: StudentGrade[],
+  grades: StudentGrade[],   // já filtradas pelo período corrente
   profile: TeacherProfile,
+  periodoLabel = "",
 ): string {
   const escola = profile.instituicao || "Instituição de Ensino";
   const sorted = [...turma.alunos].sort((a, b) => a.nome.localeCompare(b.nome));
-  const linhas = sorted.map((s) =>
-    calcLinha(
-      s,
-      grades.find((g) => g.alunoId === s.id && g.turmaId === turma.id),
-    ),
-  );
+
+  const linhas = sorted.map((s) => {
+    const grade = grades.find((g) => g.alunoId === s.id && g.turmaId === turma.id);
+    const t = calcTrimestre(grade);
+    return { nome: s.nome, ...t, presente: !!grade && (grade.mac.length > 0 || grade.npt !== null) };
+  });
+
+  const total = linhas.length;
+  const presentes = linhas.filter((l) => l.presente).length;
+  const ausentes = total - presentes;
+  const negativas = linhas.filter((l) => l.presente && (l.mt ?? 0) < 10).length;
+  const positivas = linhas.filter((l) => l.presente && (l.mt ?? 0) >= 10).length;
+  const denom = total > 0 ? total : 1;
 
   const rowsHtml = linhas
-    .map(
-      (l, i) => `
+    .map((l, i) => `
       <tr>
         <td>${i + 1}</td>
         <td class="name-col">${escape(l.nome)}</td>
-        <td>${fmt(l.t1.mac)}</td><td>${fmt(l.t1.npt)}</td><td>${fmt(l.t1.mt)}</td>
-        <td>${fmt(l.t2.mac)}</td><td>${fmt(l.t2.npt)}</td><td>${fmt(l.t2.mt)}</td>
-        <td>${fmt(l.t3.mac)}</td><td>${fmt(l.t3.npt)}</td><td>${fmt(l.t3.mt)}</td>
-        <td>${fmt(l.mfd)}</td>
-        <td>${fmt(l.ne)}</td>
-        <td>${fmt(l.recurso)}</td>
-        <td><b>${fmt(l.mf)}</b></td>
-      </tr>`,
-    )
+        <td>${fmt(l.mac)}</td>
+        <td>${fmt(l.npt)}</td>
+        <td><b>${fmt(l.mt)}</b></td>
+      </tr>`)
     .join("");
 
-  const total = linhas.length;
-  const statsT1 = calcStats(linhas, "t1");
-  const statsT2 = calcStats(linhas, "t2");
-  const statsT3 = calcStats(linhas, "t3");
-
-  const statsRow = (label: string, s: TrimestreStats) => {
-    const denom = total > 0 ? total : 1;
-    const negPct = (s.negativasMF / denom) * 100;
-    const posPct = (s.positivasMF / denom) * 100;
-    return `
-      <tr>
-        <td class="name-col">${label}</td>
-        <td>${s.presentes}</td>
-        <td>${s.ausentes}</td>
-        <td>${s.negativasMF}</td>
-        <td>${s.negativasF}</td>
-        <td>${fmtPct(negPct)}</td>
-        <td>${s.positivasMF}</td>
-        <td>${s.positivasF}</td>
-        <td>${fmtPct(posPct)}</td>
-      </tr>`;
-  };
+  const periodoStr = periodoLabel ? ` — ${periodoLabel}` : "";
 
   const body = `
     <div class="header">
       <div class="school">${escape(escola.toUpperCase())}</div>
-      <div class="doc">Mini-Pauta do Professor</div>
+      <div class="doc">Mini-Pauta do Professor${periodoStr}</div>
+    </div>
+    <div class="meta">
+      <div class="left"><b>Curso:</b> ${escape(profile.nivelEnsino || "—")} &nbsp;&nbsp; <b>Turma:</b> ${escape(turma.designacao)}</div>
+      <div class="right"><b>Disciplina:</b> ${escape(turma.disciplina)} &nbsp;&nbsp; <b>Ano Lectivo:</b> ${anoLectivo()}</div>
+    </div>
+    <table>
+      <thead>
+        <tr>
+          <th class="num-col">Nº</th>
+          <th class="name-col" style="text-align:center">Nome do Aluno</th>
+          <th>MAC</th><th>NPT</th><th>MT</th>
+        </tr>
+      </thead>
+      <tbody>${rowsHtml || `<tr><td colspan="5" style="padding:14px">Sem alunos</td></tr>`}</tbody>
+    </table>
+    <div class="stats-title">Estatística${periodoStr}</div>
+    <table class="stats-table" style="width:auto">
+      <thead>
+        <tr><th>Presentes</th><th>Ausentes</th><th>Negativas (MT&lt;10)</th><th>%</th><th>Positivas (MT≥10)</th><th>%</th></tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td>${presentes}</td><td>${ausentes}</td>
+          <td>${negativas}</td><td>${fmtPct((negativas / denom) * 100)}%</td>
+          <td>${positivas}</td><td>${fmtPct((positivas / denom) * 100)}%</td>
+        </tr>
+      </tbody>
+    </table>
+    <div class="footer">
+      <div class="prof">Professor(a): ${escape(profile.nome || "________________________")}</div>
+      <div>Emitido em: ${NOW()}</div>
+    </div>
+    <div class="system">Processado pelo Sistema EcoEducacional · Gestão Pedagógica · Utilizador: ${escape(profile.nome || "professor")}</div>
+  `;
+  return htmlDoc(`Mini-Pauta - ${turma.designacao}${periodoStr}`, body, false);
+}
+
+export function miniPautaExcel(
+  turma: ClassGroup,
+  grades: StudentGrade[],   // já filtradas pelo período corrente
+  profile: TeacherProfile,
+  periodoLabel = "",
+): ExcelSheetSpec {
+  const escola = profile.instituicao || "Instituição de Ensino";
+  const sorted = [...turma.alunos].sort((a, b) => a.nome.localeCompare(b.nome));
+  const linhas = sorted.map((s) => {
+    const grade = grades.find((g) => g.alunoId === s.id && g.turmaId === turma.id);
+    const t = calcTrimestre(grade);
+    return { nome: s.nome, ...t, presente: !!grade && (grade.mac.length > 0 || grade.npt !== null) };
+  });
+
+  const total = linhas.length;
+  const presentes = linhas.filter((l) => l.presente).length;
+  const ausentes = total - presentes;
+  const negativas = linhas.filter((l) => l.presente && (l.mt ?? 0) < 10).length;
+  const positivas = linhas.filter((l) => l.presente && (l.mt ?? 0) >= 10).length;
+  const denom = total > 0 ? total : 1;
+  const periodoStr = periodoLabel ? ` — ${periodoLabel}` : "";
+
+  const rows: (string | number | null)[][] = [
+    [escola.toUpperCase()],
+    [`Mini-Pauta do Professor${periodoStr}`],
+    [],
+    [`Curso: ${profile.nivelEnsino || "—"}`, "", `Turma: ${turma.designacao}`, "", `Disciplina: ${turma.disciplina}`, "", `Ano Lectivo: ${anoLectivo()}`],
+    [],
+    ["Nº", "Nome do Aluno", "MAC", "NPT", "MT"],
+    ...linhas.map((l, i) => [i + 1, l.nome, l.mac, l.npt, l.mt]),
+    [],
+    ["Estatística"],
+    ["Presentes", "Ausentes", "Negativas (MT<10)", "% Neg.", "Positivas (MT≥10)", "% Pos."],
+    [presentes, ausentes, negativas, Math.round((negativas / denom) * 1000) / 10, positivas, Math.round((positivas / denom) * 1000) / 10],
+    [],
+    [`Professor(a): ${profile.nome || ""}`],
+    [`Emitido em: ${NOW()}`],
+  ];
+  return {
+    name: "Mini-Pauta",
+    rows,
+    colWidths: [4, 32, 9, 9, 9],
+    merges: [
+      { s: { r: 0, c: 0 }, e: { r: 0, c: 4 } },
+      { s: { r: 1, c: 0 }, e: { r: 1, c: 4 } },
+    ],
+  };
+}
+
+// ===== Pauta Completa (todos os períodos — para Estatísticas) =====
+
+function calcLinhaCompleta(
+  student: Student,
+  turmaId: string,
+  allGrades: StudentGrade[],
+  periodKeys: string[],
+): AlunoLinha {
+  const sg = allGrades.filter((g) => g.alunoId === student.id && g.turmaId === turmaId);
+  const empty: AlunoTrimestre = { mac: null, npt: null, mt: null };
+  const getPeriodo = (key: string): AlunoTrimestre =>
+    calcTrimestre(sg.find((g) => (g.periodo ?? "I") === key));
+
+  const t1 = getPeriodo(periodKeys[0] ?? "I");
+  const t2 = periodKeys[1] ? getPeriodo(periodKeys[1]) : empty;
+  const t3 = periodKeys[2] ? getPeriodo(periodKeys[2]) : empty;
+
+  const mts = [t1.mt, t2.mt, t3.mt].filter((v): v is number => v !== null);
+  const mfd = mts.length > 0
+    ? Math.round((mts.reduce((a, b) => a + b, 0) / 3) * 10) / 10
+    : null;
+
+  return {
+    nome: student.nome, t1, t2, t3, mfd, ne: null, recurso: null, mf: mfd,
+    presente: sg.some((g) => g.mac.length > 0 || g.npt !== null),
+  };
+}
+
+export function pautaCompletaHtml(
+  turma: ClassGroup,
+  allGrades: StudentGrade[],
+  profile: TeacherProfile,
+  periodKeys: string[],
+  periodLabels: string[],
+): string {
+  const escola = profile.instituicao || "Instituição de Ensino";
+  const sorted = [...turma.alunos].sort((a, b) => a.nome.localeCompare(b.nome));
+  const linhas = sorted.map((s) => calcLinhaCompleta(s, turma.id, allGrades, periodKeys));
+  const n = Math.min(periodKeys.length, 3);
+  const tLabel = (i: number) => periodLabels[i] ?? `${i + 1}º Período`;
+  const total = linhas.length;
+
+  const rowsHtml = linhas
+    .map((l, i) => `
+      <tr>
+        <td>${i + 1}</td>
+        <td class="name-col">${escape(l.nome)}</td>
+        <td>${fmt(l.t1.mac)}</td><td>${fmt(l.t1.npt)}</td><td>${fmt(l.t1.mt)}</td>
+        ${n >= 2 ? `<td>${fmt(l.t2.mac)}</td><td>${fmt(l.t2.npt)}</td><td>${fmt(l.t2.mt)}</td>` : ""}
+        ${n >= 3 ? `<td>${fmt(l.t3.mac)}</td><td>${fmt(l.t3.npt)}</td><td>${fmt(l.t3.mt)}</td>` : ""}
+        <td>${fmt(l.mfd)}</td><td>${fmt(l.ne)}</td><td>${fmt(l.recurso)}</td>
+        <td><b>${fmt(l.mf)}</b></td>
+      </tr>`)
+    .join("");
+
+  const body = `
+    <div class="header">
+      <div class="school">${escape(escola.toUpperCase())}</div>
+      <div class="doc">Pauta Completa — Todos os Períodos</div>
     </div>
     <div class="meta">
       <div class="left"><b>Curso:</b> ${escape(profile.nivelEnsino || "—")} &nbsp;&nbsp; <b>Turma:</b> ${escape(turma.designacao)}</div>
@@ -326,28 +439,25 @@ export function miniPautaHtml(
         <tr>
           <th rowspan="2" class="num-col">Nº</th>
           <th rowspan="2" class="name-col" style="text-align:center">Nome do Aluno</th>
-          <th colspan="3">1º Trimestre</th>
-          <th colspan="3">2º Trimestre</th>
-          <th colspan="3">3º Trimestre</th>
-          <th rowspan="2">MFD</th>
-          <th rowspan="2">NE</th>
-          <th rowspan="2">Recurso</th>
-          <th rowspan="2">MF</th>
+          <th colspan="3">${tLabel(0)}</th>
+          ${n >= 2 ? `<th colspan="3">${tLabel(1)}</th>` : ""}
+          ${n >= 3 ? `<th colspan="3">${tLabel(2)}</th>` : ""}
+          <th rowspan="2">MFD</th><th rowspan="2">NE</th>
+          <th rowspan="2">Recurso</th><th rowspan="2">MF</th>
         </tr>
         <tr>
           <th>MAC</th><th>NPT</th><th>MT</th>
-          <th>MAC</th><th>NPT</th><th>MT</th>
-          <th>MAC</th><th>NPT</th><th>MT</th>
+          ${n >= 2 ? `<th>MAC</th><th>NPT</th><th>MT</th>` : ""}
+          ${n >= 3 ? `<th>MAC</th><th>NPT</th><th>MT</th>` : ""}
         </tr>
       </thead>
-      <tbody>${rowsHtml || `<tr><td colspan="15" style="padding:14px">Sem alunos</td></tr>`}</tbody>
+      <tbody>${rowsHtml || `<tr><td colspan="${2 + n * 3 + 4}" style="padding:14px">Sem alunos</td></tr>`}</tbody>
     </table>
-
-    <div class="stats-title">Estatística por Trimestre</div>
+    <div class="stats-title">Estatística por Período</div>
     <table class="stats-table">
       <thead>
         <tr>
-          <th rowspan="2" class="name-col" style="text-align:center">Trimestre</th>
+          <th rowspan="2" class="name-col" style="text-align:center">Período</th>
           <th colspan="2">Alunos</th>
           <th colspan="3">Negativas</th>
           <th colspan="3">Positivas</th>
@@ -359,112 +469,82 @@ export function miniPautaHtml(
         </tr>
       </thead>
       <tbody>
-        ${statsRow("1º Trimestre", statsT1)}
-        ${statsRow("2º Trimestre", statsT2)}
-        ${statsRow("3º Trimestre", statsT3)}
+        ${statsRowHtml(tLabel(0), calcStats(linhas, "t1"), total)}
+        ${n >= 2 ? statsRowHtml(tLabel(1), calcStats(linhas, "t2"), total) : ""}
+        ${n >= 3 ? statsRowHtml(tLabel(2), calcStats(linhas, "t3"), total) : ""}
       </tbody>
     </table>
-
     <div class="footer">
       <div class="prof">Professor(a): ${escape(profile.nome || "________________________")}</div>
       <div>Emitido em: ${NOW()}</div>
     </div>
     <div class="system">Processado pelo Sistema EcoEducacional · Gestão Pedagógica · Utilizador: ${escape(profile.nome || "professor")}</div>
   `;
-  return htmlDoc(`Mini-Pauta - ${turma.designacao}`, body, true);
+  return htmlDoc(`Pauta Completa - ${turma.designacao}`, body, true);
 }
 
-export function miniPautaExcel(
+export function pautaCompletaExcel(
   turma: ClassGroup,
-  grades: StudentGrade[],
+  allGrades: StudentGrade[],
   profile: TeacherProfile,
+  periodKeys: string[],
+  periodLabels: string[],
 ): ExcelSheetSpec {
   const escola = profile.instituicao || "Instituição de Ensino";
   const sorted = [...turma.alunos].sort((a, b) => a.nome.localeCompare(b.nome));
-  const linhas = sorted.map((s) =>
-    calcLinha(
-      s,
-      grades.find((g) => g.alunoId === s.id && g.turmaId === turma.id),
-    ),
-  );
+  const linhas = sorted.map((s) => calcLinhaCompleta(s, turma.id, allGrades, periodKeys));
+  const n = Math.min(periodKeys.length, 3);
+  const tLabel = (i: number) => periodLabels[i] ?? `${i + 1}º Período`;
+
+  const periodHeaders: string[] = [];
+  for (let i = 0; i < n; i++) {
+    periodHeaders.push(`${tLabel(i)} MAC`, `${tLabel(i)} NPT`, `${tLabel(i)} MT`);
+  }
+  const dataHeader = ["Nº", "Nome do Aluno", ...periodHeaders, "MFD", "NE", "Recurso", "MF"];
+  const totalCols = dataHeader.length;
+
+  const dataRows = linhas.map((l, i) => {
+    const pd: (number | null)[] = [];
+    pd.push(l.t1.mac, l.t1.npt, l.t1.mt);
+    if (n >= 2) pd.push(l.t2.mac, l.t2.npt, l.t2.mt);
+    if (n >= 3) pd.push(l.t3.mac, l.t3.npt, l.t3.mt);
+    return [i + 1, l.nome, ...pd, l.mfd, l.ne, l.recurso, l.mf];
+  });
+
+  const statsData: (string | number | null)[][] = [
+    [],
+    ["Estatística por Período"],
+    ["Período", "Presentes", "Ausentes", "Neg. MF", "Neg. F", "Neg. %", "Pos. MF", "Pos. F", "Pos. %"],
+    ...(["t1", "t2", "t3"] as const).slice(0, n).map((t, i) => {
+      const s = calcStats(linhas, t);
+      const d = linhas.length > 0 ? linhas.length : 1;
+      return [tLabel(i), s.presentes, s.ausentes, s.negativasMF, s.negativasF,
+        Math.round((s.negativasMF / d) * 1000) / 10,
+        s.positivasMF, s.positivasF,
+        Math.round((s.positivasMF / d) * 1000) / 10];
+    }),
+  ];
 
   const rows: (string | number | null)[][] = [
     [escola.toUpperCase()],
-    ["Mini-Pauta do Professor"],
+    ["Pauta Completa — Todos os Períodos"],
     [],
-    [
-      `Curso: ${profile.nivelEnsino || "—"}`,
-      "",
-      `Turma: ${turma.designacao}`,
-      "",
-      `Disciplina: ${turma.disciplina}`,
-      "",
-      `Ano Lectivo: ${anoLectivo()}`,
-    ],
+    [`Curso: ${profile.nivelEnsino || "—"}`, "", `Turma: ${turma.designacao}`, "", `Disciplina: ${turma.disciplina}`, "", `Ano Lectivo: ${anoLectivo()}`],
     [],
-    [
-      "Nº",
-      "Nome do Aluno",
-      "1T MAC",
-      "1T NPT",
-      "1T MT",
-      "2T MAC",
-      "2T NPT",
-      "2T MT",
-      "3T MAC",
-      "3T NPT",
-      "3T MT",
-      "MFD",
-      "NE",
-      "Recurso",
-      "MF",
-    ],
-    ...linhas.map((l, i) => [
-      i + 1,
-      l.nome,
-      l.t1.mac,
-      l.t1.npt,
-      l.t1.mt,
-      l.t2.mac,
-      l.t2.npt,
-      l.t2.mt,
-      l.t3.mac,
-      l.t3.npt,
-      l.t3.mt,
-      l.mfd,
-      l.ne,
-      l.recurso,
-      l.mf,
-    ]),
-    [],
-    ["Estatística por Trimestre"],
-    ["Trimestre", "Presentes", "Ausentes", "Negativas MF", "Negativas F", "Negativas %", "Positivas MF", "Positivas F", "Positivas %"],
-    ...(["t1", "t2", "t3"] as const).map((t, i) => {
-      const s = calcStats(linhas, t);
-      const denom = linhas.length > 0 ? linhas.length : 1;
-      return [
-        `${i + 1}º Trimestre`,
-        s.presentes,
-        s.ausentes,
-        s.negativasMF,
-        s.negativasF,
-        Math.round((s.negativasMF / denom) * 1000) / 10,
-        s.positivasMF,
-        s.positivasF,
-        Math.round((s.positivasMF / denom) * 1000) / 10,
-      ];
-    }),
+    dataHeader,
+    ...dataRows,
+    ...statsData,
     [],
     [`Professor(a): ${profile.nome || ""}`],
     [`Emitido em: ${NOW()}`],
   ];
   return {
-    name: "Mini-Pauta",
+    name: "Pauta Completa",
     rows,
-    colWidths: [4, 32, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 8, 7],
+    colWidths: [4, 32, ...periodHeaders.map(() => 8), 7, 7, 8, 7],
     merges: [
-      { s: { r: 0, c: 0 }, e: { r: 0, c: 14 } },
-      { s: { r: 1, c: 0 }, e: { r: 1, c: 14 } },
+      { s: { r: 0, c: 0 }, e: { r: 0, c: totalCols - 1 } },
+      { s: { r: 1, c: 0 }, e: { r: 1, c: totalCols - 1 } },
     ],
   };
 }
@@ -475,6 +555,7 @@ export function attendanceMapHtml(
   turma: ClassGroup,
   records: AttendanceRecord[],
   profile: TeacherProfile,
+  periodoLabel = "",
 ): string {
   const escola = profile.instituicao || "Instituição de Ensino";
   const sorted = [...turma.alunos].sort((a, b) => a.nome.localeCompare(b.nome));
@@ -531,10 +612,11 @@ export function attendanceMapHtml(
   }
   const pctGeral = totalReg > 0 ? Math.round((totalPres / totalReg) * 1000) / 10 : 0;
 
+  const periodoStr = periodoLabel ? ` — ${periodoLabel}` : "";
   const body = `
     <div class="header">
       <div class="school">${escape(escola.toUpperCase())}</div>
-      <div class="doc">Mapa de Presenças</div>
+      <div class="doc">Mapa de Presenças${periodoStr}</div>
     </div>
     <div class="meta">
       <div class="left"><b>Turma:</b> ${escape(turma.designacao)} &nbsp;&nbsp; <b>Disciplina:</b> ${escape(turma.disciplina)}</div>
@@ -567,13 +649,14 @@ export function attendanceMapHtml(
     <div class="system">Processado pelo Sistema EcoEducacional · Gestão Pedagógica · Utilizador: ${escape(profile.nome || "professor")}</div>
     <div style="margin-top:6px;font-size:8.5pt;color:#555">Legenda: P = Presente · F = Falta · — = Sem registo</div>
   `;
-  return htmlDoc(`Mapa de Presenças - ${turma.designacao}`, body, true);
+  return htmlDoc(`Mapa de Presenças - ${turma.designacao}${periodoStr}`, body, true);
 }
 
 export function attendanceMapExcel(
   turma: ClassGroup,
   records: AttendanceRecord[],
   profile: TeacherProfile,
+  periodoLabel = "",
 ): ExcelSheetSpec {
   const escola = profile.instituicao || "Instituição de Ensino";
   const sorted = [...turma.alunos].sort((a, b) => a.nome.localeCompare(b.nome));
@@ -605,9 +688,10 @@ export function attendanceMapExcel(
     return [i + 1, aluno.nome, ...cells, `${pres}/${total}`, pct];
   });
 
+  const periodoStr = periodoLabel ? ` — ${periodoLabel}` : "";
   const rows: (string | number | null)[][] = [
     [escola.toUpperCase()],
-    ["Mapa de Presenças"],
+    [`Mapa de Presenças${periodoStr}`],
     [],
     [
       `Turma: ${turma.designacao}`,
