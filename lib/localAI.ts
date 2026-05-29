@@ -46,72 +46,116 @@ let pipelineInstance: any = null;
 let pipelineLoading = false;
 let pipelineLoadCallbacks: Array<(err?: Error) => void> = [];
 
-const SYSTEM_PROMPT = `És um planificador pedagógico especialista no currículo angolano (INIDE). Geras planos de aula COMPLETOS, RIGOROSOS e COERENTES, fundamentados em Bloom (Anderson & Krathwohl, 2001), Mager, Tyler, Gagné, Vygotsky, Luckesi, Perrenoud e Tomlinson.
+// ═══ CAMADA 1 — SYSTEM PROMPT (Bloco 1: Regras absolutas) ═══
+const SYSTEM_PROMPT = `Você é um planificador pedagógico angolano. Gere um plano de aula seguindo EXACTAMENTE o formato do exemplo fornecido.
 
-═══ 1. FAIXA ETÁRIA E PROFUNDIDADE ═══
-— 1ª–4ª (6–10 anos): linguagem muito simples, concreto, lúdico, sem abstracção.
-— 5ª–6ª (10–12 anos): abstracção gradual, classificações simples, textos curtos.
-— 7ª–9ª (12–15 anos): raciocínio abstracto em desenvolvimento, análise elementar.
-— 10ª–12ª (15–18 anos): pensamento crítico, rigor científico, argumentação elaborada.
+REGRAS ABSOLUTAS:
+1. O Objectivo Geral menciona o MESMO conteúdo dos Objectivos Específicos.
+2. Use verbos de Bloom diferentes: OE1=Recordar, OE2=Compreender, OE3=Aplicar.
+3. Cada OE tem Comportamento + Condição + Critério (Mager).
+4. As 4 etapas seguem Gagné: Motivação (Gagné 1-2), Desenvolvimento (Gagné 3-6), Consolidação (Gagné 7-8), Síntese e Avaliação (Gagné 9).
+5. Actividades de Desenvolvimento são do tipo de aula indicado. Nunca leitura em cadeia se for Teórica ou Experimental.
+6. Use terminologia angolana: sumário, TPC, quadro negro, ficha de exercícios, correcção colectiva.
+7. As 3 perguntas de controlo usam os MESMOS verbos dos 3 OEs: (Recordação), (Compreensão), (Aplicação).
+8. Avaliação formativa (Luckesi): ficha 50%, participação 30%, controlo 20%. Total: 100%.
+9. Diferenciação (Tomlinson) por conteúdo, processo e produto.
+10. Todas as frases completas. Nunca truncadas. Nunca campos vazios.
+Responde APENAS com JSON válido. Sem markdown. Sem texto fora do JSON.`;
 
-═══ 2. REGRA CRÍTICA — TEMA vs. SUMÁRIO ═══
-O TEMA é o título amplo. O SUMÁRIO é a descrição concreta do que é leccionado nesta aula específica.
-— OBJECTIVO GERAL → deriva EXCLUSIVAMENTE do TEMA (visão de conjunto — Tyler).
-— TODAS as restantes secções (OEs, conteúdos, desenvolvimento, perguntas, TPC, avaliação, diferenciação) → derivam EXCLUSIVAMENTE do SUMÁRIO. Se o sumário não existir, derivam do tema.
-ERRO GRAVE: cobrir matéria fora do sumário ou ignorar matéria que está no sumário.
-
-═══ 3. TAXONOMIA DE BLOOM — VERBOS OPERACIONAIS ═══
-N1 RECORDAR: identificar, reconhecer, listar, enumerar, definir, citar, nomear.
-N2 COMPREENDER: explicar, descrever, interpretar, classificar, resumir, comparar, exemplificar, relacionar, distinguir.
-N3 APLICAR: resolver, calcular, aplicar, demonstrar, executar, utilizar, construir, produzir, redigir.
-N4 ANALISAR: analisar, diferenciar, organizar, relacionar, estruturar, distinguir, fundamentar.
-N5 AVALIAR (10ª–12ª): avaliar, justificar, criticar, argumentar, defender, verificar.
-N6 CRIAR (10ª–12ª): criar, elaborar, construir, propor, planear, inventar.
-
-PROGRESSÃO OBRIGATÓRIA DOS OBJECTIVOS ESPECÍFICOS (modelo Mager + Bloom):
-— OE1: verbo N1 ou N2 + [conteúdo específico] + [condição: sem consulta / com manual / em grupo] + [critério: X em Y acertos].
-— OE2: verbo N2 ou N3 (diferente do OE1) + [conteúdo] + [condição] + [critério mensurável].
-— OE3: verbo N3, N4, N5 ou N6 (diferente dos anteriores) + [conteúdo] + [condição angolana] + [critério].
-NUNCA repetir o mesmo verbo. O verbo do OG nunca aparece nos OEs.
-
-═══ 4. TEMA CONCEPTUAL vs. PROCEDIMENTAL ═══
-A) CONCEPTUAL ("A célula", "Os adjectivos") → OEs: identificar, definir, classificar, descrever, comparar.
-B) PROCEDIMENTAL ("Leitura e interpretação", "Resolução de equações") → OEs descrevem o que o aluno FAZ. PROIBIDO: "definir o conceito de [procedimento]" ou "explicar a importância de [procedimento]".
-C) MISTO → combina.
-
-═══ 5. DESENVOLVIMENTO — EVENTOS DE GAGNÉ (4 etapas) ═══
-Etapa 1 — MOTIVAÇÃO (Gagné 1-2: ganhar atenção + informar objectivos): situação angolana concreta que introduz o tema; registo no quadro; ligação à aula anterior.
-Etapa 2 — DESENVOLVIMENTO (Gagné 3-6: recordação prévia + apresentar conteúdo + orientar + elaborar): actividades ESPECÍFICAS da disciplina e do sumário; exemplos progressivos; demonstração no quadro ou com fonte/material.
-Etapa 3 — CONSOLIDAÇÃO (Gagné 7-8: feedback + avaliar desempenho): ficha de exercícios; correcção colectiva no quadro; feedback imediato. (Vygotsky ZDP: professor medeia o que o aluno ainda não domina sozinho.)
-Etapa 4 — SÍNTESE E AVALIAÇÃO (Gagné 9: retenção e transferência): síntese oral; 3 perguntas de controlo; registo do sumário; indicação do TPC.
-Tempos em múltiplos de 5 min, somando exactamente a duração total.
-
-═══ 6. PERGUNTAS DE CONTROLO — ALINHADAS AOS OEs ═══
-As 3 perguntas usam o MESMO verbo de Bloom do OE correspondente:
-— PC1 alinhada ao OE1 (N1/N2): pergunta directa de recordação/identificação.
-— PC2 alinhada ao OE2 (N2/N3): "Explica..." ou "Resolve..." com exemplo angolano.
-— PC3 alinhada ao OE3 (N3+): situação CONCRETA e COMPLETA da realidade angolana (nome de pessoa, lugar real, valores reais — Luanda, Huambo, mercado do Roque Santeiro, rio Kwanza, etc.). NUNCA placeholders.
-
-═══ 7. TPC — EXACTAMENTE 2 TAREFAS ═══
-TPC1 (retenção): exercício do manual — referir unidade/capítulo INIDE. NUNCA "pág. ___".
-TPC2 (transferência): produto contextualizado na realidade angolana. Tempo estimado por tarefa.
-
-═══ 8. AVALIAÇÃO (Luckesi — processo dialógico) ═══
-Ficha de exercícios (evidência de desempenho): 50%. Participação oral (processo dialógico): 30%. Perguntas de controlo (retenção imediata): 20%. Total: 100%.
-O professor regista observações qualitativas sobre dificuldades (regulação Perrenoud).
-
-═══ 9. DIFERENCIAÇÃO (Tomlinson + Perrenoud) ═══
-— Dificuldades (diferenciação do processo e produto — Tomlinson): ficha simplificada; consulta do manual; redução da extensão; trabalho em par com colega (mediação por pares — Vygotsky).
-— Avançados (diferenciação do conteúdo e produto — Tomlinson): análise aprofundada; produção extensa com argumentação; pesquisa de exemplo adicional não abordado na aula.
-
-═══ 10. REGRAS ABSOLUTAS ═══
-— Português europeu/angolano: "ficha", "correcção colectiva", "quadro negro", "TPC", "sumário". NUNCA "atividade", "correção", "lousa".
-— Exemplos angolanos: Mateus, Kiala, Joana; Luanda, Huambo, Lubango, Benguela; musseque, mercado, lavrador, palanca-negra.
-— NUNCA placeholders: "____", "[a definir]", "[exemplo]", "pág. ___". Tudo completo.
-— Verificação interna antes de gerar: OG deriva do tema? OEs derivam do sumário? Verbos Bloom progressivos e diferentes? Perguntas alinhadas aos OEs? Desenvolvimento cobre exactamente o sumário?
-
-═══ 11. SAÍDA ═══
-Responde SEMPRE e APENAS com JSON válido (sem markdown, sem comentários, sem texto fora do JSON). Cada campo completamente preenchido. Plano final pronto a usar.`;
+// ═══ CAMADA 2 — EXEMPLO PERFEITO (Bloco 2: Few-shot com o plano de Matemática 7ª) ═══
+const EXAMPLE_JSON = JSON.stringify({
+  sumario: "Equações do 1º grau com uma incógnita",
+  faixaEtaria: "I Ciclo do Ensino Secundário (12–15 anos)",
+  objetivoGeral:
+    "Resolver equações do primeiro grau com uma incógnita aplicadas a situações do comércio angolano, acertando pelo menos 7 em 10 exercícios.",
+  objetivosEspecificos: [
+    "(Recordar) Identificar os elementos de uma equação do primeiro grau, sem consulta, enumerando pelo menos 3 componentes correctos.",
+    "(Compreender) Explicar o método de resolução de equações do primeiro grau, com consulta do caderno, descrevendo as 3 etapas essenciais.",
+    "(Aplicar) Resolver problemas do comércio angolano (preços, trocos) usando equações do primeiro grau, a partir de uma ficha com 8 casos, acertando pelo menos 6.",
+  ],
+  conteudos: [
+    "Conceito e elementos de uma equação do primeiro grau.",
+    "Propriedades e etapas de resolução de equações.",
+    "Exemplos práticos de equações aplicadas ao comércio angolano.",
+    "Aplicação e exercícios de consolidação.",
+  ],
+  metodosPrincipais:
+    "Método Expositivo Dialogado + Método de Resolução de Problemas",
+  metodos:
+    "Método Expositivo Dialogado: explica no quadro os elementos da equação; alunos respondem oralmente e copiam exemplos. Método de Resolução de Problemas: apresenta situação do comércio angolano; alunos resolvem com mediação do professor. Técnicas: questionamento oral graduado; análise de exemplos numéricos; resolução individual; correcção colectiva no quadro.",
+  meios:
+    "quadro negro e giz, manual escolar de Matemática (INIDE), fichas de exercícios, caderno do aluno, calculadora simples",
+  desenvolvimentoAula: [
+    {
+      etapa: "Motivação (Gagné 1-2)",
+      duracao: "10 min",
+      actividadesProfessor:
+        "Apresenta problema real: vendedor no mercado do Sambizanga que precisa calcular preços; regista respostas no quadro; liga à aula anterior sobre expressões algébricas.",
+      actividadesAlunos:
+        "Respondem oralmente; partilham conhecimentos prévios; levantam hipóteses sobre como resolver.",
+    },
+    {
+      etapa: "Desenvolvimento (Gagné 3-6)",
+      duracao: "40 min",
+      actividadesProfessor:
+        "Escreve equação no quadro negro; explica elementos (incógnita, 1º membro, 2º membro); demonstra resolução passo a passo; distribui ficha com 8 problemas comerciais angolanos.",
+      actividadesAlunos:
+        "Copiam exemplos; resolvem exercícios guiados; preenchem ficha individualmente; levantam dúvidas.",
+    },
+    {
+      etapa: "Consolidação (Gagné 7-8)",
+      duracao: "30 min",
+      actividadesProfessor:
+        "Circula pela sala dando feedback imediato; orienta correcção colectiva no quadro; regista erros comuns.",
+      actividadesAlunos:
+        "Verificam respostas; participam na correcção colectiva; corrigem erros no caderno.",
+    },
+    {
+      etapa: "Síntese e Avaliação (Gagné 9)",
+      duracao: "10 min",
+      actividadesProfessor:
+        "Faz síntese oral; coloca 3 perguntas de controlo; regista sumário no quadro negro; indica os 2 TPCs.",
+      actividadesAlunos:
+        "Respondem às perguntas; completam sumário no caderno; registam os 2 TPCs.",
+    },
+  ],
+  perguntasControlo: [
+    "(Recordação) Identifica os 3 elementos essenciais de uma equação do primeiro grau com uma incógnita.",
+    "(Compreensão) Explica com as tuas palavras por que razão as equações são úteis no comércio angolano. Usa um exemplo concreto.",
+    "(Aplicação) Um vendedor no mercado do Sambizanga vende 5 pacotes de arroz e recebe 500 kz de troco de 2000 kz. Monta a equação que representa esta situação e resolve-a.",
+  ],
+  tarefaDeCasa: [
+    {
+      descricao:
+        "Completa os exercícios sobre equações do primeiro grau do manual, apresentando todos os passos.",
+      referencia:
+        "Manual de Matemática 7ª classe (INIDE), Unidade III, páginas 45-47.",
+      tempoEstimado: "20 min",
+    },
+    {
+      descricao:
+        "Resolve 3 problemas do teu bairro ou mercado usando equações do primeiro grau. Apresenta todos os passos no caderno.",
+      referencia: "Caderno do aluno.",
+      tempoEstimado: "20 min",
+    },
+  ],
+  avaliacao:
+    "Correcção dos exercícios da ficha (evidência de desempenho): 50%. Participação oral na resolução dos problemas (processo dialógico): 30%. Qualidade das respostas às perguntas de controlo (retenção imediata): 20%. Total: 100%. O professor regista observações qualitativas sobre dificuldades para regulação das aprendizagens.",
+  diferenciacaoPedagogica: {
+    dificuldades:
+      "Alunos com dificuldades (processo e produto — Tomlinson): ficha com problemas numéricos mais simples; consulta do manual permitida; redução da extensão da produção; trabalho em par com colega mais avançado (mediação por pares — Vygotsky).",
+    avancados:
+      "Alunos avançados (conteúdo e produto — Tomlinson): análise adicional de problemas com duas incógnitas; produção mais extensa com argumentação do raciocínio; desafio de criar um problema original do seu bairro.",
+  },
+  observacoes:
+    "Adequar exemplos ao nível cognitivo e contexto cultural da turma. Contextualizar sempre com exemplos da realidade angolana.",
+  score: 90,
+  sugestoes: [
+    "Verificar se todos os alunos têm acesso ao manual indicado",
+    "Preparar ficha de recuperação para a próxima aula",
+    "Incluir representação gráfica das equações para visualização",
+  ],
+});
 
 function detectTipoAula(disc: string, tema: string): string {
   const d = disc.toLowerCase();
@@ -151,6 +195,7 @@ function detectTipoAula(disc: string, tema: string): string {
   return "Teórica";
 }
 
+// ═══ CAMADA 3 — INSTRUÇÃO DE GERAÇÃO (Bloco 3) ═══
 function buildPrompt(
   classe: string,
   disciplina: string,
@@ -170,70 +215,26 @@ function buildPrompt(
   else nivel = "Ensino Superior (+18 anos)";
 
   const tipoAula = detectTipoAula(disciplina, tema);
-  const sumarioLine = sumario
-    ? `SUMÁRIO DETALHADO (fonte primária para tudo excepto OG): "${sumario}"`
-    : "";
+  const sumarioLine = sumario ? `- SUMÁRIO: ${sumario}` : "";
 
-  return `Gera um plano de aula RIGOROSO, COMPLETO e COERENTE fundamentado em Bloom, Mager, Tyler, Gagné, Vygotsky, Luckesi, Perrenoud e Tomlinson:
+  return `EXEMPLO DE PLANO PERFEITO (segue EXACTAMENTE este formato JSON):
+${EXAMPLE_JSON}
 
-DISCIPLINA: ${disciplina}
-CLASSE: ${classe} | NÍVEL: ${nivel}
-TEMA: ${tema}
+AGORA GERE O PLANO DE AULA PARA:
+- DISCIPLINA: ${disciplina}
+- CLASSE/ANO: ${classe} (${nivel})
+- TEMA: ${tema}
+- TIPO DE AULA: ${tipoAula}
+- DURAÇÃO: ${duracao} minutos
 ${sumarioLine}
-DURAÇÃO: ${duracao} minutos
-TIPO DE AULA: ${tipoAula}
 
-VERIFICAÇÃO INTERNA ANTES DE GERAR (obrigatória):
-1) OG deriva do TEMA "${tema}" (Tyler — visão ampla). OEs derivam do SUMÁRIO${sumario ? ` "${sumario}"` : " / do tema se ausente"}.
-2) Classifica: A (conceptual) / B (procedimental) / C (misto). Se B, OEs descrevem o que o aluno FAZ — NUNCA "definir o conceito de [procedimento]".
-3) Verbos dos OEs: OE1 N1/N2 (Recordar/Compreender), OE2 N2/N3, OE3 N3/N4/N5/N6. NUNCA repetir verbos.
-4) Cada OE segue Mager: verbo Bloom + condição (com/sem consulta, a partir de ficha) + critério mensurável (X em Y acertos).
-5) Perguntas de controlo: PC1 usa mesmo verbo de Bloom do OE1, PC2 do OE2, PC3 do OE3.
-6) Desenvolvimento: 4 etapas = Gagné 1-2 / 3-6 / 7-8 / 9. Tempos somam exactamente ${duracao} min.
-7) TPC: exactamente 2 tarefas (retenção = manual + transferência = caderno).
-8) Avaliação (Luckesi): ficha 50% + participação 30% + perguntas controlo 20% = 100%.
-9) Diferenciação (Tomlinson): processo+produto para dificuldades; conteúdo+produto para avançados.
-10) ZERO placeholders. Português europeu/angolano: "ficha", "correcção colectiva", "quadro negro", "TPC".
-
-Responde APENAS com JSON válido, sem markdown, sem texto fora do JSON:
-{
-  "sumario": "${sumario ? sumario : "síntese descritiva concreta desta aula em 1 frase"}",
-  "faixaEtaria": "${nivel}",
-  "tipoTema": "A | B | C + breve justificação",
-  "objetivoGeral": "[Tyler — DERIVA DO TEMA '${tema}'] 1 verbo infinitivo (compreender/aplicar/analisar/explorar/consolidar/desenvolver/sistematizar) + competência ampla — 1 frase, SEM 'e'",
-  "objetivosEspecificos": [
-    "[Mager OE1 — Bloom N1/N2] VERBO_N1_OU_N2 + [sub-tópico do sumário] + [condição: sem consulta / com manual / em grupo] + [critério: pelo menos X em Y / em N linhas correctas]",
-    "[Mager OE2 — Bloom N2/N3] VERBO_N2_OU_N3 (diferente OE1) + [sub-tópico do sumário] + [condição: a partir de ficha / num exercício contextualizado] + [critério mensurável]",
-    "[Mager OE3 — Bloom N3+] VERBO_N3_N4_N5_OU_N6 (diferente OE1 e OE2) + [sub-tópico do sumário] + [condição: usando contexto angolano] + [critério mais exigente]"
-  ],
-  "conteudos": ["sub-tópico CONCRETO 1 do sumário", "sub-tópico CONCRETO 2", "sub-tópico CONCRETO 3", "sub-tópico CONCRETO 4 (máx.)"],
-  "metodosPrincipais": "Método Principal (ZDP Vygotsky) + Método Complementar — adequados a ${tipoAula}",
-  "metodos": "MÉTODO PRINCIPAL: acção concreta do professor mediando na ZDP + acção do aluno. MÉTODO COMPLEMENTAR: acção professor + acção aluno. TÉCNICAS: 3 técnicas separadas por ponto e vírgula. MEIOS: materiais físicos para ${disciplina} tipo ${tipoAula}.",
-  "meios": "lista de materiais concretos para ${disciplina} tipo ${tipoAula}: quadro negro, manual INIDE, ficha de exercícios, etc.",
-  "desenvolvimentoAula": [
-    {"etapa": "Motivação (Gagné 1-2)", "duracao": "X min", "actividadesProfessor": "Apresenta situação CONCRETA angolana ligada ao sumário; informa os objectivos; regista respostas no quadro; estabelece ligação com a aula anterior.", "actividadesAlunos": "Prestam atenção; respondem oralmente; partilham conhecimentos prévios; levantam hipóteses."},
-    {"etapa": "Desenvolvimento (Gagné 3-6)", "duracao": "X min", "actividadesProfessor": "[${tipoAula}] actividade CONCRETA do professor compatível com ${tipoAula}: explica/demonstra/distribui/propõe/guia — cobre EXACTAMENTE os sub-tópicos do sumário com exemplos progressivos angolanos.", "actividadesAlunos": "Acção CONCRETA do aluno: copiam/resolvem/manipulam/observam/preenchem ficha — com mediação do professor (ZDP Vygotsky)."},
-    {"etapa": "Consolidação (Gagné 7-8)", "duracao": "X min", "actividadesProfessor": "Circula pela sala (feedback imediato — Gagné 7); distribui ficha de exercícios sobre o sumário; orienta correcção colectiva no quadro (Gagné 8 — Luckesi).", "actividadesAlunos": "Preenchem ficha individualmente; participam na correcção colectiva; recebem feedback; registam as correcções."},
-    {"etapa": "Síntese e Avaliação (Gagné 9)", "duracao": "X min", "actividadesProfessor": "Faz síntese oral dos sub-tópicos do sumário (retenção); coloca as 3 perguntas de controlo alinhadas aos OEs; regista sumário no quadro; indica os 2 TPCs.", "actividadesAlunos": "Respondem às perguntas de controlo; completam sumário no caderno; registam os 2 TPCs; colocam dúvidas finais."}
-  ],
-  "perguntasControlo": [
-    "[PC1 — mesmo verbo Bloom do OE1, N1/N2] Pergunta directa de recordação/identificação sobre sub-tópico central do sumário.",
-    "[PC2 — mesmo verbo Bloom do OE2, N2/N3] 'Explica...' ou 'Resolve...' com exemplo concreto da realidade angolana.",
-    "[PC3 — mesmo verbo Bloom do OE3, N3+] Situação CONCRETA e COMPLETA: nome angolano real + lugar real + valores reais (Luanda/Huambo/Benguela/mercado/escola). ZERO placeholders."
-  ],
-  "tarefaDeCasa": [
-    {"descricao": "[TPC1 — retenção] Exercício específico sobre sub-tópicos do sumário: completa X exercícios sobre [tema concreto]", "referencia": "Manual de ${disciplina} ${classe} (INIDE), Unidade sobre ${tema}. Confirmar página com a edição da escola.", "tempoEstimado": "20 min"},
-    {"descricao": "[TPC2 — transferência] Produto contextualizado Angola: escreve/produz [produto adequado a ${tipoAula}] sobre [sub-tópico do sumário] usando um exemplo da realidade angolana (bairro/mercado/família).", "referencia": "Caderno do aluno", "tempoEstimado": "20 min"}
-  ],
-  "avaliacao": "Avaliação formativa (Luckesi — processo dialógico): correcção da ficha de exercícios (evidência de desempenho) 50% + participação oral nas actividades de ${tipoAula} (processo dialógico) 30% + qualidade das respostas às perguntas de controlo (retenção imediata) 20% = 100%. O professor regista observações qualitativas sobre dificuldades (regulação Perrenoud).",
-  "diferenciacaoPedagogica": {
-    "dificuldades": "[Tomlinson — diferenciação do processo e produto] Ficha simplificada com linguagem acessível sobre [sub-tópico concreto]; consulta do manual permitida; redução da extensão da produção; trabalho em par com colega mais avançado (mediação por pares — Vygotsky).",
-    "avancados": "[Tomlinson — diferenciação do conteúdo e produto] Análise aprofundada de [sub-tópico avançado]; produção mais extensa com argumentação; desafio de pesquisar e apresentar um exemplo adicional não abordado na aula."
-  },
-  "observacoes": "Adequar exemplos ao nível cognitivo e contexto cultural da turma. Contextualizar com exemplos angolanos concretos.",
-  "score": 85,
-  "sugestoes": ["sugestão concreta 1 de melhoria pedagógica", "sugestão 2", "sugestão 3"]
-}`;
+SIGA EXACTAMENTE O MESMO FORMATO JSON DO EXEMPLO ACIMA.
+Adapta todos os conteúdos, verbos, exemplos e contextos à nova disciplina, classe e tema.
+USE OS MESMOS VERBOS DE BLOOM NOS 3 OEs: OE1=(Recordar), OE2=(Compreender), OE3=(Aplicar).
+USE OS MESMOS LABELS NAS PERGUNTAS: PC1=(Recordação), PC2=(Compreensão), PC3=(Aplicação).
+TPC: exactamente 2 tarefas com 20 min cada.
+Avaliação: 50% + 30% + 20% = 100%.
+Responde APENAS com JSON válido. Sem markdown. Sem texto fora do JSON.`;
 }
 
 function extractJSON(text: string): string {
@@ -343,7 +344,23 @@ async function generateWithQwen(
       return buildTemplatePlan(classe, disciplina, tema, duracao, sumario);
     }
   }
-  return mergeWithDefaults(parsed, classe, disciplina, tema, duracao, sumario);
+  const plan = mergeWithDefaults(
+    parsed,
+    classe,
+    disciplina,
+    tema,
+    duracao,
+    sumario,
+  );
+  const erros = validatePlan(plan, tema);
+  if (erros.length > 0) {
+    console.warn("[validatePlan] Problemas detectados:", erros);
+    plan.sugestoes = [
+      ...erros.map((e) => `⚠️ ${e}`),
+      ...(plan.sugestoes || []),
+    ].slice(0, 5);
+  }
+  return plan;
 }
 
 function mergeWithDefaults(
@@ -385,6 +402,128 @@ function mergeWithDefaults(
     score: typeof parsed.score === "number" ? parsed.score : tmpl.score,
     sugestoes: parsed.sugestoes?.length ? parsed.sugestoes : tmpl.sugestoes,
   };
+}
+
+// ═══ VALIDAÇÃO DO PLANO (Bloco 3 — pseudocódigo Python implementado em TypeScript) ═══
+function validatePlan(plan: LessonPlanAIResult, tema: string): string[] {
+  const erros: string[] = [];
+
+  // Regra 1: OG contém palavras do Tema
+  const temaWords = tema
+    .toLowerCase()
+    .split(/\s+/)
+    .filter((w) => w.length > 3);
+  const ogLower = plan.objetivoGeral.toLowerCase();
+  if (temaWords.length > 0 && !temaWords.some((w) => ogLower.includes(w))) {
+    erros.push(
+      "ERRO 1: Objectivo Geral não menciona o conteúdo do Tema. Verificar coerência vertical.",
+    );
+  }
+
+  // Regra 2: Exactamente 3 OEs
+  if (plan.objetivosEspecificos.length !== 3) {
+    erros.push(
+      `ERRO 2: Devem existir exactamente 3 Objectivos Específicos (encontrados: ${plan.objetivosEspecificos.length}).`,
+    );
+  }
+
+  // Regra 3: Verbos dos OEs diferentes
+  const verbos = plan.objetivosEspecificos.map((oe) =>
+    oe
+      .replace(/^\([^)]+\)\s*/i, "")
+      .trim()
+      .split(/\s+/)[0]
+      .toLowerCase(),
+  );
+  if (new Set(verbos).size < verbos.length) {
+    erros.push(
+      "ERRO 3: Os verbos dos Objectivos Específicos estão repetidos. Cada OE deve usar verbo de Bloom diferente.",
+    );
+  }
+
+  // Regra 4: Cada OE tem 3 componentes Mager (pelo menos 2 vírgulas)
+  plan.objetivosEspecificos.forEach((oe, i) => {
+    const commas = (oe.match(/,/g) || []).length;
+    if (commas < 2) {
+      erros.push(
+        `ERRO 4: OE${i + 1} não tem os 3 componentes de Mager (Comportamento + Condição + Critério).`,
+      );
+    }
+  });
+
+  // Regra 5: As 4 etapas de Gagné existem no desenvolvimento
+  const etapas = plan.desenvolvimentoAula.map((e) => e.etapa.toLowerCase());
+  if (!etapas.some((e) => e.includes("motivação") || e.includes("motivacao")))
+    erros.push("ERRO 5: Etapa Motivação (Gagné 1-2) em falta no desenvolvimento.");
+  if (!etapas.some((e) => e.includes("desenvolvimento")))
+    erros.push("ERRO 5: Etapa Desenvolvimento (Gagné 3-6) em falta.");
+  if (!etapas.some((e) => e.includes("consolidação") || e.includes("consolidacao")))
+    erros.push("ERRO 5: Etapa Consolidação (Gagné 7-8) em falta.");
+  if (
+    !etapas.some(
+      (e) =>
+        e.includes("síntese") ||
+        e.includes("sintese") ||
+        e.includes("avaliação") ||
+        e.includes("avaliacao"),
+    )
+  )
+    erros.push("ERRO 5: Etapa Síntese/Avaliação (Gagné 9) em falta.");
+
+  // Regra 6: Frases truncadas (terminam em palavras incompletas)
+  const truncPattern = /\b(do|no|para o|teu|seu|com o|de o|na)\s*\.?\s*$/i;
+  [...plan.objetivosEspecificos, ...plan.perguntasControlo].forEach(
+    (text, i) => {
+      if (truncPattern.test(text.trim())) {
+        erros.push(`ERRO 6: Frase truncada detectada no texto ${i + 1}.`);
+      }
+    },
+  );
+
+  // Regra 7: Terminologia angolana presente
+  const fullText = JSON.stringify(plan).toLowerCase();
+  if (!fullText.includes("tpc") && !fullText.includes("tarefa de casa")) {
+    erros.push("ERRO 7: Terminologia angolana TPC/Tarefa de Casa em falta.");
+  }
+  if (!fullText.includes("quadro") && !fullText.includes("ficha")) {
+    erros.push(
+      "ERRO 7: Terminologia angolana (quadro negro / ficha de exercícios) em falta.",
+    );
+  }
+
+  // Regra 8: Perguntas de controlo alinhadas aos OEs (labels correctos)
+  if (plan.perguntasControlo.length === 3) {
+    const expectedLabels = ["recordação", "compreensão", "aplicação"];
+    plan.perguntasControlo.forEach((pc, i) => {
+      if (!pc.toLowerCase().includes(expectedLabels[i])) {
+        erros.push(
+          `ERRO 8: Pergunta de controlo ${i + 1} não tem label (${expectedLabels[i]}) alinhado ao OE${i + 1}.`,
+        );
+      }
+    });
+  }
+
+  // Regra 9: Percentuais somam 100%
+  const percentages = (plan.avaliacao.match(/(\d+)%/g) || []).map((p) =>
+    parseInt(p),
+  );
+  if (percentages.length >= 2) {
+    const sum = percentages.reduce((a, b) => a + b, 0);
+    if (sum !== 100) {
+      erros.push(
+        `ERRO 9: Os percentuais da avaliação somam ${sum}% (devem somar 100%).`,
+      );
+    }
+  }
+
+  // Regra 10: TPC exactamente 2 tarefas
+  if (plan.tarefaDeCasa && plan.tarefaDeCasa.length !== 2) {
+    erros.push(
+      `ERRO 10: Devem existir exactamente 2 TPCs (encontrados: ${plan.tarefaDeCasa.length}).`,
+    );
+  }
+
+  return erros;
 }
 
 function detectFaixaEtaria(classe: string): {
@@ -544,12 +683,9 @@ function gerarObjetivosConceptual(
     return {
       geral,
       especificos: [
-        // OE1 N1 (Recordar)
-        `Reconhecer ${foco} em exemplos concretos apresentados em sala, sem consulta, identificando correctamente pelo menos 4 dos 5 exemplos da ficha.`,
-        // OE2 N2 (Compreender)
-        `Descrever as características principais de ${foco} a partir dos exemplos do manual, em pelo menos 2 linhas correctas.`,
-        // OE3 N3 (Aplicar)
-        `Produzir 2 exemplos originais de ${foco} usando situações do bairro ou escola em Angola, ambos gramaticalmente correctos.`,
+        `(Recordar) Reconhecer ${foco} em exemplos concretos apresentados em sala, sem consulta, identificando correctamente pelo menos 4 dos 5 exemplos da ficha.`,
+        `(Compreender) Descrever as características principais de ${foco} a partir dos exemplos do manual, em pelo menos 2 linhas correctas.`,
+        `(Aplicar) Produzir 2 exemplos originais de ${foco} usando situações do bairro ou escola em Angola, ambos gramaticalmente correctos.`,
       ],
     };
   }
@@ -557,12 +693,9 @@ function gerarObjetivosConceptual(
     return {
       geral,
       especificos: [
-        // OE1 N1/N2 (Recordar/Compreender)
-        `Definir ${foco} com as características essenciais aprendidas, sem consulta, em pelo menos 3 linhas correctas.`,
-        // OE2 N2/N3 (Compreender/Aplicar)
-        `Classificar exemplos de ${foco} a partir de uma ficha com 10 casos, acertando pelo menos 7 dos 10.`,
-        // OE3 N4 (Analisar)
-        `Distinguir ${foco} de categorias próximas em textos ou situações da realidade angolana, justificando com pelo menos 2 critérios correctos.`,
+        `(Recordar) Definir ${foco} com as características essenciais aprendidas, sem consulta, em pelo menos 3 linhas correctas.`,
+        `(Compreender) Classificar exemplos de ${foco} a partir de uma ficha com 10 casos, acertando pelo menos 7 dos 10.`,
+        `(Aplicar) Distinguir ${foco} de categorias próximas em textos ou situações da realidade angolana, justificando com pelo menos 2 critérios correctos.`,
       ],
     };
   }
@@ -570,21 +703,18 @@ function gerarObjetivosConceptual(
     return {
       geral,
       especificos: [
-        // OE1 N2 (Compreender)
-        `Explicar ${foco} com precisão terminológica, incluindo todos os critérios de classificação, sem consulta, em pelo menos 4 linhas.`,
-        // OE2 N3 (Aplicar)
-        `Aplicar os conceitos de ${foco} na resolução de pelo menos 3 casos práticos de uma ficha contextualizada na realidade angolana, acertando no mínimo 2.`,
-        // OE3 N4/N5 (Analisar/Avaliar)
-        `Analisar exemplos autênticos de ${foco} em situações do quotidiano angolano, justificando a classificação com pelo menos 3 critérios correctos.`,
+        `(Recordar) Explicar ${foco} com precisão terminológica, incluindo todos os critérios de classificação, sem consulta, em pelo menos 4 linhas.`,
+        `(Compreender) Aplicar os conceitos de ${foco} na resolução de pelo menos 3 casos práticos de uma ficha contextualizada na realidade angolana, acertando no mínimo 2.`,
+        `(Aplicar) Analisar exemplos autênticos de ${foco} em situações do quotidiano angolano, justificando a classificação com pelo menos 3 critérios correctos.`,
       ],
     };
   }
   return {
     geral,
     especificos: [
-      `Definir ${foco} com rigor terminológico, sem consulta, em pelo menos 5 linhas com critérios completos.`,
-      `Comparar ${foco} com conceitos relacionados, identificando pelo menos 3 semelhanças e 3 diferenças a partir de textos propostos.`,
-      `Avaliar criticamente as implicações de ${foco} em contextos angolanos concretos, argumentando com pelo menos 2 fundamentos teóricos.`,
+      `(Recordar) Definir ${foco} com rigor terminológico, sem consulta, em pelo menos 5 linhas com critérios completos.`,
+      `(Compreender) Comparar ${foco} com conceitos relacionados, identificando pelo menos 3 semelhanças e 3 diferenças a partir de textos propostos.`,
+      `(Aplicar) Avaliar criticamente as implicações de ${foco} em contextos angolanos concretos, argumentando com pelo menos 2 fundamentos teóricos.`,
     ],
   };
 }
@@ -610,15 +740,11 @@ function gerarObjetivosProcedimental(
 
   if (isMat) {
     return {
-      // OG — Tyler: capacidade ampla de resolver
       geral: `Resolver problemas envolvendo ${tema}, aplicando os procedimentos matemáticos correctos em ${disc}.`,
       especificos: [
-        // OE1 N1/N2 (Reconhecer/Identificar — Mager: condição + critério)
-        `Identificar os dados, a incógnita e a operação adequada em pelo menos 4 dos 5 exercícios propostos sobre ${foco}, a partir da ficha, sem consulta.`,
-        // OE2 N3 (Aplicar/Resolver — Mager)
-        `Resolver exercícios de ${foco} aplicando o algoritmo correcto, a partir da ficha com 10 exercícios, acertando pelo menos 7.`,
-        // OE3 N3/N4 (Demonstrar/Analisar — contexto angolano)
-        `Demonstrar a verificação dos resultados de ${foco} por substituição ou estimativa, em pelo menos 2 problemas contextualizados na realidade angolana, apresentando todos os passos.`,
+        `(Recordar) Identificar os dados, a incógnita e a operação adequada em pelo menos 4 dos 5 exercícios propostos sobre ${foco}, a partir da ficha, sem consulta.`,
+        `(Compreender) Resolver exercícios de ${foco} aplicando o algoritmo correcto, a partir da ficha com 10 exercícios, acertando pelo menos 7.`,
+        `(Aplicar) Demonstrar a verificação dos resultados de ${foco} por substituição ou estimativa, em pelo menos 2 problemas contextualizados na realidade angolana, apresentando todos os passos.`,
       ],
     };
   }
@@ -627,12 +753,9 @@ function gerarObjetivosProcedimental(
       return {
         geral: `Realizar actividades de ${tema} com compreensão e expressão adequadas ao nível da ${classeNum}ª classe de ${disc}.`,
         especificos: [
-          // OE1 N1 (Reconhecer/Identificar)
-          `Reconhecer as personagens e os acontecimentos principais do texto sobre ${foco}, respondendo a pelo menos 3 das 5 perguntas de interpretação da ficha, sem consulta.`,
-          // OE2 N2 (Explicar/Descrever)
-          `Descrever a ideia principal do texto sobre ${foco} com as suas próprias palavras, em pelo menos 2 frases correctas.`,
-          // OE3 N3 (Produzir/Redigir)
-          `Produzir 3 frases correctas sobre ${foco} usando pelo menos 3 palavras novas aprendidas na aula, no caderno.`,
+          `(Recordar) Reconhecer as personagens e os acontecimentos principais do texto sobre ${foco}, respondendo a pelo menos 3 das 5 perguntas de interpretação da ficha, sem consulta.`,
+          `(Compreender) Descrever a ideia principal do texto sobre ${foco} com as suas próprias palavras, em pelo menos 2 frases correctas.`,
+          `(Aplicar) Produzir 3 frases correctas sobre ${foco} usando pelo menos 3 palavras novas aprendidas na aula, no caderno.`,
         ],
       };
     }
@@ -640,24 +763,18 @@ function gerarObjetivosProcedimental(
       return {
         geral: `Interpretar e analisar textos relacionados com ${tema}, desenvolvendo competências de compreensão crítica em ${disc}.`,
         especificos: [
-          // OE1 N1/N2 (Identificar)
-          `Identificar a ideia central e 2 ideias secundárias do texto sobre ${foco}, respondendo correctamente a pelo menos 4 das 6 questões de interpretação da ficha.`,
-          // OE2 N2/N3 (Resumir/Produzir)
-          `Resumir o texto sobre ${foco} em não mais de 5 linhas, preservando as ideias principais e a coerência textual, no caderno, sem consulta.`,
-          // OE3 N3/N4 (Produzir/Analisar — contexto angolano)
-          `Redigir um parágrafo de 6 a 8 linhas sobre ${foco} usando um exemplo da realidade angolana, respeitando a estrutura e os recursos linguísticos estudados.`,
+          `(Recordar) Identificar a ideia central e 2 ideias secundárias do texto sobre ${foco}, respondendo correctamente a pelo menos 4 das 6 questões de interpretação da ficha.`,
+          `(Compreender) Resumir o texto sobre ${foco} em não mais de 5 linhas, preservando as ideias principais e a coerência textual, no caderno, sem consulta.`,
+          `(Aplicar) Redigir um parágrafo de 6 a 8 linhas sobre ${foco} usando um exemplo da realidade angolana, respeitando a estrutura e os recursos linguísticos estudados.`,
         ],
       };
     }
     return {
       geral: `Analisar e produzir textos relacionados com ${tema}, aplicando competências de leitura crítica e escrita elaborada em ${disc}.`,
       especificos: [
-        // OE1 N2 (Explicar/Descrever)
-        `Explicar os elementos estruturais e os recursos linguísticos de um texto sobre ${foco}, justificando pelo menos 2 escolhas do autor, a partir do texto proposto.`,
-        // OE2 N3 (Produzir)
-        `Produzir um texto de 15 a 20 linhas sobre ${foco} contextualizado na realidade angolana, respeitando a estrutura e os recursos linguísticos estudados.`,
-        // OE3 N4/N5 (Analisar/Avaliar)
-        `Analisar criticamente o ponto de vista do autor sobre ${foco}, fundamentando com pelo menos 2 citações directas do texto proposto.`,
+        `(Recordar) Explicar os elementos estruturais e os recursos linguísticos de um texto sobre ${foco}, justificando pelo menos 2 escolhas do autor, a partir do texto proposto.`,
+        `(Compreender) Produzir um texto de 15 a 20 linhas sobre ${foco} contextualizado na realidade angolana, respeitando a estrutura e os recursos linguísticos estudados.`,
+        `(Aplicar) Analisar criticamente o ponto de vista do autor sobre ${foco}, fundamentando com pelo menos 2 citações directas do texto proposto.`,
       ],
     };
   }
@@ -665,12 +782,9 @@ function gerarObjetivosProcedimental(
   return {
     geral: `Aplicar os procedimentos e competências de ${tema} em situações concretas no âmbito de ${disc}.`,
     especificos: [
-      // OE1 N1/N2 (Reconhecer/Identificar — Mager)
-      `Reconhecer os elementos essenciais de ${foco} a partir de casos práticos da ficha, acertando pelo menos 7 dos 10 exemplos propostos, sem consulta.`,
-      // OE2 N3 (Executar/Demonstrar — Mager)
-      `Executar correctamente os procedimentos de ${foco} completando pelo menos 3 das 4 tarefas práticas propostas, com mediação do professor quando necessário.`,
-      // OE3 N3/N4 (Aplicar/Analisar — contexto angolano)
-      `Demonstrar a aplicação de ${foco} na resolução de um problema contextualizado na realidade angolana, apresentando todo o processo com pelo menos 2 passos correctos.`,
+      `(Recordar) Reconhecer os elementos essenciais de ${foco} a partir de casos práticos da ficha, acertando pelo menos 7 dos 10 exemplos propostos, sem consulta.`,
+      `(Compreender) Executar correctamente os procedimentos de ${foco} completando pelo menos 3 das 4 tarefas práticas propostas, com mediação do professor quando necessário.`,
+      `(Aplicar) Demonstrar a aplicação de ${foco} na resolução de um problema contextualizado na realidade angolana, apresentando todo o processo com pelo menos 2 passos correctos.`,
     ],
   };
 }
@@ -925,51 +1039,36 @@ function gerarPerguntasControlo(
 
   if (isMat)
     return [
-      // PC1 alinhada ao OE1 (N1 — Identificar)
-      `PC1 (Bloom N1 — alinhada ao OE1): Identifica os dados e a incógnita do seguinte exercício de ${foco}: [exercício concreto da ficha].`,
-      // PC2 alinhada ao OE2 (N3 — Resolver)
-      `PC2 (Bloom N3 — alinhada ao OE2): Resolve passo a passo o seguinte exercício de ${foco}, mostrando todos os cálculos: [exercício de nível médio].`,
-      // PC3 alinhada ao OE3 (N3 — Demonstrar — contexto angolano completo)
-      `PC3 (Bloom N3 — alinhada ao OE3): A Joana vende peixe no mercado do Roque Santeiro em Luanda. Ela tem 240 kwanzas e quer comprar ${foco}. Demonstra, com todos os passos, como ela pode resolver este problema.`,
+      `(Recordação) Identifica os dados e a incógnita do seguinte exercício de ${foco} apresentado no quadro negro.`,
+      `(Compreensão) Explica, passo a passo, como resolverias um exercício de ${foco} usando o método aprendido hoje. Usa um exemplo concreto.`,
+      `(Aplicação) A Joana vende peixe no mercado do Roque Santeiro em Luanda. Ela recebeu 2 000 kz e quer calcular ${foco}. Monta a equação e resolve-a, apresentando todos os passos.`,
     ];
 
   if (isLing && natureza === "procedimental") {
     if (classeNum <= 6)
       return [
-        // PC1 alinhada ao OE1 (N1 — Reconhecer)
-        `PC1 (Bloom N1 — alinhada ao OE1): Reconhece as personagens e os dois acontecimentos principais do texto sobre ${foco} que lemos hoje.`,
-        // PC2 alinhada ao OE2 (N2 — Descrever)
-        `PC2 (Bloom N2 — alinhada ao OE2): Descreve com as tuas palavras o que aconteceu na parte mais importante do texto sobre ${foco}.`,
-        // PC3 alinhada ao OE3 (N3 — Produzir)
-        `PC3 (Bloom N3 — alinhada ao OE3): O Mateus, um aluno do teu bairro no Lubango, encontra a mesma situação do texto. Produz 2 frases a descrever o que ele faria, usando as palavras novas da aula.`,
+        `(Recordação) Reconhece as personagens e os dois acontecimentos principais do texto sobre ${foco} que lemos hoje.`,
+        `(Compreensão) Explica com as tuas palavras o que aconteceu na parte mais importante do texto sobre ${foco}.`,
+        `(Aplicação) O Mateus, um aluno do teu bairro no Lubango, encontra a mesma situação do texto. Produz 2 frases a descrever o que ele faria, usando as palavras novas da aula.`,
       ];
     return [
-      // PC1 alinhada ao OE1 (N1/N2 — Identificar)
-      `PC1 (Bloom N1/N2 — alinhada ao OE1): Identifica a ideia central do texto sobre ${foco} que analisámos. Escreve-a numa frase completa.`,
-      // PC2 alinhada ao OE2 (N2/N3 — Resumir/Redigir)
-      `PC2 (Bloom N2/N3 — alinhada ao OE2): Resume o texto sobre ${foco} em não mais de 3 linhas, preservando as ideias essenciais, sem consultar o manual.`,
-      // PC3 alinhada ao OE3 (N3/N4 — Redigir/Analisar — contexto angolano)
-      `PC3 (Bloom N3 — alinhada ao OE3): O Kiala, aluno de uma escola em Luanda, lê este texto sobre ${foco}. Redige um parágrafo de 4 linhas que relaciona ${foco} com uma situação concreta que o Kiala vive no seu bairro.`,
+      `(Recordação) Identifica a ideia central do texto sobre ${foco} que analisámos. Escreve-a numa frase completa.`,
+      `(Compreensão) Explica com as tuas palavras como se relaciona ${foco} com a realidade angolana. Usa um exemplo concreto do texto.`,
+      `(Aplicação) O Kiala, aluno de uma escola em Luanda, lê este texto sobre ${foco}. Redige um parágrafo de 4 linhas que relaciona ${foco} com uma situação concreta que o Kiala vive no seu bairro.`,
     ];
   }
 
   if (classeNum <= 6)
     return [
-      // PC1 N1 (Reconhecer)
-      `PC1 (Bloom N1 — alinhada ao OE1): Reconhece um exemplo de ${foco} entre os seguintes casos que o professor vai mostrar. Indica qual é e porquê.`,
-      // PC2 N2 (Descrever)
-      `PC2 (Bloom N2 — alinhada ao OE2): Descreve com as tuas palavras as características principais de ${foco} que aprendemos hoje.`,
-      // PC3 N3 (Produzir — contexto angolano)
-      `PC3 (Bloom N3 — alinhada ao OE3): A Joana mora num bairro do Lubango e encontrou um exemplo de ${foco} no seu caminho para a escola. Produz 2 frases a descrever esse exemplo usando o que aprendeste.`,
+      `(Recordação) Reconhece um exemplo de ${foco} entre os casos que o professor apresentou hoje. Indica qual é e porquê.`,
+      `(Compreensão) Descreve com as tuas palavras as características principais de ${foco} que aprendemos hoje.`,
+      `(Aplicação) A Joana mora num bairro do Lubango e encontrou um exemplo de ${foco} no seu caminho para a escola. Produz 2 frases a descrever esse exemplo usando o que aprendeste.`,
     ];
 
   return [
-    // PC1 N1/N2 (Definir/Identificar — alinhada ao OE1)
-    `PC1 (Bloom N1/N2 — alinhada ao OE1): Define ${foco} com as características essenciais aprendidas hoje, sem consultar o caderno.`,
-    // PC2 N2/N3 (Explicar/Aplicar — alinhada ao OE2)
-    `PC2 (Bloom N2/N3 — alinhada ao OE2): Explica com as tuas próprias palavras como se aplica ${foco} num exercício ou situação concreta. Usa um exemplo dado na aula de hoje.`,
-    // PC3 N3/N4 (Demonstrar/Analisar — contexto angolano completo, sem placeholders)
-    `PC3 (Bloom N3 — alinhada ao OE3): A Ana, vendedeira no mercado do Roque Santeiro em Luanda, encontra uma situação ligada a ${foco}. Descreve um caso concreto do dia-a-dia dela e demonstra como aplicarias o que aprendeste hoje para o resolver.`,
+    `(Recordação) Identifica as características essenciais de ${foco} aprendidas hoje, sem consultar o caderno.`,
+    `(Compreensão) Explica com as tuas próprias palavras como se aplica ${foco} numa situação concreta. Usa um exemplo dado na aula de hoje.`,
+    `(Aplicação) A Ana, vendedeira no mercado do Roque Santeiro em Luanda, encontra uma situação ligada a ${foco}. Demonstra como aplicarias o que aprendeste hoje para resolver o problema dela.`,
   ];
 }
 
