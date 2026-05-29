@@ -93,16 +93,21 @@ export default function StudentGradesScreen() {
 
   const handleAddMac = async () => {
     if (!selectedStudent || !newMacNota.trim()) return;
-    const nota = parseFloat(newMacNota);
+    const notaStr = newMacNota.replace(",", ".");
+    const nota = parseFloat(notaStr);
     if (isNaN(nota) || nota < 0 || nota > 20) {
-      Alert.alert("Nota inválida", "A nota deve estar entre 0 e 20.");
+      if (Platform.OS === "web") {
+        window.alert("Nota inválida. Deve estar entre 0 e 20.");
+      } else {
+        Alert.alert("Nota inválida", "A nota deve estar entre 0 e 20.");
+      }
       return;
     }
 
     const existing = getStudentGrade(selectedStudent.id);
     const newEntry: GradeEntry = {
       id: generateId(),
-      nota,
+      nota: Math.round(nota * 10) / 10,
       data: new Date().toISOString(),
     };
 
@@ -115,10 +120,20 @@ export default function StudentGradesScreen() {
       periodo: currentPeriod,
     };
 
-    await saveGrade(updatedGrade);
-    updateGradesState(updatedGrade);
-    setNewMacNota("");
-    if (Platform.OS !== "web") Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+    try {
+      await saveGrade(updatedGrade);
+      updateGradesState(updatedGrade);
+      setNewMacNota("");
+      if (Platform.OS !== "web") {
+        Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+      }
+    } catch (e) {
+      if (Platform.OS === "web") {
+        window.alert("Erro ao guardar a nota. Tente novamente.");
+      } else {
+        Alert.alert("Erro", "Não foi possível guardar a nota.");
+      }
+    }
   };
 
   const handleEditMac = (entry: GradeEntry) => {
@@ -128,26 +143,37 @@ export default function StudentGradesScreen() {
 
   const handleSaveEditMac = async () => {
     if (!selectedStudent || !editingEntryId) return;
-    const nota = parseFloat(editingEntryValue);
+    const nota = parseFloat(editingEntryValue.replace(",", "."));
     if (isNaN(nota) || nota < 0 || nota > 20) {
-      Alert.alert("Nota inválida", "A nota deve estar entre 0 e 20.");
+      if (Platform.OS === "web") {
+        window.alert("Nota inválida. Deve estar entre 0 e 20.");
+      } else {
+        Alert.alert("Nota inválida", "A nota deve estar entre 0 e 20.");
+      }
       return;
     }
 
     const existing = getStudentGrade(selectedStudent.id);
     if (!existing) return;
 
+    const roundedNota = Math.round(nota * 10) / 10;
     const updatedGrade: StudentGrade = {
       ...existing,
       mac: existing.mac.map((e) =>
-        e.id === editingEntryId ? { ...e, nota } : e,
+        e.id === editingEntryId ? { ...e, nota: roundedNota } : e,
       ),
+      periodo: currentPeriod,
     };
 
-    await saveGrade(updatedGrade);
-    updateGradesState(updatedGrade);
-    setEditingEntryId(null);
-    setEditingEntryValue("");
+    try {
+      await saveGrade(updatedGrade);
+      updateGradesState(updatedGrade);
+      setEditingEntryId(null);
+      setEditingEntryValue("");
+    } catch (e) {
+      if (Platform.OS === "web") window.alert("Erro ao guardar. Tente novamente.");
+      else Alert.alert("Erro", "Não foi possível guardar a nota.");
+    }
     if (Platform.OS !== "web") Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
   };
 
@@ -188,10 +214,17 @@ export default function StudentGradesScreen() {
       periodo: currentPeriod,
     };
 
-    await saveGrade(updatedGrade);
-    updateGradesState(updatedGrade);
-    setShowModal(false);
-    if (Platform.OS !== "web") Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+    try {
+      await saveGrade(updatedGrade);
+      updateGradesState(updatedGrade);
+      setShowModal(false);
+      if (Platform.OS !== "web") {
+        Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+      }
+    } catch (e) {
+      if (Platform.OS === "web") window.alert("Erro ao guardar. Tente novamente.");
+      else Alert.alert("Erro", "Não foi possível guardar.");
+    }
   };
 
   const sortedStudents = classGroup
