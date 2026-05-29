@@ -1,0 +1,57 @@
+**DISCIPLINA:** Matemática
+**CLASSE/ANO:** 7ª classe
+**SUMÁRIO:** Equações do 1º grau com uma incógnita
+**DURAÇÃO:** 90 minutos
+**DATA:** 30 de maio de 2026
+**PROFESSOR(A):** Ana Silva
+**N.º DE ALUNOS:** 32
+
+**OBJETIVO GERAL:** Resolver equações do primeiro grau com uma incógnita aplicadas a situações do comércio angolano, acertando pelo menos 7 em 10 exercícios.
+
+**OBJETIVOS ESPECÍFICOS:**
+1. (Recordar) Identificar os elementos de uma equação do primeiro grau, sem consulta, enumerando pelo menos 3 componentes correctos.
+2. (Compreender) Explicar o método de resolução de equações do primeiro grau, com consulta do caderno, descrevendo as 3 etapas essenciais.
+3. (Aplicar) Resolver problemas do comércio angolano (preços, trocos) usando equações do primeiro grau, a partir de uma ficha com 8 casos, acertando pelo menos 6.
+
+**CONTEÚDOS:**
+1. Conceito e elementos de uma equação do primeiro grau.
+2. Propriedades e etapas de resolução de equações.
+3. Exemplos práticos de equações aplicadas ao comércio angolano.
+4. Aplicação e exercícios de consolidação.
+
+**MÉTODOS, TÉCNICAS E MEIOS:**
+- Método Expositivo Dialogado: explica no quadro os elementos da equação; alunos respondem oralmente e copiam exemplos.
+- Método de Resolução de Problemas: apresenta situação do comércio angolano; alunos resolvem em grupo com mediação do professor.
+- Técnicas: questionamento oral graduado; análise de exemplos numéricos; resolução individual; correção colectiva no quadro.
+- Meios: quadro negro e giz, manual escolar de Matemática, fichas de exercícios, caderno do aluno, calculadora simples.
+
+**DESENVOLVIMENTO DA AULA:**
+
+| Etapa | Actividades do Professor | Actividades dos Alunos | Tempo |
+|---|---|---|---|
+| Motivação | Apresenta problema real: vendedor no mercado do Sambizanga que precisa calcular preços; regista respostas no quadro; liga à aula anterior sobre expressões algébricas. | Respondem oralmente; partilham conhecimentos prévios; levantam hipóteses sobre como resolver. | 10 min |
+| Desenvolvimento | Escreve equação no quadro; explica elementos (incógnita, 1º membro, 2º membro); demonstra resolução passo a passo; distribui ficha com 8 problemas comerciais. | Copiam exemplos; resolvem exercícios guiados; preenchem ficha individualmente; levantam dúvidas. | 40 min |
+| Consolidação | Circula pela sala dando feedback imediato; orienta correção colectiva no quadro; regista erros comuns. | Verificam respostas; participam na correção colectiva; corrigem erros no caderno. | 30 min |
+| Síntese e Avaliação | Faz síntese oral; coloca 3 perguntas de controlo; regista sumário no quadro; indica TPC. | Respondem às perguntas; completam sumário no caderno; registam TPC. | 10 min |
+
+**PERGUNTAS DE CONTROLO:**
+1. (Recordação) Identifica os 3 elementos essenciais de uma equação do primeiro grau com uma incógnita.
+2. (Compreensão) Explica com as tuas palavras por que razão as equações são úteis no comércio angolano. Usa um exemplo concreto.
+3. (Aplicação) Um vendedor no mercado do Sambizanga vende 5 pacotes de arroz e recebe 500 kz de troco de 2000 kz. Monta a equação que representa esta situação e resolve-a.
+
+**TAREFA DE CASA (TPC):**
+1. Completa os exercícios sobre equações do primeiro grau do manual (Manual de Matemática 7ª classe, Unidade III, páginas 45-47). Tempo: 20 min.
+2. Resolve 3 problemas do teu bairro ou mercado usando equações do primeiro grau. Caderno do aluno. Tempo: 20 min.
+
+**AVALIAÇÃO FORMATIVA:**
+- Correção dos exercícios da ficha (evidência de desempenho): 50%
+- Participação oral na resolução dos problemas (processo dialógico): 30%
+- Qualidade das respostas às perguntas de controlo (retenção imediata): 20%
+Total: 100%. O professor regista observações qualitativas sobre dificuldades para regulação das aprendizagens.
+
+**DIFERENCIAÇÃO PEDAGÓGICA:**
+- Alunos com dificuldades (processo e produto): ficha com problemas numéricos mais simples; consulta do manual permitida; redução da extensão da produção escrita; trabalho em par com colega mais avançado.
+- Alunos avançados (conteúdo e produto): análise adicional de problemas com duas incógnitas; produção mais extensa com argumentação do raciocínio; desafio de criar um problema original do seu bairro.
+
+**OBSERVAÇÕES:**
+Adequar exemplos ao nível cognitivo e contexto cultural da turma. Contextualizar sempre com exemplos da realidade angolana.
