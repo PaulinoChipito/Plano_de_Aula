@@ -1,4 +1,4 @@
-import React, { useEffect, useRef } from "react";
+import React, { useEffect, useRef, useCallback } from "react";
 import {
   View,
   Text,
@@ -9,12 +9,13 @@ import {
   Animated,
   useWindowDimensions,
 } from "react-native";
-import { router } from "expo-router";
+import { router, useFocusEffect } from "expo-router";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import Icon from "@/components/Icon";
 import { LinearGradient } from "expo-linear-gradient";
 import * as Haptics from "expo-haptics";
 import Svg, { Path } from "react-native-svg";
+import { usePeriod } from "@/lib/periodContext";
 
 const USE_NATIVE_DRIVER = Platform.OS !== "web";
 const CARD_GAP = 16;
@@ -96,19 +97,11 @@ function AnimatedBlob({
     ).start();
   }, []);
 
-  const translateX = anim.interpolate({
-    inputRange: [0, 1],
-    outputRange: xRange,
-  });
-  const translateY = anim.interpolate({
-    inputRange: [0, 1],
-    outputRange: yRange,
-  });
+  const translateX = anim.interpolate({ inputRange: [0, 1], outputRange: xRange });
+  const translateY = anim.interpolate({ inputRange: [0, 1], outputRange: yRange });
 
   return (
-    <Animated.View
-      style={[style, { transform: [{ translateX }, { translateY }] }]}
-    />
+    <Animated.View style={[style, { transform: [{ translateX }, { translateY }] }]} />
   );
 }
 
@@ -127,6 +120,7 @@ export default function Dashboard() {
   const insets = useSafeAreaInsets();
   const { width: screenWidth } = useWindowDimensions();
   const topPadding = Platform.OS === "web" ? 16 : insets.top;
+  const { currentPeriod, setPeriod, periodLabels, periodKeys, currentPeriodLabel, refreshProfile } = usePeriod();
 
   const cardWidth = (screenWidth - CARD_PADDING * 2 - CARD_GAP) / 2;
   const iconContainerSize = Math.min(64, Math.max(44, Math.round(cardWidth * 0.36)));
@@ -135,6 +129,12 @@ export default function Dashboard() {
   const cardMinHeight = iconContainerSize + 60;
 
   const cardScales = useRef(GRID_ITEMS.map(() => new Animated.Value(1))).current;
+
+  useFocusEffect(
+    useCallback(() => {
+      refreshProfile();
+    }, [refreshProfile])
+  );
 
   const handlePressIn = (index: number) => {
     Animated.spring(cardScales[index], {
@@ -159,6 +159,11 @@ export default function Dashboard() {
     router.push(route as any);
   };
 
+  const handlePeriodPress = (key: string) => {
+    if (Platform.OS !== "web") Haptics.selectionAsync?.();
+    setPeriod(key);
+  };
+
   return (
     <View style={styles.root}>
       <LinearGradient
@@ -168,18 +173,8 @@ export default function Dashboard() {
         end={{ x: 0.8, y: 1 }}
       />
 
-      <AnimatedBlob
-        style={styles.blobPurple}
-        xRange={[0, 100]}
-        yRange={[0, 50]}
-        duration={20000}
-      />
-      <AnimatedBlob
-        style={styles.blobTeal}
-        xRange={[0, -100]}
-        yRange={[0, -50]}
-        duration={15000}
-      />
+      <AnimatedBlob style={styles.blobPurple} xRange={[0, 100]} yRange={[0, 50]} duration={20000} />
+      <AnimatedBlob style={styles.blobTeal} xRange={[0, -100]} yRange={[0, -50]} duration={15000} />
 
       <ScrollView
         style={styles.scrollView}
@@ -205,10 +200,7 @@ export default function Dashboard() {
             </View>
             <Pressable
               onPress={() => handlePress("/settings")}
-              style={({ pressed }) => [
-                styles.settingsBtn,
-                { opacity: pressed ? 0.7 : 1 },
-              ]}
+              style={({ pressed }) => [styles.settingsBtn, { opacity: pressed ? 0.7 : 1 }]}
             >
               <Icon name="settings" size={20} color="rgba(255,255,255,0.9)" />
             </Pressable>
@@ -216,7 +208,39 @@ export default function Dashboard() {
           <WaveSvg />
         </LinearGradient>
 
-        <View style={[styles.gridContainer, { padding: CARD_PADDING, paddingTop: 24 }]}>
+        {/* ── Period Selector ── */}
+        <View style={styles.periodBar}>
+          <ScrollView
+            horizontal
+            showsHorizontalScrollIndicator={false}
+            contentContainerStyle={styles.periodBarContent}
+          >
+            {periodKeys.map((key, i) => {
+              const active = currentPeriod === key;
+              return (
+                <Pressable
+                  key={key}
+                  onPress={() => handlePeriodPress(key)}
+                  style={({ pressed }) => [
+                    styles.periodChip,
+                    active && styles.periodChipActive,
+                    { opacity: pressed ? 0.8 : 1 },
+                  ]}
+                >
+                  <Text style={[styles.periodChipText, active && styles.periodChipTextActive]}>
+                    {periodLabels[i]}
+                  </Text>
+                </Pressable>
+              );
+            })}
+          </ScrollView>
+          <View style={styles.periodBadge}>
+            <Icon name="time" size={11} color="rgba(255,255,255,0.45)" />
+            <Text style={styles.periodBadgeText}>{currentPeriodLabel} activo</Text>
+          </View>
+        </View>
+
+        <View style={[styles.gridContainer, { padding: CARD_PADDING, paddingTop: 20 }]}>
           <View style={styles.grid}>
             {GRID_ITEMS.map((item, index) => (
               <Animated.View
@@ -270,132 +294,105 @@ export default function Dashboard() {
 }
 
 const styles = StyleSheet.create({
-  root: {
-    flex: 1,
-    backgroundColor: "#0F1729",
-  },
+  root: { flex: 1, backgroundColor: "#0F1729" },
   blobPurple: {
-    position: "absolute",
-    top: 80,
-    left: -80,
-    width: 288,
-    height: 288,
-    borderRadius: 144,
-    backgroundColor: "rgba(168,85,247,0.2)",
+    position: "absolute", top: 80, left: -80, width: 288, height: 288,
+    borderRadius: 144, backgroundColor: "rgba(168,85,247,0.2)",
   },
   blobTeal: {
-    position: "absolute",
-    bottom: 80,
-    right: -80,
-    width: 384,
-    height: 384,
-    borderRadius: 192,
-    backgroundColor: "rgba(20,184,166,0.2)",
+    position: "absolute", bottom: 80, right: -80, width: 384, height: 384,
+    borderRadius: 192, backgroundColor: "rgba(20,184,166,0.2)",
   },
-  scrollView: {
-    flex: 1,
-  },
-  header: {
-    paddingHorizontal: 20,
-    paddingBottom: 0,
-    overflow: "hidden",
-  },
+  scrollView: { flex: 1 },
+  header: { paddingHorizontal: 20, paddingBottom: 0, overflow: "hidden" },
   headerRow: {
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "space-between",
+    flexDirection: "row", alignItems: "center", justifyContent: "space-between",
     paddingBottom: 20,
   },
-  headerSpacer: {
-    width: 40,
-  },
+  headerSpacer: { width: 40 },
   headerInner: {
-    flex: 1,
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "center",
-    gap: 8,
+    flex: 1, flexDirection: "row", alignItems: "center",
+    justifyContent: "center", gap: 8,
   },
-  headerTitleBlock: {
-    alignItems: "center",
-    gap: 1,
-  },
+  headerTitleBlock: { alignItems: "center", gap: 1 },
   headerTitle: {
-    fontFamily: "Inter_700Bold",
-    fontSize: 20,
-    color: "#fff",
-    letterSpacing: -0.3,
+    fontFamily: "Inter_700Bold", fontSize: 20, color: "#fff", letterSpacing: -0.3,
   },
   headerSubtitle: {
-    fontFamily: "Inter_400Regular",
-    fontSize: 11,
-    color: "rgba(255,255,255,0.75)",
-    letterSpacing: 0.5,
+    fontFamily: "Inter_400Regular", fontSize: 11,
+    color: "rgba(255,255,255,0.75)", letterSpacing: 0.5,
   },
   settingsBtn: {
-    width: 40,
-    height: 40,
-    borderRadius: 20,
+    width: 40, height: 40, borderRadius: 20,
     backgroundColor: "rgba(255,255,255,0.2)",
-    alignItems: "center",
-    justifyContent: "center",
+    alignItems: "center", justifyContent: "center",
   },
-  gridContainer: {},
-  grid: {
+
+  /* ── Period selector ── */
+  periodBar: {
+    backgroundColor: "rgba(15,23,42,0.85)",
+    borderBottomWidth: 1, borderBottomColor: "rgba(255,255,255,0.08)",
+    paddingVertical: 10,
+  },
+  periodBarContent: {
+    paddingHorizontal: 16,
+    gap: 8,
     flexDirection: "row",
-    flexWrap: "wrap",
-    gap: CARD_GAP,
+    alignItems: "center",
   },
-  card: {
-    borderRadius: 24,
-    overflow: "hidden",
-  },
-  cardBorder: {
-    borderRadius: 24,
+  periodChip: {
+    paddingHorizontal: 18,
+    paddingVertical: 8,
+    borderRadius: 999,
+    backgroundColor: "rgba(255,255,255,0.07)",
     borderWidth: 1,
+    borderColor: "rgba(255,255,255,0.12)",
+  },
+  periodChipActive: {
+    backgroundColor: "rgba(20,184,166,0.25)",
+    borderColor: "#14B8A6",
+  },
+  periodChipText: {
+    fontFamily: "Inter_600SemiBold",
+    fontSize: 13,
+    color: "rgba(255,255,255,0.5)",
+    letterSpacing: 0.2,
+  },
+  periodChipTextActive: {
+    color: "#34D399",
+  },
+  periodBadge: {
+    flexDirection: "row", alignItems: "center", gap: 4,
+    paddingHorizontal: 16, paddingTop: 6,
+  },
+  periodBadgeText: {
+    fontFamily: "Inter_400Regular", fontSize: 11,
+    color: "rgba(255,255,255,0.35)",
+  },
+
+  /* ── Grid ── */
+  gridContainer: {},
+  grid: { flexDirection: "row", flexWrap: "wrap", gap: CARD_GAP },
+  card: { borderRadius: 24, overflow: "hidden" },
+  cardBorder: {
+    borderRadius: 24, borderWidth: 1,
     borderColor: "rgba(255,255,255,0.2)",
     backgroundColor: "rgba(255,255,255,0.08)",
   },
-  cardContent: {
-    padding: 16,
-    alignItems: "center",
-    justifyContent: "center",
-    gap: 12,
-  },
-  iconContainer: {
-    alignItems: "center",
-    justifyContent: "center",
-  },
+  cardContent: { padding: 16, alignItems: "center", justifyContent: "center", gap: 12 },
+  iconContainer: { alignItems: "center", justifyContent: "center" },
   cardLabel: {
-    fontFamily: "Inter_500Medium",
-    fontSize: 13,
-    color: "#fff",
-    textAlign: "center",
+    fontFamily: "Inter_500Medium", fontSize: 13, color: "#fff", textAlign: "center",
   },
-  footer: {
-    marginTop: 32,
-    alignItems: "center",
-  },
+  footer: { marginTop: 32, alignItems: "center" },
   footerBadge: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 8,
-    paddingHorizontal: 16,
-    paddingVertical: 8,
-    borderRadius: 999,
+    flexDirection: "row", alignItems: "center", gap: 8,
+    paddingHorizontal: 16, paddingVertical: 8, borderRadius: 999,
     backgroundColor: "rgba(255,255,255,0.1)",
-    borderWidth: 1,
-    borderColor: "rgba(255,255,255,0.15)",
+    borderWidth: 1, borderColor: "rgba(255,255,255,0.15)",
   },
-  statusDot: {
-    width: 8,
-    height: 8,
-    borderRadius: 4,
-    backgroundColor: "#34D399",
-  },
+  statusDot: { width: 8, height: 8, borderRadius: 4, backgroundColor: "#34D399" },
   footerText: {
-    fontFamily: "Inter_400Regular",
-    fontSize: 13,
-    color: "rgba(255,255,255,0.7)",
+    fontFamily: "Inter_400Regular", fontSize: 13, color: "rgba(255,255,255,0.7)",
   },
 });

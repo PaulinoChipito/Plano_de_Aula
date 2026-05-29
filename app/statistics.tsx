@@ -22,6 +22,7 @@ import {
   GradeEntry,
 } from "@/lib/storage";
 import { getMacAverage, getNotaFinal } from "@/lib/gradeUtils";
+import { usePeriod } from "@/lib/periodContext";
 
 interface Insight {
   type: "warning" | "success" | "info";
@@ -37,17 +38,18 @@ export default function StatisticsScreen() {
   const [classes, setClasses] = useState<ClassGroup[]>([]);
   const [grades, setGrades] = useState<StudentGrade[]>([]);
   const [attendance, setAttendance] = useState<AttendanceRecord[]>([]);
+  const { currentPeriod, currentPeriodLabel } = usePeriod();
 
   useFocusEffect(
     useCallback(() => {
       Promise.all([getClasses(), getGrades(), getAttendance()]).then(
         ([c, g, a]) => {
           setClasses(c);
-          setGrades(g);
-          setAttendance(a);
+          setGrades(g.filter((gr) => (gr.periodo ?? "I") === currentPeriod));
+          setAttendance(a.filter((ar) => (ar.periodo ?? "I") === currentPeriod));
         },
       );
-    }, []),
+    }, [currentPeriod]),
   );
 
   const getStudentName = (alunoId: string): string => {

@@ -28,6 +28,7 @@ import {
   GradeEntry,
 } from "@/lib/storage";
 import { getMacAverage, getNotaFinal, MAC_PESO, NPT_PESO } from "@/lib/gradeUtils";
+import { usePeriod } from "@/lib/periodContext";
 
 export default function StudentGradesScreen() {
   const { turmaId } = useLocalSearchParams<{ turmaId: string }>();
@@ -45,13 +46,19 @@ export default function StudentGradesScreen() {
   const [editingEntryId, setEditingEntryId] = useState<string | null>(null);
   const [editingEntryValue, setEditingEntryValue] = useState("");
 
+  const { currentPeriod } = usePeriod();
+
   useEffect(() => {
     Promise.all([getClasses(), getGrades()]).then(([classes, allGrades]) => {
       const found = classes.find((c) => c.id === turmaId);
       if (found) setClassGroup(found);
-      setGrades(allGrades.filter((g) => g.turmaId === turmaId));
+      setGrades(
+        allGrades.filter(
+          (g) => g.turmaId === turmaId && (g.periodo ?? "I") === currentPeriod,
+        ),
+      );
     });
-  }, [turmaId]);
+  }, [turmaId, currentPeriod]);
 
   const getStudentGrade = (alunoId: string): StudentGrade | undefined => {
     return grades.find((g) => g.alunoId === alunoId);
@@ -105,6 +112,7 @@ export default function StudentGradesScreen() {
       mac: existing ? [...existing.mac, newEntry] : [newEntry],
       npt: existing?.npt ?? null,
       observacao: existing?.observacao || "",
+      periodo: currentPeriod,
     };
 
     await saveGrade(updatedGrade);
@@ -177,6 +185,7 @@ export default function StudentGradesScreen() {
       mac: existing?.mac || [],
       npt: npt !== null && !isNaN(npt) ? npt : null,
       observacao: observacao.trim(),
+      periodo: currentPeriod,
     };
 
     await saveGrade(updatedGrade);

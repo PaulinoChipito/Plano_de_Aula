@@ -18,6 +18,7 @@ import { LinearGradient } from "expo-linear-gradient";
 import * as Haptics from "expo-haptics";
 import Colors from "@/constants/colors";
 import { generateId, saveLessonPlan, LessonPlan } from "@/lib/storage";
+import { usePeriod } from "@/lib/periodContext";
 import {
   generateLessonPlanOffline,
   GenerationStatus,
@@ -49,6 +50,7 @@ export default function CreatePlanScreen() {
   const [editSumario, setEditSumario] = useState("");
   const [editObjetivoGeral, setEditObjetivoGeral] = useState("");
   const [genStatus, setGenStatus] = useState<GenerationStatus>({ stage: "idle" });
+  const { currentPeriod } = usePeriod();
 
   const canGenerate =
     classe.trim() && disciplina.trim() && tema.trim() && duracao.trim();
@@ -99,6 +101,7 @@ export default function CreatePlanScreen() {
         score: result.score,
         sugestoes: result.sugestoes,
         createdAt: new Date().toISOString(),
+        periodo: currentPeriod,
       };
 
       setAiPlan(plan);
@@ -155,6 +158,7 @@ export default function CreatePlanScreen() {
       score: 0,
       sugestoes: [],
       createdAt: new Date().toISOString(),
+      periodo: currentPeriod,
     };
     await saveLessonPlan(plan);
     if (Platform.OS !== "web") {

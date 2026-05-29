@@ -50,6 +50,7 @@ export interface LessonPlan {
   score: number;
   sugestoes: string[];
   createdAt: string;
+  periodo?: string;
 }
 
 export interface Student {
@@ -80,12 +81,14 @@ export interface StudentGrade {
   mac: GradeEntry[];
   npt: number | null;
   observacao: string;
+  periodo?: string;
 }
 
 export interface AttendanceRecord {
   turmaId: string;
   data: string;
   registos: { alunoId: string; presente: boolean }[];
+  periodo?: string;
 }
 
 export interface AgendaEvent {
@@ -95,6 +98,7 @@ export interface AgendaEvent {
   data: string;
   hora: string;
   descricao: string;
+  periodo?: string;
 }
 
 export const NIVEL_ENSINO_OPTIONS = [
@@ -190,8 +194,12 @@ export async function getGrades(): Promise<StudentGrade[]> {
 
 export async function saveGrade(grade: StudentGrade): Promise<void> {
   const grades = await getGrades();
+  const gradePeriodo = grade.periodo ?? "I";
   const idx = grades.findIndex(
-    (g) => g.alunoId === grade.alunoId && g.turmaId === grade.turmaId,
+    (g) =>
+      g.alunoId === grade.alunoId &&
+      g.turmaId === grade.turmaId &&
+      (g.periodo ?? "I") === gradePeriodo,
   );
   if (idx >= 0) grades[idx] = grade;
   else grades.push(grade);

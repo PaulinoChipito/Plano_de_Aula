@@ -22,6 +22,7 @@ import {
   Student,
   AttendanceRecord,
 } from "@/lib/storage";
+import { usePeriod } from "@/lib/periodContext";
 
 type Tab = "hoje" | "historico";
 
@@ -46,24 +47,27 @@ export default function AttendanceMarkScreen() {
   const [expandedDate, setExpandedDate] = useState<string | null>(null);
   const today = new Date().toISOString().split("T")[0];
 
+  const { currentPeriod, currentPeriodLabel } = usePeriod();
+
   const load = useCallback(() => {
     Promise.all([getClasses(), getAttendance()]).then(([classes, records]) => {
       const found = classes.find((c) => c.id === turmaId);
       if (found) {
         setClassGroup(found);
-        const todayRecord = records.find(
-          (r) => r.turmaId === turmaId && r.data === today,
+        const periodRecords = records.filter(
+          (r) => r.turmaId === turmaId && (r.periodo ?? "I") === currentPeriod,
         );
+        const todayRecord = periodRecords.find((r) => r.data === today);
         const map = new Map<string, boolean>();
         found.alunos.forEach((a) => {
           const existing = todayRecord?.registos.find((r) => r.alunoId === a.id);
           map.set(a.id, existing ? existing.presente : true);
         });
         setAttendanceState(map);
-        setAllRecords(records.filter((r) => r.turmaId === turmaId));
+        setAllRecords(periodRecords);
       }
     });
-  }, [turmaId]);
+  }, [turmaId, currentPeriod]);
 
   useEffect(() => { load(); }, [load]);
 
@@ -85,6 +89,7 @@ export default function AttendanceMarkScreen() {
         alunoId: a.id,
         presente: attendance.get(a.id) ?? true,
       })),
+      periodo: currentPeriod,
     };
     await saveAttendance(record);
     if (Platform.OS !== "web") Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);

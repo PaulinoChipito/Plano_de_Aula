@@ -17,6 +17,7 @@ import { LinearGradient } from "expo-linear-gradient";
 import * as Haptics from "expo-haptics";
 import Colors from "@/constants/colors";
 import { getEvents, saveEvent, deleteEvent, generateId, AgendaEvent } from "@/lib/storage";
+import { usePeriod } from "@/lib/periodContext";
 
 const EVENT_TYPES = [
   { value: "aula" as const, label: "Aula", icon: "book-open", color: Colors.primary },
@@ -37,13 +38,18 @@ export default function AgendaScreen() {
   const [data, setData] = useState(new Date().toISOString().split("T")[0]);
   const [hora, setHora] = useState("08:00");
   const [descricao, setDescricao] = useState("");
+  const { currentPeriod, currentPeriodLabel } = usePeriod();
 
   useFocusEffect(
     useCallback(() => {
       getEvents().then((evts) => {
-        setEvents(evts.sort((a, b) => a.data.localeCompare(b.data) || a.hora.localeCompare(b.hora)));
+        setEvents(
+          evts
+            .filter((e) => (e.periodo ?? "I") === currentPeriod)
+            .sort((a, b) => a.data.localeCompare(b.data) || a.hora.localeCompare(b.hora)),
+        );
       });
-    }, []),
+    }, [currentPeriod]),
   );
 
   const handleCreate = async () => {
@@ -55,6 +61,7 @@ export default function AgendaScreen() {
       data,
       hora,
       descricao: descricao.trim(),
+      periodo: currentPeriod,
     };
     await saveEvent(event);
     setEvents((prev) =>

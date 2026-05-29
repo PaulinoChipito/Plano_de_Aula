@@ -15,17 +15,21 @@ import { LinearGradient } from "expo-linear-gradient";
 import * as Haptics from "expo-haptics";
 import Colors from "@/constants/colors";
 import { getLessonPlans, deleteLessonPlan, LessonPlan } from "@/lib/storage";
+import { usePeriod } from "@/lib/periodContext";
 
 export default function LessonPlansScreen() {
   const insets = useSafeAreaInsets();
   const topPadding = Platform.OS === "web" ? 67 : insets.top;
   const bottomPadding = Platform.OS === "web" ? 34 : insets.bottom;
   const [plans, setPlans] = useState<LessonPlan[]>([]);
+  const { currentPeriod, currentPeriodLabel } = usePeriod();
 
   useFocusEffect(
     useCallback(() => {
-      getLessonPlans().then(setPlans);
-    }, []),
+      getLessonPlans().then((all) =>
+        setPlans(all.filter((p) => (p.periodo ?? "I") === currentPeriod)),
+      );
+    }, [currentPeriod]),
   );
 
   const handleDelete = (id: string) => {
@@ -106,7 +110,7 @@ export default function LessonPlansScreen() {
         >
           <Icon name="chevron-back" size={24} color="#fff" />
         </Pressable>
-        <Text style={styles.headerTitle}>Planos de Aula</Text>
+        <Text style={styles.headerTitle}>Planos · {currentPeriodLabel}</Text>
         <Pressable
           onPress={() => {
             if (Platform.OS !== "web")
@@ -133,7 +137,7 @@ export default function LessonPlansScreen() {
             <Icon name="file-text" size={48} color={Colors.textMuted} />
             <Text style={styles.emptyTitle}>Sem planos de aula</Text>
             <Text style={styles.emptySubtitle}>
-              Crie o seu primeiro plano com IA
+              Crie o primeiro plano do {currentPeriodLabel}
             </Text>
           </View>
         }

@@ -14,6 +14,7 @@ import Icon from "@/components/Icon";
 import { LinearGradient } from "expo-linear-gradient";
 import Colors from "@/constants/colors";
 import { getClasses, getAttendance, getTeacherProfile, ClassGroup, AttendanceRecord } from "@/lib/storage";
+import { usePeriod } from "@/lib/periodContext";
 import ExportMenu from "@/components/ExportMenu";
 import { exportPdfFromHtml, exportExcel } from "@/lib/exports";
 import { attendanceMapHtml, attendanceMapExcel } from "@/lib/exportTemplates";
@@ -25,14 +26,15 @@ export default function AttendanceScreen() {
   const [classes, setClasses] = useState<ClassGroup[]>([]);
   const [attendance, setAttendance] = useState<AttendanceRecord[]>([]);
   const [exportTarget, setExportTarget] = useState<ClassGroup | null>(null);
+  const { currentPeriod, currentPeriodLabel } = usePeriod();
 
   useFocusEffect(
     useCallback(() => {
       Promise.all([getClasses(), getAttendance()]).then(([c, a]) => {
         setClasses(c);
-        setAttendance(a);
+        setAttendance(a.filter((r) => (r.periodo ?? "I") === currentPeriod));
       });
-    }, []),
+    }, [currentPeriod]),
   );
 
   const getAttendanceStats = (turmaId: string) => {
