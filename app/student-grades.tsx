@@ -203,7 +203,16 @@ export default function StudentGradesScreen() {
   const handleSaveNptObs = async () => {
     if (!selectedStudent) return;
     const existing = getStudentGrade(selectedStudent.id);
-    const npt = nptValue.trim() ? parseFloat(nptValue) : null;
+    const npt = nptValue.trim() ? parseFloat(nptValue.replace(",", ".")) : null;
+
+    if (npt !== null && (isNaN(npt) || npt < 0 || npt > 20)) {
+      if (Platform.OS === "web") {
+        window.alert("NPT inválida. A nota deve estar entre 0 e 20.");
+      } else {
+        Alert.alert("NPT inválida", "A nota da prova trimestral deve estar entre 0 e 20.");
+      }
+      return;
+    }
 
     const updatedGrade: StudentGrade = {
       alunoId: selectedStudent.id,

@@ -67,6 +67,7 @@ export interface ClassGroup {
   disciplina: string;
   alunos: Student[];
   createdAt: string;
+  faltasLimite?: number;
 }
 
 export interface GradeEntry {

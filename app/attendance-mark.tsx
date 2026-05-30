@@ -6,7 +6,9 @@ import {
   FlatList,
   Pressable,
   Platform,
-  SectionList,
+  Modal,
+  TextInput,
+  KeyboardAvoidingView,
 } from "react-native";
 import { router, useLocalSearchParams } from "expo-router";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
@@ -18,6 +20,7 @@ import {
   getClasses,
   getAttendance,
   saveAttendance,
+  saveClass,
   ClassGroup,
   Student,
   AttendanceRecord,
@@ -45,6 +48,8 @@ export default function AttendanceMarkScreen() {
   const [attendance, setAttendanceState] = useState<Map<string, boolean>>(new Map());
   const [allRecords, setAllRecords] = useState<AttendanceRecord[]>([]);
   const [expandedDate, setExpandedDate] = useState<string | null>(null);
+  const [showLimitModal, setShowLimitModal] = useState(false);
+  const [limitInput, setLimitInput] = useState("");
   const today = new Date().toISOString().split("T")[0];
 
   const { currentPeriod, currentPeriodLabel } = usePeriod();
@@ -103,6 +108,21 @@ export default function AttendanceMarkScreen() {
 
   const presentCount = Array.from(attendance.values()).filter(Boolean).length;
   const absentCount = attendance.size - presentCount;
+  const faltasLimite = classGroup?.faltasLimite ?? null;
+
+  const handleSaveLimit = async () => {
+    if (!classGroup) return;
+    const val = parseInt(limitInput.trim(), 10);
+    const updated = { ...classGroup, faltasLimite: isNaN(val) || val <= 0 ? undefined : val };
+    await saveClass(updated);
+    setClassGroup(updated);
+    setShowLimitModal(false);
+  };
+
+  const openLimitModal = () => {
+    setLimitInput(faltasLimite !== null ? String(faltasLimite) : "");
+    setShowLimitModal(true);
+  };
 
   const getStudentStats = (alunoId: string) => {
     const records = allRecords.filter((r) =>
@@ -112,7 +132,9 @@ export default function AttendanceMarkScreen() {
     const present = records.filter((r) =>
       r.registos.find((reg) => reg.alunoId === alunoId && reg.presente),
     ).length;
-    return { total, present, pct: total > 0 ? Math.round((present / total) * 100) : 0 };
+    const faltas = total - present;
+    const reprovado = faltasLimite !== null && faltas > faltasLimite;
+    return { total, present, faltas, pct: total > 0 ? Math.round((present / total) * 100) : 0, reprovado };
   };
 
   const pastRecords = allRecords
@@ -130,6 +152,7 @@ export default function AttendanceMarkScreen() {
           styles.studentCard,
           { opacity: pressed ? 0.95 : 1 },
           !isPresent && styles.studentCardAbsent,
+          stats.reprovado && styles.studentCardReprovado,
         ]}
       >
         <View style={styles.studentNum}>
@@ -141,8 +164,15 @@ export default function AttendanceMarkScreen() {
           </Text>
           {stats.total > 0 && (
             <Text style={styles.studentStats}>
-              {stats.pct}% freq. ({stats.present}/{stats.total})
+              {stats.pct}% freq. · {stats.faltas} falta{stats.faltas !== 1 ? "s" : ""}
+              {faltasLimite !== null ? ` / lim. ${faltasLimite}` : ""}
             </Text>
+          )}
+          {stats.reprovado && (
+            <View style={styles.reprovadoBadge}>
+              <Icon name="warning" size={10} color="#fff" />
+              <Text style={styles.reprovadoBadgeText}>Reprovado por faltas</Text>
+            </View>
           )}
         </View>
         <View style={[styles.toggleBtn, isPresent ? styles.togglePresent : styles.toggleAbsent]}>
@@ -248,14 +278,25 @@ export default function AttendanceMarkScreen() {
         <View style={styles.headerCenter}>
           <Text style={styles.headerTitle}>{classGroup.designacao}</Text>
           <Text style={styles.headerSubtitle}>{classGroup.disciplina}</Text>
+          {faltasLimite !== null && (
+            <View style={styles.limitBadgeHeader}>
+              <Icon name="warning" size={10} color="#FBBF24" />
+              <Text style={styles.limitBadgeHeaderText}>Lim. {faltasLimite} faltas</Text>
+            </View>
+          )}
         </View>
-        {activeTab === "hoje" ? (
-          <Pressable onPress={handleSave} style={({ pressed }) => [styles.saveHeaderBtn, { opacity: pressed ? 0.7 : 1 }]}>
-            <Icon name="check" size={20} color={Colors.success} />
+        <View style={styles.headerActions}>
+          <Pressable onPress={openLimitModal} style={({ pressed }) => [styles.limitBtn, { opacity: pressed ? 0.7 : 1 }]}>
+            <Icon name="settings" size={17} color={faltasLimite !== null ? "#FBBF24" : Colors.textMuted} />
           </Pressable>
-        ) : (
-          <View style={{ width: 40 }} />
-        )}
+          {activeTab === "hoje" ? (
+            <Pressable onPress={handleSave} style={({ pressed }) => [styles.saveHeaderBtn, { opacity: pressed ? 0.7 : 1 }]}>
+              <Icon name="check" size={20} color={Colors.success} />
+            </Pressable>
+          ) : (
+            <View style={{ width: 40 }} />
+          )}
+        </View>
       </View>
 
       <View style={styles.tabBar}>
@@ -278,6 +319,59 @@ export default function AttendanceMarkScreen() {
           </Text>
         </Pressable>
       </View>
+
+      {/* Modal: Limite de faltas */}
+      <Modal visible={showLimitModal} transparent animationType="fade" onRequestClose={() => setShowLimitModal(false)}>
+        <KeyboardAvoidingView behavior={Platform.OS === "ios" ? "padding" : undefined} style={styles.limitModalOverlay}>
+          <Pressable style={StyleSheet.absoluteFillObject} onPress={() => setShowLimitModal(false)} />
+          <View style={styles.limitModalContent}>
+            <Text style={styles.limitModalTitle}>Limite de Faltas</Text>
+            <Text style={styles.limitModalSubtitle}>
+              Alunos que ultrapassem este número de faltas serão marcados como reprovados por faltas.
+            </Text>
+            <TextInput
+              style={styles.limitModalInput}
+              value={limitInput}
+              onChangeText={setLimitInput}
+              placeholder="Ex: 10"
+              placeholderTextColor={Colors.textMuted}
+              keyboardType="numeric"
+              autoFocus
+            />
+            {faltasLimite !== null && (
+              <Pressable
+                onPress={async () => {
+                  if (!classGroup) return;
+                  const updated = { ...classGroup, faltasLimite: undefined };
+                  await saveClass(updated);
+                  setClassGroup(updated);
+                  setShowLimitModal(false);
+                }}
+                style={({ pressed }) => [styles.limitRemoveBtn, { opacity: pressed ? 0.7 : 1 }]}
+              >
+                <Icon name="trash-2" size={14} color={Colors.error} />
+                <Text style={styles.limitRemoveBtnText}>Remover limite</Text>
+              </Pressable>
+            )}
+            <View style={styles.limitModalBtnRow}>
+              <Pressable
+                onPress={() => setShowLimitModal(false)}
+                style={({ pressed }) => [styles.limitCancelBtn, { opacity: pressed ? 0.8 : 1 }]}
+              >
+                <Text style={styles.limitCancelBtnText}>Cancelar</Text>
+              </Pressable>
+              <Pressable
+                onPress={handleSaveLimit}
+                disabled={!limitInput.trim()}
+                style={({ pressed }) => [styles.limitSaveBtn, !limitInput.trim() && styles.limitSaveBtnDisabled, { opacity: pressed ? 0.9 : 1 }]}
+              >
+                <Icon name="check" size={16} color="#fff" />
+                <Text style={styles.limitSaveBtnText}>Guardar</Text>
+              </Pressable>
+            </View>
+          </View>
+        </KeyboardAvoidingView>
+      </Modal>
 
       {activeTab === "hoje" ? (
         <>
@@ -426,4 +520,63 @@ const styles = StyleSheet.create({
     fontFamily: "Inter_400Regular", fontSize: 14, color: Colors.textSecondary,
     textAlign: "center", paddingHorizontal: 32,
   },
+  headerActions: { flexDirection: "row", alignItems: "center", gap: 4 },
+  limitBtn: {
+    width: 36, height: 36, alignItems: "center", justifyContent: "center",
+    borderRadius: 10,
+  },
+  limitBadgeHeader: {
+    flexDirection: "row", alignItems: "center", gap: 3,
+    marginTop: 3,
+  },
+  limitBadgeHeaderText: {
+    fontFamily: "Inter_500Medium", fontSize: 11, color: "#FBBF24",
+  },
+  studentCardReprovado: {
+    backgroundColor: "rgba(251,191,36,0.08)",
+    borderColor: "rgba(251,191,36,0.35)",
+  },
+  reprovadoBadge: {
+    flexDirection: "row", alignItems: "center", gap: 4,
+    marginTop: 4, backgroundColor: "#DC2626", borderRadius: 5,
+    paddingHorizontal: 6, paddingVertical: 2, alignSelf: "flex-start",
+  },
+  reprovadoBadgeText: {
+    fontFamily: "Inter_600SemiBold", fontSize: 10, color: "#fff",
+  },
+  limitModalOverlay: {
+    flex: 1, backgroundColor: "rgba(0,0,0,0.7)",
+    justifyContent: "center", paddingHorizontal: 24,
+  },
+  limitModalContent: {
+    backgroundColor: Colors.modalBg, borderRadius: 20, padding: 24, gap: 14,
+    borderWidth: 1, borderColor: Colors.border,
+  },
+  limitModalTitle: { fontFamily: "Inter_700Bold", fontSize: 20, color: Colors.text },
+  limitModalSubtitle: {
+    fontFamily: "Inter_400Regular", fontSize: 13, color: Colors.textSecondary, lineHeight: 19,
+  },
+  limitModalInput: {
+    backgroundColor: Colors.background, borderRadius: 12, borderWidth: 1, borderColor: Colors.border,
+    paddingHorizontal: 14, paddingVertical: 12, fontFamily: "Inter_500Medium",
+    fontSize: 18, color: Colors.text, textAlign: "center",
+  },
+  limitRemoveBtn: {
+    flexDirection: "row", alignItems: "center", justifyContent: "center", gap: 6,
+    paddingVertical: 8, borderRadius: 10,
+    borderWidth: 1, borderColor: Colors.error + "30", backgroundColor: Colors.error + "08",
+  },
+  limitRemoveBtnText: { fontFamily: "Inter_500Medium", fontSize: 13, color: Colors.error },
+  limitModalBtnRow: { flexDirection: "row", gap: 10, marginTop: 4 },
+  limitCancelBtn: {
+    flex: 1, borderRadius: 12, paddingVertical: 13, alignItems: "center",
+    borderWidth: 1, borderColor: Colors.border, backgroundColor: "rgba(255,255,255,0.05)",
+  },
+  limitCancelBtnText: { fontFamily: "Inter_500Medium", fontSize: 15, color: Colors.textSecondary },
+  limitSaveBtn: {
+    flex: 1, flexDirection: "row", alignItems: "center", justifyContent: "center", gap: 8,
+    backgroundColor: Colors.primary, borderRadius: 12, paddingVertical: 13,
+  },
+  limitSaveBtnDisabled: { backgroundColor: Colors.textMuted + "60" },
+  limitSaveBtnText: { fontFamily: "Inter_600SemiBold", fontSize: 15, color: "#fff" },
 });

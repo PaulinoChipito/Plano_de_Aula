@@ -54,6 +54,11 @@ export default function ClassDetailScreen() {
   const [telefone, setTelefone] = useState("");
   const [fotoUri, setFotoUri] = useState<string | null>(null);
 
+  const [editNome, setEditNome] = useState("");
+  const [editIdade, setEditIdade] = useState("");
+  const [editTelefone, setEditTelefone] = useState("");
+  const [editFotoUri, setEditFotoUri] = useState<string | null>(null);
+
   useEffect(() => {
     getClasses().then((classes) => {
       const found = classes.find((c) => c.id === id);
@@ -75,6 +80,42 @@ export default function ClassDetailScreen() {
     if (!result.canceled) {
       setFotoUri(result.assets[0].uri);
     }
+  };
+
+  const pickEditPhoto = async () => {
+    const result = await ImagePicker.launchImageLibraryAsync({
+      mediaTypes: ["images"],
+      allowsEditing: true,
+      aspect: [1, 1],
+      quality: 0.5,
+    });
+    if (!result.canceled) {
+      setEditFotoUri(result.assets[0].uri);
+    }
+  };
+
+  const openStudentEdit = (student: Student) => {
+    setEditNome(student.nome);
+    setEditIdade(student.idade || "");
+    setEditTelefone(student.telefoneEncarregado || "");
+    setEditFotoUri(student.fotoUri);
+    setShowStudentModal(student);
+  };
+
+  const handleUpdateStudent = async () => {
+    if (!classGroup || !showStudentModal || !editNome.trim()) return;
+    const updated: ClassGroup = {
+      ...classGroup,
+      alunos: classGroup.alunos.map((a) =>
+        a.id === showStudentModal.id
+          ? { ...a, nome: editNome.trim(), idade: editIdade.trim(), telefoneEncarregado: editTelefone.trim(), fotoUri: editFotoUri }
+          : a
+      ),
+    };
+    await saveClass(updated);
+    setClassGroup(updated);
+    setShowStudentModal(null);
+    if (Platform.OS !== "web") Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
   };
 
   const handleAddStudent = async () => {
@@ -152,7 +193,7 @@ export default function ClassDetailScreen() {
 
   const renderStudent = ({ item, index }: { item: Student; index: number }) => (
     <Pressable
-      onPress={() => setShowStudentModal(item)}
+      onPress={() => openStudentEdit(item)}
       onLongPress={() => handleDeleteStudent(item.id)}
       style={({ pressed }) => [styles.studentCard, { opacity: pressed ? 0.95 : 1 }]}
     >
@@ -352,40 +393,78 @@ export default function ClassDetailScreen() {
         </Pressable>
       </Modal>
 
-      {/* Modal: Detalhe do aluno */}
+      {/* Modal: Editar aluno */}
       <Modal visible={!!showStudentModal} transparent animationType="fade" onRequestClose={() => setShowStudentModal(null)}>
         <Pressable style={styles.modalOverlay} onPress={() => setShowStudentModal(null)}>
           <Pressable style={styles.modalContent} onPress={() => {}}>
             {showStudentModal && (
               <>
-                <View style={styles.profileHeader}>
-                  {showStudentModal.fotoUri ? (
-                    <Image source={{ uri: showStudentModal.fotoUri }} style={styles.profilePhoto} contentFit="cover" />
+                <View style={styles.editModalHeader}>
+                  <Text style={styles.modalTitle}>Editar Aluno</Text>
+                  <Pressable
+                    onPress={() => {
+                      const sid = showStudentModal!.id;
+                      setShowStudentModal(null);
+                      handleDeleteStudent(sid, true);
+                    }}
+                    style={({ pressed }) => [styles.editDeleteBtn, { opacity: pressed ? 0.7 : 1 }]}
+                  >
+                    <Icon name="trash-2" size={16} color={Colors.error} />
+                  </Pressable>
+                </View>
+
+                <Pressable onPress={pickEditPhoto} style={styles.photoPickerBtn}>
+                  {editFotoUri ? (
+                    <Image source={{ uri: editFotoUri }} style={styles.photoPicker} contentFit="cover" />
                   ) : (
-                    <View style={[styles.profilePhoto, styles.profilePhotoPlaceholder]}>
-                      <Icon name="person" size={32} color={Colors.textMuted} />
+                    <View style={styles.photoPicker}>
+                      <Icon name="camera" size={24} color={Colors.textMuted} />
+                      <Text style={styles.photoPickerLabel}>Adicionar foto</Text>
                     </View>
                   )}
-                  <Text style={styles.profileName}>{showStudentModal.nome}</Text>
-                  {showStudentModal.idade ? <Text style={styles.profileAge}>{showStudentModal.idade} anos</Text> : null}
-                </View>
-                {showStudentModal.telefoneEncarregado ? (
-                  <View style={styles.profileField}>
-                    <Icon name="phone" size={16} color={Colors.primary} />
-                    <Text style={styles.profileFieldText}>{showStudentModal.telefoneEncarregado}</Text>
-                  </View>
-                ) : null}
-                <Pressable
-                  onPress={() => {
-                    const id = showStudentModal!.id;
-                    setShowStudentModal(null);
-                    handleDeleteStudent(id, true);
-                  }}
-                  style={({ pressed }) => [styles.removeStudentBtn, { opacity: pressed ? 0.8 : 1 }]}
-                >
-                  <Icon name="trash-2" size={16} color={Colors.error} />
-                  <Text style={styles.removeStudentBtnText}>Remover aluno</Text>
                 </Pressable>
+
+                <TextInput
+                  style={styles.modalInput}
+                  placeholder="Nome completo *"
+                  placeholderTextColor={Colors.textMuted}
+                  value={editNome}
+                  onChangeText={setEditNome}
+                  autoCapitalize="words"
+                />
+                <TextInput
+                  style={styles.modalInput}
+                  placeholder="Idade"
+                  placeholderTextColor={Colors.textMuted}
+                  value={editIdade}
+                  onChangeText={setEditIdade}
+                  keyboardType="numeric"
+                />
+                <TextInput
+                  style={styles.modalInput}
+                  placeholder="Telefone do encarregado"
+                  placeholderTextColor={Colors.textMuted}
+                  value={editTelefone}
+                  onChangeText={setEditTelefone}
+                  keyboardType="phone-pad"
+                />
+
+                <View style={styles.modalBtnRow}>
+                  <Pressable
+                    onPress={() => setShowStudentModal(null)}
+                    style={({ pressed }) => [styles.modalCancelBtn, { opacity: pressed ? 0.8 : 1 }]}
+                  >
+                    <Text style={styles.modalCancelBtnText}>Cancelar</Text>
+                  </Pressable>
+                  <Pressable
+                    onPress={handleUpdateStudent}
+                    disabled={!editNome.trim()}
+                    style={({ pressed }) => [styles.modalBtn, !editNome.trim() && styles.modalBtnDisabled, { opacity: pressed ? 0.9 : 1 }]}
+                  >
+                    <Icon name="check" size={16} color="#fff" />
+                    <Text style={styles.modalBtnText}>Guardar</Text>
+                  </Pressable>
+                </View>
               </>
             )}
           </Pressable>
@@ -493,4 +572,16 @@ const styles = StyleSheet.create({
     borderColor: Colors.error + "30", backgroundColor: Colors.error + "08",
   },
   removeStudentBtnText: { fontFamily: "Inter_500Medium", fontSize: 14, color: Colors.error },
+  modalInput: {
+    backgroundColor: Colors.background, borderRadius: 12, borderWidth: 1, borderColor: Colors.border,
+    paddingHorizontal: 14, paddingVertical: 12, fontFamily: "Inter_400Regular",
+    fontSize: 15, color: Colors.text,
+  },
+  editModalHeader: {
+    flexDirection: "row", alignItems: "center", justifyContent: "space-between",
+  },
+  editDeleteBtn: {
+    width: 36, height: 36, borderRadius: 10, alignItems: "center", justifyContent: "center",
+    backgroundColor: Colors.error + "12", borderWidth: 1, borderColor: Colors.error + "30",
+  },
 });
