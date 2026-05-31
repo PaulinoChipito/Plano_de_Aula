@@ -31,7 +31,7 @@ import { getMacAverage, getNotaFinal, MAC_PESO, NPT_PESO } from "@/lib/gradeUtil
 import { usePeriod } from "@/lib/periodContext";
 
 export default function StudentGradesScreen() {
-  const { turmaId } = useLocalSearchParams<{ turmaId: string }>();
+  const { turmaId, alunoId: autoAlunoId } = useLocalSearchParams<{ turmaId: string; alunoId?: string }>();
   const insets = useSafeAreaInsets();
   const topPadding = Platform.OS === "web" ? 67 : insets.top;
   const bottomPadding = Platform.OS === "web" ? 34 : insets.bottom;
@@ -51,14 +51,30 @@ export default function StudentGradesScreen() {
   useEffect(() => {
     Promise.all([getClasses(), getGrades()]).then(([classes, allGrades]) => {
       const found = classes.find((c) => c.id === turmaId);
-      if (found) setClassGroup(found);
+      if (found) {
+        setClassGroup(found);
+        if (autoAlunoId) {
+          const targetStudent = found.alunos.find((a) => a.id === autoAlunoId);
+          if (targetStudent) {
+            const existingGrade = allGrades.find(
+              (g) => g.alunoId === autoAlunoId && g.turmaId === turmaId && (g.periodo ?? "I") === currentPeriod,
+            );
+            setNptValue(existingGrade?.npt !== null && existingGrade?.npt !== undefined ? String(existingGrade.npt) : "");
+            setObservacao(existingGrade?.observacao || "");
+            setNewMacNota("");
+            setEditingEntryId(null);
+            setSelectedStudent(targetStudent);
+            setShowModal(true);
+          }
+        }
+      }
       setGrades(
         allGrades.filter(
           (g) => g.turmaId === turmaId && (g.periodo ?? "I") === currentPeriod,
         ),
       );
     });
-  }, [turmaId, currentPeriod]);
+  }, [turmaId, currentPeriod, autoAlunoId]);
 
   const getStudentGrade = (alunoId: string): StudentGrade | undefined => {
     return grades.find((g) => g.alunoId === alunoId);

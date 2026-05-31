@@ -22,6 +22,8 @@ interface AlertStudent {
   nome: string;
   turma: string;
   motivo: "sem_notas" | "reprovado_faltas";
+  alunoId: string;
+  turmaId: string;
 }
 
 const USE_NATIVE_DRIVER = Platform.OS !== "web";
@@ -136,9 +138,11 @@ export default function Dashboard() {
   const cardMinHeight = iconContainerSize + 60;
 
   const cardScales = useRef(GRID_ITEMS.map(() => new Animated.Value(1))).current;
-  const alertScrollRef = useRef<ScrollView>(null);
-  const alertScrollX = useRef(0);
   const [atencaoAlunos, setAtencaoAlunos] = useState<AlertStudent[]>([]);
+  const [tickerIdx, setTickerIdx] = useState(0);
+  const tickerY = useRef(new Animated.Value(0)).current;
+  const tickerTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const tickerIdxRef = useRef(0);
 
   const loadAlerts = useCallback(async () => {
     try {
@@ -156,7 +160,7 @@ export default function Dashboard() {
           );
           const semNotas = !grade || (grade.mac.length === 0 && grade.npt === null);
           if (semNotas) {
-            alerts.push({ nome: aluno.nome, turma: turma.designacao, motivo: "sem_notas" });
+            alerts.push({ nome: aluno.nome, turma: turma.designacao, motivo: "sem_notas", alunoId: aluno.id, turmaId: turma.id });
           }
         }
 
@@ -170,21 +174,24 @@ export default function Dashboard() {
             ).length;
             if (faltas > turma.faltasLimite!) {
               const alreadyAdded = alerts.some(
-                (a) => a.nome === aluno.nome && a.turma === turma.designacao && a.motivo === "reprovado_faltas"
+                (a) => a.alunoId === aluno.id && a.turmaId === turma.id && a.motivo === "reprovado_faltas"
               );
               if (!alreadyAdded) {
-                alerts.push({ nome: aluno.nome, turma: turma.designacao, motivo: "reprovado_faltas" });
+                alerts.push({ nome: aluno.nome, turma: turma.designacao, motivo: "reprovado_faltas", alunoId: aluno.id, turmaId: turma.id });
               }
             }
           }
         }
       }
 
+      tickerIdxRef.current = 0;
+      setTickerIdx(0);
+      tickerY.setValue(0);
       setAtencaoAlunos(alerts);
     } catch {
       // silent fail
     }
-  }, [currentPeriod]);
+  }, [currentPeriod, tickerY]);
 
   useFocusEffect(
     useCallback(() => {
@@ -192,6 +199,30 @@ export default function Dashboard() {
       loadAlerts();
     }, [refreshProfile, loadAlerts])
   );
+
+  useEffect(() => {
+    if (atencaoAlunos.length <= 1) return;
+    const ITEM_H = 58;
+    const animate = () => {
+      Animated.timing(tickerY, {
+        toValue: -ITEM_H,
+        duration: 500,
+        useNativeDriver: USE_NATIVE_DRIVER,
+      }).start(({ finished }) => {
+        if (!finished) return;
+        const next = (tickerIdxRef.current + 1) % atencaoAlunos.length;
+        tickerIdxRef.current = next;
+        setTickerIdx(next);
+        tickerY.setValue(0);
+        tickerTimer.current = setTimeout(animate, 3000);
+      });
+    };
+    tickerTimer.current = setTimeout(animate, 3000);
+    return () => {
+      if (tickerTimer.current) clearTimeout(tickerTimer.current);
+      tickerTimer.current = null;
+    };
+  }, [atencaoAlunos, tickerY]);
 
   const handlePressIn = (index: number) => {
     Animated.spring(cardScales[index], {
@@ -214,6 +245,15 @@ export default function Dashboard() {
       Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
     }
     router.push(route as any);
+  };
+
+  const handleAlertPress = (a: AlertStudent) => {
+    if (Platform.OS !== "web") Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+    if (a.motivo === "sem_notas") {
+      router.push({ pathname: "/student-grades", params: { turmaId: a.turmaId, alunoId: a.alunoId } } as any);
+    } else {
+      router.push({ pathname: "/attendance-mark", params: { turmaId: a.turmaId } } as any);
+    }
   };
 
   const handlePeriodPress = (key: string) => {
@@ -339,53 +379,53 @@ export default function Dashboard() {
           </View>
 
           {/* ── Alert Banner ── */}
-          {atencaoAlunos.length > 0 && (
-            <View style={styles.alertBanner}>
-              <View style={styles.alertBannerHeader}>
-                <View style={styles.alertBannerTitleRow}>
-                  <View style={styles.alertBannerIcon}>
-                    <Icon name="warning" size={13} color="#FBBF24" />
-                  </View>
-                  <Text style={styles.alertBannerTitle}>
-                    {atencaoAlunos.length} aluno{atencaoAlunos.length !== 1 ? "s" : ""} precisam de atenção
+          {atencaoAlunos.length > 0 && (() => {
+            const cur = atencaoAlunos[tickerIdx];
+            const nxt = atencaoAlunos[(tickerIdx + 1) % atencaoAlunos.length];
+            const ITEM_H = 58;
+            const renderItem = (a: AlertStudent) => (
+              <Pressable
+                onPress={() => handleAlertPress(a)}
+                style={({ pressed }) => [styles.alertTickerItem, { opacity: pressed ? 0.8 : 1 }]}
+              >
+                <View style={styles.alertTickerDot}>
+                  <Icon
+                    name={a.motivo === "reprovado_faltas" ? "close-circle" : "alert-circle"}
+                    size={14}
+                    color={a.motivo === "reprovado_faltas" ? "#FCA5A5" : "#FDE68A"}
+                  />
+                </View>
+                <View style={styles.alertTickerInfo}>
+                  <Text style={styles.alertTickerName} numberOfLines={1}>{a.nome}</Text>
+                  <Text style={styles.alertTickerMeta} numberOfLines={1}>
+                    {a.turma} · {a.motivo === "reprovado_faltas" ? "Reprovado por faltas" : "Sem avaliações — toque para avaliar"}
                   </Text>
                 </View>
-                <Text style={styles.alertBannerPeriod}>{currentPeriodLabel}</Text>
-              </View>
-              <ScrollView
-                ref={alertScrollRef}
-                horizontal
-                showsHorizontalScrollIndicator={false}
-                onScroll={(e) => { alertScrollX.current = e.nativeEvent.contentOffset.x; }}
-                scrollEventThrottle={16}
-                contentContainerStyle={styles.alertChipRow}
-              >
-                {atencaoAlunos.map((a, i) => (
-                  <View
-                    key={i}
-                    style={[
-                      styles.alertChip,
-                      a.motivo === "reprovado_faltas" ? styles.alertChipRed : styles.alertChipOrange,
-                    ]}
-                  >
-                    <View style={styles.alertChipDot}>
-                      <Icon
-                        name={a.motivo === "reprovado_faltas" ? "close-circle" : "alert-circle"}
-                        size={12}
-                        color={a.motivo === "reprovado_faltas" ? "#FCA5A5" : "#FDE68A"}
-                      />
+                <Icon name="chevron-forward" size={14} color="rgba(255,255,255,0.4)" />
+              </Pressable>
+            );
+            return (
+              <View style={styles.alertBanner}>
+                <View style={styles.alertBannerHeader}>
+                  <View style={styles.alertBannerTitleRow}>
+                    <View style={styles.alertBannerIcon}>
+                      <Icon name="warning" size={13} color="#FBBF24" />
                     </View>
-                    <View style={styles.alertChipInfo}>
-                      <Text style={styles.alertChipName} numberOfLines={1}>{a.nome}</Text>
-                      <Text style={styles.alertChipMeta} numberOfLines={1}>
-                        {a.turma} · {a.motivo === "reprovado_faltas" ? "Reprovado por faltas" : "Sem avaliações"}
-                      </Text>
-                    </View>
+                    <Text style={styles.alertBannerTitle}>
+                      {atencaoAlunos.length} aluno{atencaoAlunos.length !== 1 ? "s" : ""} precisam de atenção
+                    </Text>
                   </View>
-                ))}
-              </ScrollView>
-            </View>
-          )}
+                  <Text style={styles.alertBannerPeriod}>{currentPeriodLabel}</Text>
+                </View>
+                <View style={[styles.alertTickerViewport, { height: ITEM_H }]}>
+                  <Animated.View style={{ transform: [{ translateY: tickerY }] }}>
+                    {renderItem(cur)}
+                    {renderItem(nxt)}
+                  </Animated.View>
+                </View>
+              </View>
+            );
+          })()}
 
           <View style={styles.footer}>
             <View style={styles.footerBadge}>
@@ -492,18 +532,16 @@ const styles = StyleSheet.create({
   },
   /* ── Alert Banner ── */
   alertBanner: {
-    marginHorizontal: CARD_PADDING,
+    marginHorizontal: 8,
     marginTop: 8,
     marginBottom: 4,
     borderRadius: 18,
-    backgroundColor: "rgba(251,191,36,0.08)",
-    borderWidth: 1,
-    borderColor: "rgba(251,191,36,0.25)",
+    backgroundColor: "rgba(251,191,36,0.07)",
     overflow: "hidden",
   },
   alertBannerHeader: {
     flexDirection: "row", alignItems: "center", justifyContent: "space-between",
-    paddingHorizontal: 14, paddingTop: 12, paddingBottom: 8,
+    paddingHorizontal: 14, paddingTop: 12, paddingBottom: 6,
   },
   alertBannerTitleRow: { flexDirection: "row", alignItems: "center", gap: 7 },
   alertBannerIcon: {
@@ -517,29 +555,21 @@ const styles = StyleSheet.create({
   alertBannerPeriod: {
     fontFamily: "Inter_400Regular", fontSize: 11, color: "rgba(253,230,138,0.6)",
   },
-  alertChipRow: {
-    paddingHorizontal: 14, paddingBottom: 12, gap: 8, flexDirection: "row",
+  alertTickerViewport: {
+    overflow: "hidden",
+    marginHorizontal: 0,
   },
-  alertChip: {
-    flexDirection: "row", alignItems: "center", gap: 8,
-    borderRadius: 12, paddingHorizontal: 12, paddingVertical: 8,
-    borderWidth: 1, minWidth: 160, maxWidth: 220,
+  alertTickerItem: {
+    flexDirection: "row", alignItems: "center", gap: 10,
+    paddingHorizontal: 14, paddingVertical: 10, height: 58,
   },
-  alertChipOrange: {
-    backgroundColor: "rgba(251,191,36,0.1)",
-    borderColor: "rgba(251,191,36,0.3)",
+  alertTickerDot: { width: 24, height: 24, alignItems: "center", justifyContent: "center" },
+  alertTickerInfo: { flex: 1 },
+  alertTickerName: {
+    fontFamily: "Inter_600SemiBold", fontSize: 14, color: "#fff",
   },
-  alertChipRed: {
-    backgroundColor: "rgba(220,38,38,0.12)",
-    borderColor: "rgba(220,38,38,0.3)",
-  },
-  alertChipDot: { width: 20, height: 20, alignItems: "center", justifyContent: "center" },
-  alertChipInfo: { flex: 1 },
-  alertChipName: {
-    fontFamily: "Inter_600SemiBold", fontSize: 12, color: "#fff",
-  },
-  alertChipMeta: {
-    fontFamily: "Inter_400Regular", fontSize: 10, color: "rgba(255,255,255,0.55)", marginTop: 1,
+  alertTickerMeta: {
+    fontFamily: "Inter_400Regular", fontSize: 11, color: "rgba(255,255,255,0.55)", marginTop: 1,
   },
 
   footer: { marginTop: 32, alignItems: "center" },
