@@ -126,6 +126,7 @@ const KEYS = {
   API_KEY: "gemini_api_key",
   TEACHER_PROFILE: "teacher_profile",
   ONBOARDING_DONE: "onboarding_done",
+  AULAS: "aulas_professor_v1",
 };
 
 async function getItem<T>(key: string, fallback: T): Promise<T> {
@@ -262,4 +263,31 @@ export async function isOnboardingDone(): Promise<boolean> {
 
 export async function markOnboardingDone(): Promise<void> {
   await AsyncStorage.setItem(KEYS.ONBOARDING_DONE, "true");
+}
+
+export interface Aula {
+  id: string;
+  disciplina: string;
+  turma: string;
+  dia: string;
+  horaInicio: string;
+  horaFim: string;
+  criadoEm: number;
+}
+
+export async function getAulas(): Promise<Aula[]> {
+  return getItem<Aula[]>(KEYS.AULAS, []);
+}
+
+export async function saveAula(aula: Aula): Promise<void> {
+  const aulas = await getAulas();
+  const idx = aulas.findIndex((a) => a.id === aula.id);
+  if (idx >= 0) aulas[idx] = aula;
+  else aulas.push(aula);
+  await setItem(KEYS.AULAS, aulas);
+}
+
+export async function deleteAula(id: string): Promise<void> {
+  const aulas = await getAulas();
+  await setItem(KEYS.AULAS, aulas.filter((a) => a.id !== id));
 }
