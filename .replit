@@ -11,21 +11,13 @@ run = ["npm", "run", "server:prod"]
 
 [[ports]]
 localPort = 5000
-externalPort = 5000
-
-[[ports]]
-localPort = 8081
 externalPort = 80
-
-[[ports]]
-localPort = 8082
-externalPort = 3001
 
 [env]
 PORT = "5000"
 
 [agent]
-stack = "EXPO"
+stack = "BEST_EFFORT_FALLBACK"
 expertMode = true
 
 [workflows]
@@ -39,6 +31,10 @@ author = "agent"
 [[workflows.workflow.tasks]]
 task = "workflow.run"
 args = "Start App"
+
+[[workflows.workflow.tasks]]
+task = "workflow.run"
+args = "Start Frontend"
 
 [[workflows.workflow]]
 name = "Start App"
@@ -58,8 +54,10 @@ name = "Start Frontend"
 author = "agent"
 mode = "sequential"
 
+[workflows.workflow.metadata]
+outputType = "webview"
+
 [[workflows.workflow.tasks]]
 task = "shell.exec"
-args = "npm run expo:dev"
-waitForPort = 8081
-ensurePreviewReachable = "/status"
+args = "npm install && node node_modules/expo/bin/cli start --web --port 5000 --host localhost"
+waitForPort = 5000
