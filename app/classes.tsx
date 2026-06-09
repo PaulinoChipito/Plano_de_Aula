@@ -16,7 +16,7 @@ import Icon from "@/components/Icon";
 import { LinearGradient } from "expo-linear-gradient";
 import * as Haptics from "expo-haptics";
 import Colors from "@/constants/colors";
-import { getClasses, saveClass, deleteClass, generateId, ClassGroup, getTeacherProfile } from "@/lib/storage";
+import { getClasses, saveClass, deleteClass, generateId, ClassGroup, getTeacherProfile, NIVEL_ENSINO_OPTIONS } from "@/lib/storage";
 import ExportMenu from "@/components/ExportMenu";
 import { exportPdfFromHtml, exportExcel } from "@/lib/exports";
 import { studentsListHtml, studentsListExcel } from "@/lib/exportTemplates";
@@ -29,6 +29,7 @@ export default function ClassesScreen() {
   const [showModal, setShowModal] = useState(false);
   const [newDesignacao, setNewDesignacao] = useState("");
   const [newDisciplina, setNewDisciplina] = useState("");
+  const [newNivel, setNewNivel] = useState(NIVEL_ENSINO_OPTIONS[1]);
   const [exportTarget, setExportTarget] = useState<ClassGroup | null>(null);
 
   useFocusEffect(
@@ -43,6 +44,7 @@ export default function ClassesScreen() {
       id: generateId(),
       designacao: newDesignacao.trim(),
       disciplina: newDisciplina.trim(),
+      nivelEnsino: newNivel,
       alunos: [],
       createdAt: new Date().toISOString(),
     };
@@ -50,6 +52,7 @@ export default function ClassesScreen() {
     setClasses((prev) => [newClass, ...prev]);
     setNewDesignacao("");
     setNewDisciplina("");
+    setNewNivel(NIVEL_ENSINO_OPTIONS[1]);
     setShowModal(false);
     if (Platform.OS !== "web") Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
   };
@@ -188,6 +191,20 @@ export default function ClassesScreen() {
               value={newDisciplina}
               onChangeText={setNewDisciplina}
             />
+            <Text style={styles.modalLabel}>Nível de Ensino</Text>
+            <View style={styles.nivelContainer}>
+              {NIVEL_ENSINO_OPTIONS.map((opt) => (
+                <Pressable
+                  key={opt}
+                  onPress={() => setNewNivel(opt)}
+                  style={[styles.nivelOption, newNivel === opt && styles.nivelOptionSelected]}
+                >
+                  <Text style={[styles.nivelOptionText, newNivel === opt && styles.nivelOptionTextSelected]}>
+                    {opt}
+                  </Text>
+                </Pressable>
+              ))}
+            </View>
             <Pressable
               onPress={handleCreate}
               style={({ pressed }) => [styles.modalBtn, { opacity: pressed ? 0.9 : 1 }]}
@@ -239,6 +256,18 @@ const styles = StyleSheet.create({
     backgroundColor: "rgba(255,255,255,0.08)", borderRadius: 12, borderWidth: 1, borderColor: Colors.border,
     paddingHorizontal: 14, paddingVertical: 12, fontFamily: "Inter_400Regular", fontSize: 15, color: Colors.text,
   },
+  modalLabel: { fontFamily: "Inter_600SemiBold", fontSize: 13, color: Colors.text },
+  nivelContainer: { gap: 6 },
+  nivelOption: {
+    borderRadius: 10, borderWidth: 1, borderColor: Colors.border,
+    paddingHorizontal: 12, paddingVertical: 8,
+    backgroundColor: "rgba(255,255,255,0.05)",
+  },
+  nivelOptionSelected: {
+    borderColor: Colors.primary, backgroundColor: Colors.primary + "18",
+  },
+  nivelOptionText: { fontFamily: "Inter_400Regular", fontSize: 13, color: Colors.textSecondary },
+  nivelOptionTextSelected: { fontFamily: "Inter_600SemiBold", color: Colors.primary },
   modalBtn: { backgroundColor: Colors.primary, borderRadius: 12, paddingVertical: 14, alignItems: "center" },
   modalBtnText: { fontFamily: "Inter_600SemiBold", fontSize: 15, color: "#fff" },
 });

@@ -107,15 +107,18 @@ export default function StudentGradesScreen() {
     });
   };
 
+  const isPrimario = classGroup?.nivelEnsino === "Ensino Primário";
+  const maxNota = isPrimario ? 10 : 20;
+
   const handleAddMac = async () => {
     if (!selectedStudent || !newMacNota.trim()) return;
     const notaStr = newMacNota.replace(",", ".");
     const nota = parseFloat(notaStr);
-    if (isNaN(nota) || nota < 0 || nota > 20) {
+    if (isNaN(nota) || nota < 0 || nota > maxNota) {
       if (Platform.OS === "web") {
-        window.alert("Nota inválida. Deve estar entre 0 e 20.");
+        window.alert(`Nota inválida. Deve estar entre 0 e ${maxNota}.`);
       } else {
-        Alert.alert("Nota inválida", "A nota deve estar entre 0 e 20.");
+        Alert.alert("Nota inválida", `A nota deve estar entre 0 e ${maxNota}.`);
       }
       return;
     }
@@ -160,11 +163,11 @@ export default function StudentGradesScreen() {
   const handleSaveEditMac = async () => {
     if (!selectedStudent || !editingEntryId) return;
     const nota = parseFloat(editingEntryValue.replace(",", "."));
-    if (isNaN(nota) || nota < 0 || nota > 20) {
+    if (isNaN(nota) || nota < 0 || nota > maxNota) {
       if (Platform.OS === "web") {
-        window.alert("Nota inválida. Deve estar entre 0 e 20.");
+        window.alert(`Nota inválida. Deve estar entre 0 e ${maxNota}.`);
       } else {
-        Alert.alert("Nota inválida", "A nota deve estar entre 0 e 20.");
+        Alert.alert("Nota inválida", `A nota deve estar entre 0 e ${maxNota}.`);
       }
       return;
     }
@@ -221,11 +224,11 @@ export default function StudentGradesScreen() {
     const existing = getStudentGrade(selectedStudent.id);
     const npt = nptValue.trim() ? parseFloat(nptValue.replace(",", ".")) : null;
 
-    if (npt !== null && (isNaN(npt) || npt < 0 || npt > 20)) {
+    if (npt !== null && (isNaN(npt) || npt < 0 || npt > maxNota)) {
       if (Platform.OS === "web") {
-        window.alert("NPT inválida. A nota deve estar entre 0 e 20.");
+        window.alert(`NPT inválida. A nota deve estar entre 0 e ${maxNota}.`);
       } else {
-        Alert.alert("NPT inválida", "A nota da prova trimestral deve estar entre 0 e 20.");
+        Alert.alert("NPT inválida", `A nota da prova trimestral deve estar entre 0 e ${maxNota}.`);
       }
       return;
     }
@@ -408,7 +411,7 @@ export default function StudentGradesScreen() {
                 <View style={styles.addMacRow}>
                   <TextInput
                     style={[styles.modalInput, { flex: 1 }]}
-                    placeholder="Nova nota (0–20)"
+                    placeholder={`Nova nota (0–${maxNota})`}
                     placeholderTextColor={Colors.textMuted}
                     value={newMacNota}
                     onChangeText={setNewMacNota}
@@ -424,7 +427,7 @@ export default function StudentGradesScreen() {
                 <Text style={styles.modalSectionTitle}>NPT — Nota da Prova Trimestral</Text>
                 <TextInput
                   style={styles.modalInput}
-                  placeholder="Nota NPT (0–20)"
+                  placeholder={`Nota NPT (0–${maxNota})`}
                   placeholderTextColor={Colors.textMuted}
                   value={nptValue}
                   onChangeText={setNptValue}

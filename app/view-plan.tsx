@@ -119,14 +119,22 @@ export default function ViewPlanScreen() {
       year: "numeric",
     });
 
-    const objEspHtml = p.objetivosEspecificos.map((o) => `<li>${o}</li>`).join("");
-    const conteudosHtml = (p.conteudos || []).map((c) => `<li>${c}</li>`).join("");
-    const pergControloHtml = p.perguntasControlo.map((q) => `<li>${q}</li>`).join("");
+    const objEspHtml = p.objetivosEspecificos.length > 0
+      ? p.objetivosEspecificos.map((o) => `<li>${o}</li>`).join("")
+      : "<li>—</li>";
+    const conteudosHtml = (p.conteudos || []).length > 0
+      ? (p.conteudos || []).map((c) => `<li>${c}</li>`).join("")
+      : "<li>—</li>";
+    const pergControloHtml = p.perguntasControlo.length > 0
+      ? p.perguntasControlo.map((q) => `<li>${q}</li>`).join("")
+      : "<li>—</li>";
     const tpcHtml = p.tarefaDeCasa && p.tarefaDeCasa.length > 0
       ? p.tarefaDeCasa.map((t) =>
           `<li>${t.descricao}${t.referencia ? ` <em style="color:#0D7377;">(${t.referencia})</em>` : ""}${t.tempoEstimado ? ` — <span style="color:#555;">Tempo: ${t.tempoEstimado}</span>` : ""}</li>`
         ).join("")
-      : (p.tarefasPraticas || p.perguntasTarefa || []).map((t) => `<li>${t}</li>`).join("");
+      : (p.tarefasPraticas || p.perguntasTarefa || []).length > 0
+        ? (p.tarefasPraticas || p.perguntasTarefa || []).map((t) => `<li>${t}</li>`).join("")
+        : "<li>—</li>";
 
     const normalizedDesenv =
       p.desenvolvimentoAula && p.desenvolvimentoAula.length > 0
@@ -138,15 +146,19 @@ export default function ViewPlanScreen() {
             actividadesAlunos: "—",
           }));
 
-    const desenvolvimentoHtml = normalizedDesenv
-      .map(
-        (e) => `<tr>
+    const desenvolvimentoHtml = normalizedDesenv.length > 0
+      ? normalizedDesenv.map(
+          (e) => `<tr>
             <td style="font-weight:600;width:100px;vertical-align:top;">${e.etapa}<br><span style="font-weight:400;font-size:9pt;color:#0D7377;">${e.duracao}</span></td>
             <td style="vertical-align:top;">${e.actividadesProfessor}</td>
             <td style="vertical-align:top;">${e.actividadesAlunos}</td>
           </tr>`,
-      )
-      .join("");
+        ).join("")
+      : `<tr><td colspan="3" style="color:#999;padding:8px;">—</td></tr>`;
+
+    const metodosPrincText = p.metodosPrincipais || "—";
+    const avaliacaoText = p.avaliacao || "—";
+    const observacoesText = p.observacoes || "—";
 
     return `<!DOCTYPE html>
 <html>
@@ -165,15 +177,13 @@ export default function ViewPlanScreen() {
   .section { margin-bottom: 14px; }
   .section-title { font-size: 11pt; font-weight: 700; color: #0D7377; border-bottom: 1px solid #e0e0e0; padding-bottom: 4px; margin-bottom: 8px; text-transform: uppercase; letter-spacing: 0.5px; }
   .section p { text-align: justify; }
-  .section-meta { font-size: 10pt; color: #555; font-style: italic; margin-bottom: 4px; }
   ul { padding-left: 18px; }
   ul li { margin-bottom: 3px; }
   table.dev { width: 100%; border-collapse: collapse; margin-top: 6px; }
   table.dev th { background: #0D7377; color: #fff; padding: 7px 8px; font-size: 10pt; text-align: left; }
   table.dev td { padding: 7px 8px; border: 1px solid #ddd; font-size: 10pt; vertical-align: top; }
   table.dev tr:nth-child(even) td { background: #f9f9f9; }
-  .avaliacao-box { background: #f0f9f9; border-left: 3px solid #0D7377; padding: 10px 14px; border-radius: 4px; font-size: 10pt; }
-  .dif-box { background: #f3f0ff; border-left: 3px solid #7c4dff; padding: 10px 14px; border-radius: 4px; font-size: 10pt; }
+  .plain-box { background: #f9f9f9; border-left: 3px solid #0D7377; padding: 10px 14px; border-radius: 4px; font-size: 10pt; }
   .obs-box { background: #fffde7; border-left: 3px solid #f9a825; padding: 10px 14px; border-radius: 4px; font-size: 10pt; }
   .footer { margin-top: 30px; text-align: center; font-size: 9pt; color: #999; border-top: 1px solid #ddd; padding-top: 8px; }
 </style>
@@ -207,29 +217,30 @@ export default function ViewPlanScreen() {
       <td class="label">Professor(a)</td>
       <td>${profile.nome || "---"}</td>
     </tr>
-    ${p.metodosPrincipais ? `<tr><td class="label">Metodo(s) Principal(is)</td><td colspan="3">${p.metodosPrincipais}</td></tr>` : ""}
+    <tr>
+      <td class="label">Metodo(s) Principal(is)</td>
+      <td colspan="3">${metodosPrincText}</td>
+    </tr>
   </table>
 
   <div class="section">
     <div class="section-title">Objectivo Geral</div>
-    <p>${p.objetivoGeral}</p>
+    <p>${p.objetivoGeral || "—"}</p>
   </div>
 
-  ${p.objetivosEspecificos.length > 0 ? `
   <div class="section">
     <div class="section-title">Objectivos Especificos</div>
     <ul>${objEspHtml}</ul>
-  </div>` : ""}
+  </div>
 
-  ${conteudosHtml ? `
   <div class="section">
     <div class="section-title">Conteudos</div>
     <ul>${conteudosHtml}</ul>
-  </div>` : ""}
+  </div>
 
   <div class="section">
     <div class="section-title">Metodos, Tecnicas e Meios de Ensino</div>
-    <p>${p.metodos}</p>
+    <p>${p.metodos || "—"}</p>
     ${p.meios ? `<p style="margin-top:6px;"><strong>Meios:</strong> ${p.meios}</p>` : ""}
   </div>
 
@@ -247,38 +258,34 @@ export default function ViewPlanScreen() {
     </table>
   </div>
 
-  ${pergControloHtml ? `
   <div class="section">
     <div class="section-title">Perguntas de Controlo</div>
     <ul>${pergControloHtml}</ul>
-  </div>` : ""}
+  </div>
 
-  ${tpcHtml ? `
   <div class="section">
     <div class="section-title">Tarefa de Casa (TPC)</div>
     <ul>${tpcHtml}</ul>
-  </div>` : ""}
+  </div>
 
-  ${p.avaliacao ? `
   <div class="section">
     <div class="section-title">Avaliacao Formativa</div>
-    <div class="avaliacao-box">${p.avaliacao}</div>
-  </div>` : ""}
+    <div class="plain-box">${avaliacaoText}</div>
+  </div>
 
   ${p.diferenciacaoPedagogica ? `
   <div class="section">
     <div class="section-title">Diferenciacao Pedagogica</div>
-    <div class="dif-box">
+    <div class="plain-box">
       <p><strong>Alunos com dificuldades:</strong> ${p.diferenciacaoPedagogica.dificuldades}</p>
       <p style="margin-top:8px;"><strong>Alunos avancados:</strong> ${p.diferenciacaoPedagogica.avancados}</p>
     </div>
   </div>` : ""}
 
-  ${p.observacoes ? `
   <div class="section">
     <div class="section-title">Observacoes</div>
-    <div class="obs-box">${p.observacoes}</div>
-  </div>` : ""}
+    <div class="obs-box">${observacoesText}</div>
+  </div>
 
   <div class="footer">
     ${profile.instituicao || "Lesson Planner Pro"} &bull; ${dataFormatada}

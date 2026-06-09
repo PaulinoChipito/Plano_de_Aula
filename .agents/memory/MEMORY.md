@@ -1,0 +1,2 @@
+- [ClassGroup nivelEnsino field](classgroup-nivel.md) — nivelEnsino added to ClassGroup; primary school uses max grade 10, others 20; threshold for negatives is 5 (primary) or 10 (others)
+- [PDF template unified](pdf-template.md) — both AI and manual lesson plan PDFs use same generatePdfHtml template; all sections always rendered with "—" placeholders when data missing

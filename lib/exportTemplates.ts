@@ -217,14 +217,14 @@ function calcTrimestre(grade: StudentGrade | undefined): AlunoTrimestre {
   return { mac: macA, npt: nptA, mt: mtA };
 }
 
-function calcStats(linhas: AlunoLinha[], trim: "t1" | "t2" | "t3"): TrimestreStats {
+function calcStats(linhas: AlunoLinha[], trim: "t1" | "t2" | "t3", threshold = 10): TrimestreStats {
   let presentes = 0, ausentes = 0, negativasMF = 0, positivasMF = 0;
   for (const l of linhas) {
     const t = l[trim];
     const tem = t.mac !== null || t.npt !== null;
     if (tem) {
       presentes++;
-      if ((t.mt ?? 0) < 10) negativasMF++;
+      if ((t.mt ?? 0) < threshold) negativasMF++;
       else positivasMF++;
     } else ausentes++;
   }
@@ -252,6 +252,8 @@ export function miniPautaHtml(
   periodoLabel = "",
 ): string {
   const escola = profile.instituicao || "Instituição de Ensino";
+  const isPrimario = (turma.nivelEnsino || profile.nivelEnsino || "") === "Ensino Primário";
+  const threshold = isPrimario ? 5 : 10;
   const sorted = [...turma.alunos].sort((a, b) => a.nome.localeCompare(b.nome));
 
   const linhas = sorted.map((s) => {
@@ -263,22 +265,27 @@ export function miniPautaHtml(
   const total = linhas.length;
   const presentes = linhas.filter((l) => l.presente).length;
   const ausentes = total - presentes;
-  const negativas = linhas.filter((l) => l.presente && (l.mt ?? 0) < 10).length;
-  const positivas = linhas.filter((l) => l.presente && (l.mt ?? 0) >= 10).length;
+  const negativas = linhas.filter((l) => l.presente && (l.mt ?? 0) < threshold).length;
+  const positivas = linhas.filter((l) => l.presente && (l.mt ?? 0) >= threshold).length;
   const denom = total > 0 ? total : 1;
 
   const rowsHtml = linhas
-    .map((l, i) => `
+    .map((l, i) => {
+      const isNegativa = l.presente && l.mt !== null && l.mt < threshold;
+      const mtStyle = isNegativa ? ' style="color:#b91c1c;font-weight:700;"' : "";
+      return `
       <tr>
         <td>${i + 1}</td>
         <td class="name-col">${escape(l.nome)}</td>
         <td>${fmt(l.mac)}</td>
         <td>${fmt(l.npt)}</td>
-        <td><b>${fmt(l.mt)}</b></td>
-      </tr>`)
+        <td${mtStyle}>${fmt(l.mt)}</td>
+      </tr>`;
+    })
     .join("");
 
   const periodoStr = periodoLabel ? ` — ${periodoLabel}` : "";
+  const nivelLabel = turma.nivelEnsino || profile.nivelEnsino || "—";
 
   const body = `
     <div class="header">
@@ -286,7 +293,7 @@ export function miniPautaHtml(
       <div class="doc">Mini-Pauta do Professor${periodoStr}</div>
     </div>
     <div class="meta">
-      <div class="left"><b>Curso:</b> ${escape(profile.nivelEnsino || "—")} &nbsp;&nbsp; <b>Turma:</b> ${escape(turma.designacao)}</div>
+      <div class="left"><b>Curso:</b> ${escape(nivelLabel)} &nbsp;&nbsp; <b>Turma:</b> ${escape(turma.designacao)}</div>
       <div class="right"><b>Disciplina:</b> ${escape(turma.disciplina)} &nbsp;&nbsp; <b>Ano Lectivo:</b> ${anoLectivo()}</div>
     </div>
     <table>
@@ -302,12 +309,12 @@ export function miniPautaHtml(
     <div class="stats-title">Estatística${periodoStr}</div>
     <table class="stats-table" style="width:auto">
       <thead>
-        <tr><th>Presentes</th><th>Ausentes</th><th>Negativas (MT&lt;10)</th><th>%</th><th>Positivas (MT≥10)</th><th>%</th></tr>
+        <tr><th>Presentes</th><th>Ausentes</th><th>Negativas (MT&lt;${threshold})</th><th>%</th><th>Positivas (MT≥${threshold})</th><th>%</th></tr>
       </thead>
       <tbody>
         <tr>
           <td>${presentes}</td><td>${ausentes}</td>
-          <td>${negativas}</td><td>${fmtPct((negativas / denom) * 100)}%</td>
+          <td style="color:#b91c1c">${negativas}</td><td>${fmtPct((negativas / denom) * 100)}%</td>
           <td>${positivas}</td><td>${fmtPct((positivas / denom) * 100)}%</td>
         </tr>
       </tbody>
@@ -328,6 +335,8 @@ export function miniPautaExcel(
   periodoLabel = "",
 ): ExcelSheetSpec {
   const escola = profile.instituicao || "Instituição de Ensino";
+  const isPrimario = (turma.nivelEnsino || profile.nivelEnsino || "") === "Ensino Primário";
+  const threshold = isPrimario ? 5 : 10;
   const sorted = [...turma.alunos].sort((a, b) => a.nome.localeCompare(b.nome));
   const linhas = sorted.map((s) => {
     const grade = grades.find((g) => g.alunoId === s.id && g.turmaId === turma.id);
@@ -338,22 +347,23 @@ export function miniPautaExcel(
   const total = linhas.length;
   const presentes = linhas.filter((l) => l.presente).length;
   const ausentes = total - presentes;
-  const negativas = linhas.filter((l) => l.presente && (l.mt ?? 0) < 10).length;
-  const positivas = linhas.filter((l) => l.presente && (l.mt ?? 0) >= 10).length;
+  const negativas = linhas.filter((l) => l.presente && (l.mt ?? 0) < threshold).length;
+  const positivas = linhas.filter((l) => l.presente && (l.mt ?? 0) >= threshold).length;
   const denom = total > 0 ? total : 1;
   const periodoStr = periodoLabel ? ` — ${periodoLabel}` : "";
+  const nivelLabel = turma.nivelEnsino || profile.nivelEnsino || "—";
 
   const rows: (string | number | null)[][] = [
     [escola.toUpperCase()],
     [`Mini-Pauta do Professor${periodoStr}`],
     [],
-    [`Curso: ${profile.nivelEnsino || "—"}`, "", `Turma: ${turma.designacao}`, "", `Disciplina: ${turma.disciplina}`, "", `Ano Lectivo: ${anoLectivo()}`],
+    [`Curso: ${nivelLabel}`, "", `Turma: ${turma.designacao}`, "", `Disciplina: ${turma.disciplina}`, "", `Ano Lectivo: ${anoLectivo()}`],
     [],
     ["Nº", "Nome do Aluno", "MAC", "NPT", "MT"],
     ...linhas.map((l, i) => [i + 1, l.nome, l.mac, l.npt, l.mt]),
     [],
     ["Estatística"],
-    ["Presentes", "Ausentes", "Negativas (MT<10)", "% Neg.", "Positivas (MT≥10)", "% Pos."],
+    [`Presentes`, `Ausentes`, `Negativas (MT<${threshold})`, "% Neg.", `Positivas (MT≥${threshold})`, "% Pos."],
     [presentes, ausentes, negativas, Math.round((negativas / denom) * 1000) / 10, positivas, Math.round((positivas / denom) * 1000) / 10],
     [],
     [`Professor(a): ${profile.nome || ""}`],
@@ -406,22 +416,34 @@ export function pautaCompletaHtml(
   periodLabels: string[],
 ): string {
   const escola = profile.instituicao || "Instituição de Ensino";
+  const isPrimario = (turma.nivelEnsino || profile.nivelEnsino || "") === "Ensino Primário";
+  const threshold = isPrimario ? 5 : 10;
   const sorted = [...turma.alunos].sort((a, b) => a.nome.localeCompare(b.nome));
   const linhas = sorted.map((s) => calcLinhaCompleta(s, turma.id, allGrades, periodKeys));
   const n = Math.min(periodKeys.length, 3);
   const tLabel = (i: number) => periodLabels[i] ?? `${i + 1}º Período`;
   const total = linhas.length;
 
+  const mtCell = (mt: number | null) => {
+    const isNeg = mt !== null && mt < threshold;
+    return isNeg ? `<td style="color:#b91c1c;font-weight:700;">${fmt(mt)}</td>` : `<td>${fmt(mt)}</td>`;
+  };
+
+  const mfCell = (mf: number | null) => {
+    const isNeg = mf !== null && mf < threshold;
+    return isNeg ? `<td style="color:#b91c1c;font-weight:700;">${fmt(mf)}</td>` : `<td><b>${fmt(mf)}</b></td>`;
+  };
+
   const rowsHtml = linhas
     .map((l, i) => `
       <tr>
         <td>${i + 1}</td>
         <td class="name-col">${escape(l.nome)}</td>
-        <td>${fmt(l.t1.mac)}</td><td>${fmt(l.t1.npt)}</td><td>${fmt(l.t1.mt)}</td>
-        ${n >= 2 ? `<td>${fmt(l.t2.mac)}</td><td>${fmt(l.t2.npt)}</td><td>${fmt(l.t2.mt)}</td>` : ""}
-        ${n >= 3 ? `<td>${fmt(l.t3.mac)}</td><td>${fmt(l.t3.npt)}</td><td>${fmt(l.t3.mt)}</td>` : ""}
+        <td>${fmt(l.t1.mac)}</td><td>${fmt(l.t1.npt)}</td>${mtCell(l.t1.mt)}
+        ${n >= 2 ? `<td>${fmt(l.t2.mac)}</td><td>${fmt(l.t2.npt)}</td>${mtCell(l.t2.mt)}` : ""}
+        ${n >= 3 ? `<td>${fmt(l.t3.mac)}</td><td>${fmt(l.t3.npt)}</td>${mtCell(l.t3.mt)}` : ""}
         <td>${fmt(l.mfd)}</td><td>${fmt(l.ne)}</td><td>${fmt(l.recurso)}</td>
-        <td><b>${fmt(l.mf)}</b></td>
+        ${mfCell(l.mf)}
       </tr>`)
     .join("");
 
@@ -431,7 +453,7 @@ export function pautaCompletaHtml(
       <div class="doc">Pauta Completa — Todos os Períodos</div>
     </div>
     <div class="meta">
-      <div class="left"><b>Curso:</b> ${escape(profile.nivelEnsino || "—")} &nbsp;&nbsp; <b>Turma:</b> ${escape(turma.designacao)}</div>
+      <div class="left"><b>Curso:</b> ${escape(turma.nivelEnsino || profile.nivelEnsino || "—")} &nbsp;&nbsp; <b>Turma:</b> ${escape(turma.designacao)}</div>
       <div class="right"><b>Disciplina:</b> ${escape(turma.disciplina)} &nbsp;&nbsp; <b>Ano Lectivo:</b> ${anoLectivo()}</div>
     </div>
     <table>
@@ -469,9 +491,9 @@ export function pautaCompletaHtml(
         </tr>
       </thead>
       <tbody>
-        ${statsRowHtml(tLabel(0), calcStats(linhas, "t1"), total)}
-        ${n >= 2 ? statsRowHtml(tLabel(1), calcStats(linhas, "t2"), total) : ""}
-        ${n >= 3 ? statsRowHtml(tLabel(2), calcStats(linhas, "t3"), total) : ""}
+        ${statsRowHtml(tLabel(0), calcStats(linhas, "t1", threshold), total)}
+        ${n >= 2 ? statsRowHtml(tLabel(1), calcStats(linhas, "t2", threshold), total) : ""}
+        ${n >= 3 ? statsRowHtml(tLabel(2), calcStats(linhas, "t3", threshold), total) : ""}
       </tbody>
     </table>
     <div class="footer">
