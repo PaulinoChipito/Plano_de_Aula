@@ -119,22 +119,27 @@ export default function ViewPlanScreen() {
       year: "numeric",
     });
 
-    const objEspHtml = p.objetivosEspecificos.length > 0
-      ? p.objetivosEspecificos.map((o) => `<li>${o}</li>`).join("")
-      : "<li>—</li>";
-    const conteudosHtml = (p.conteudos || []).length > 0
-      ? (p.conteudos || []).map((c) => `<li>${c}</li>`).join("")
-      : "<li>—</li>";
-    const pergControloHtml = p.perguntasControlo.length > 0
-      ? p.perguntasControlo.map((q) => `<li>${q}</li>`).join("")
-      : "<li>—</li>";
-    const tpcHtml = p.tarefaDeCasa && p.tarefaDeCasa.length > 0
+    const li = (text: string) => `<li style="margin-bottom:3px;">${text}</li>`;
+    const dash = (label: string, value: string) =>
+      `<p style="margin-bottom:4px;"><strong>${label}:</strong> ${value}</p>`;
+
+    const objEspItems = p.objetivosEspecificos.length > 0
+      ? p.objetivosEspecificos.map(li).join("")
+      : li("—");
+    const conteudosItems = (p.conteudos || []).length > 0
+      ? (p.conteudos || []).map(li).join("")
+      : li("—");
+    const pergControloItems = p.perguntasControlo.length > 0
+      ? p.perguntasControlo.map(li).join("")
+      : li("—");
+
+    const tpcItems = p.tarefaDeCasa && p.tarefaDeCasa.length > 0
       ? p.tarefaDeCasa.map((t) =>
-          `<li>${t.descricao}${t.referencia ? ` <em style="color:#0D7377;">(${t.referencia})</em>` : ""}${t.tempoEstimado ? ` — <span style="color:#555;">Tempo: ${t.tempoEstimado}</span>` : ""}</li>`
+          li(`${t.descricao}${t.referencia ? ` (${t.referencia})` : ""}${t.tempoEstimado ? ` — Tempo estimado: ${t.tempoEstimado}` : ""}`)
         ).join("")
       : (p.tarefasPraticas || p.perguntasTarefa || []).length > 0
-        ? (p.tarefasPraticas || p.perguntasTarefa || []).map((t) => `<li>${t}</li>`).join("")
-        : "<li>—</li>";
+        ? (p.tarefasPraticas || p.perguntasTarefa || []).map(li).join("")
+        : li("—");
 
     const normalizedDesenv =
       p.desenvolvimentoAula && p.desenvolvimentoAula.length > 0
@@ -143,153 +148,134 @@ export default function ViewPlanScreen() {
             etapa: `Momento ${i + 1}`,
             duracao: a.tempo || "",
             actividadesProfessor: a.descricao || "",
-            actividadesAlunos: "—",
+            actividadesAlunos: "",
           }));
 
-    const desenvolvimentoHtml = normalizedDesenv.length > 0
-      ? normalizedDesenv.map(
-          (e) => `<tr>
-            <td style="font-weight:600;width:100px;vertical-align:top;">${e.etapa}<br><span style="font-weight:400;font-size:9pt;color:#0D7377;">${e.duracao}</span></td>
-            <td style="vertical-align:top;">${e.actividadesProfessor}</td>
-            <td style="vertical-align:top;">${e.actividadesAlunos}</td>
-          </tr>`,
-        ).join("")
-      : `<tr><td colspan="3" style="color:#999;padding:8px;">—</td></tr>`;
+    const desenvolvimentoBlocks = normalizedDesenv.length > 0
+      ? normalizedDesenv.map((e, i) => {
+          const hasStudents = e.actividadesAlunos && e.actividadesAlunos !== "—" && e.actividadesAlunos.trim();
+          return `
+            <div style="margin-bottom:10px;padding-left:8px;border-left:3px solid #ccc;">
+              <p style="font-weight:700;margin-bottom:4px;">${e.etapa}${e.duracao ? ` (${e.duracao})` : ""}</p>
+              ${e.actividadesProfessor ? `<p style="margin-bottom:3px;"><strong>Actividade do Professor:</strong> ${e.actividadesProfessor}</p>` : ""}
+              ${hasStudents ? `<p style="margin-bottom:3px;"><strong>Actividades dos Alunos:</strong> ${e.actividadesAlunos}</p>` : ""}
+            </div>`;
+        }).join("")
+      : `<p>—</p>`;
 
-    const metodosPrincText = p.metodosPrincipais || "—";
-    const avaliacaoText = p.avaliacao || "—";
-    const observacoesText = p.observacoes || "—";
+    const metodologiaText = [
+      p.metodosPrincipais ? `<strong>Abordagem principal:</strong> ${p.metodosPrincipais}` : "",
+      p.metodos ? `<strong>Métodos e Técnicas:</strong> ${p.metodos}` : "",
+      p.meios ? `<strong>Meios de Ensino:</strong> ${p.meios}` : "",
+    ].filter(Boolean).join("<br>");
 
     return `<!DOCTYPE html>
 <html>
 <head>
 <meta charset="utf-8">
 <style>
-  @page { size: A4; margin: 20mm; }
+  @page { size: A4; margin: 25mm 20mm; }
   * { margin: 0; padding: 0; box-sizing: border-box; }
-  body { font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif; font-size: 11pt; color: #222; line-height: 1.5; }
-  .header { text-align: center; border-bottom: 2px solid #0D7377; padding-bottom: 14px; margin-bottom: 18px; }
-  .header h1 { font-size: 16pt; color: #0D7377; margin-bottom: 4px; text-transform: uppercase; letter-spacing: 1px; }
-  .header h2 { font-size: 12pt; color: #555; font-weight: 400; }
-  .meta-table { width: 100%; border-collapse: collapse; margin-bottom: 18px; }
-  .meta-table td { padding: 6px 10px; border: 1px solid #ddd; font-size: 10pt; }
-  .meta-table td.label { background: #f0f9f9; font-weight: 600; width: 28%; color: #0D7377; }
-  .section { margin-bottom: 14px; }
-  .section-title { font-size: 11pt; font-weight: 700; color: #0D7377; border-bottom: 1px solid #e0e0e0; padding-bottom: 4px; margin-bottom: 8px; text-transform: uppercase; letter-spacing: 0.5px; }
-  .section p { text-align: justify; }
-  ul { padding-left: 18px; }
-  ul li { margin-bottom: 3px; }
-  table.dev { width: 100%; border-collapse: collapse; margin-top: 6px; }
-  table.dev th { background: #0D7377; color: #fff; padding: 7px 8px; font-size: 10pt; text-align: left; }
-  table.dev td { padding: 7px 8px; border: 1px solid #ddd; font-size: 10pt; vertical-align: top; }
-  table.dev tr:nth-child(even) td { background: #f9f9f9; }
-  .plain-box { background: #f9f9f9; border-left: 3px solid #0D7377; padding: 10px 14px; border-radius: 4px; font-size: 10pt; }
-  .obs-box { background: #fffde7; border-left: 3px solid #f9a825; padding: 10px 14px; border-radius: 4px; font-size: 10pt; }
-  .footer { margin-top: 30px; text-align: center; font-size: 9pt; color: #999; border-top: 1px solid #ddd; padding-top: 8px; }
+  body { font-family: 'Times New Roman', Times, serif; font-size: 11pt; color: #000; line-height: 1.6; }
+  .doc-title { text-align: center; font-size: 16pt; font-weight: 700; text-transform: uppercase; letter-spacing: 1px; margin-bottom: 6px; }
+  .doc-escola { text-align: center; font-size: 11pt; margin-bottom: 16px; color: #333; }
+  .meta-block { margin-bottom: 16px; border-top: 2px solid #000; border-bottom: 1px solid #000; padding: 8px 0; }
+  .meta-block p { margin-bottom: 3px; font-size: 11pt; }
+  hr.section-divider { border: none; border-top: 1px solid #000; margin: 14px 0; }
+  .sec-heading { font-size: 11pt; font-weight: 700; text-transform: uppercase; margin-bottom: 8px; }
+  .subsec-heading { font-size: 11pt; font-weight: 700; margin-bottom: 4px; margin-top: 8px; }
+  .sec-block { margin-bottom: 16px; }
+  p { margin-bottom: 4px; font-size: 11pt; }
+  ul { padding-left: 20px; margin-bottom: 4px; }
+  ul li { margin-bottom: 3px; font-size: 11pt; }
+  .footer { margin-top: 24px; border-top: 1px solid #000; padding-top: 6px; font-size: 9pt; color: #555; display: flex; justify-content: space-between; }
 </style>
 </head>
 <body>
-  <div class="header">
-    <h1>${profile.instituicao || "Instituicao de Ensino"}</h1>
-    <h2>Plano de Aula</h2>
+
+  <div class="doc-title">Plano de Aula</div>
+  <div class="doc-escola">${profile.instituicao || "Instituição de Ensino"}</div>
+
+  <div class="meta-block">
+    <p><strong>Disciplina:</strong> ${p.disciplina} &nbsp;&nbsp;&nbsp; <strong>Turma/Classe:</strong> ${p.classe}</p>
+    <p><strong>Tema:</strong> ${p.tema}</p>
+    <p><strong>Sumário:</strong> ${p.sumario}</p>
+    <p><strong>Duração:</strong> ${p.duracao} minutos${p.numAlunos ? ` &nbsp;&nbsp;&nbsp; <strong>N.º de Alunos:</strong> ${p.numAlunos}` : ""}</p>
+    ${profile.nivelEnsino ? `<p><strong>Contexto:</strong> ${profile.nivelEnsino}</p>` : ""}
   </div>
 
-  <table class="meta-table">
-    <tr>
-      <td class="label">Disciplina</td>
-      <td>${p.disciplina}</td>
-      <td class="label">Classe / Ano</td>
-      <td>${p.classe}</td>
-    </tr>
-    <tr>
-      <td class="label">Sumario</td>
-      <td colspan="3">${p.sumario}</td>
-    </tr>
-    <tr>
-      <td class="label">Duracao</td>
-      <td>${p.duracao} minutos</td>
-      <td class="label">N.º de Alunos</td>
-      <td>${p.numAlunos || "---"}</td>
-    </tr>
-    <tr>
-      <td class="label">Data</td>
-      <td>${dataFormatada}</td>
-      <td class="label">Professor(a)</td>
-      <td>${profile.nome || "---"}</td>
-    </tr>
-    <tr>
-      <td class="label">Metodo(s) Principal(is)</td>
-      <td colspan="3">${metodosPrincText}</td>
-    </tr>
-  </table>
+  <div class="sec-block">
+    <div class="sec-heading">1. Dados Identificativos</div>
+    ${dash("Professor(a)", profile.nome || "_______________________________")}
+    ${dash("Data", dataFormatada)}
+    ${dash("Objectivo Geral da Unidade / Aula", p.objetivoGeral || "—")}
+  </div>
 
-  <div class="section">
-    <div class="section-title">Objectivo Geral</div>
+  <hr class="section-divider">
+
+  <div class="sec-block">
+    <div class="sec-heading">2. Objectivos da Aula</div>
+    <div class="subsec-heading">Objectivo Geral:</div>
     <p>${p.objetivoGeral || "—"}</p>
+    <div class="subsec-heading">Objectivos Específicos:</div>
+    <ul>${objEspItems}</ul>
   </div>
 
-  <div class="section">
-    <div class="section-title">Objectivos Especificos</div>
-    <ul>${objEspHtml}</ul>
+  <hr class="section-divider">
+
+  <div class="sec-block">
+    <div class="sec-heading">3. Conteúdos</div>
+    <ul>${conteudosItems}</ul>
   </div>
 
-  <div class="section">
-    <div class="section-title">Conteudos</div>
-    <ul>${conteudosHtml}</ul>
+  <hr class="section-divider">
+
+  <div class="sec-block">
+    <div class="sec-heading">4. Estratégias Metodológicas</div>
+    ${metodologiaText ? `<p>${metodologiaText}</p>` : "<p>—</p>"}
   </div>
 
-  <div class="section">
-    <div class="section-title">Metodos, Tecnicas e Meios de Ensino</div>
-    <p>${p.metodos || "—"}</p>
-    ${p.meios ? `<p style="margin-top:6px;"><strong>Meios:</strong> ${p.meios}</p>` : ""}
+  <hr class="section-divider">
+
+  <div class="sec-block">
+    <div class="sec-heading">5. Desenvolvimento da Aula</div>
+    ${desenvolvimentoBlocks}
   </div>
 
-  <div class="section">
-    <div class="section-title">Desenvolvimento da Aula</div>
-    <table class="dev">
-      <thead>
-        <tr>
-          <th style="width:120px;">Etapa / Momento</th>
-          <th>Actividades do Professor</th>
-          <th>Actividades dos Alunos</th>
-        </tr>
-      </thead>
-      <tbody>${desenvolvimentoHtml}</tbody>
-    </table>
+  <hr class="section-divider">
+
+  <div class="sec-block">
+    <div class="sec-heading">6. Avaliação</div>
+    ${p.avaliacao ? `<p>${p.avaliacao}</p>` : ""}
+    ${p.perguntasControlo.length > 0 ? `
+      <div class="subsec-heading">Perguntas de Controlo:</div>
+      <ul>${pergControloItems}</ul>` : ""}
+    ${!p.avaliacao && p.perguntasControlo.length === 0 ? "<p>—</p>" : ""}
   </div>
 
-  <div class="section">
-    <div class="section-title">Perguntas de Controlo</div>
-    <ul>${pergControloHtml}</ul>
+  <hr class="section-divider">
+
+  <div class="sec-block">
+    <div class="sec-heading">7. Tarefa de Casa (TPC)</div>
+    <ul>${tpcItems}</ul>
   </div>
 
-  <div class="section">
-    <div class="section-title">Tarefa de Casa (TPC)</div>
-    <ul>${tpcHtml}</ul>
-  </div>
+  <hr class="section-divider">
 
-  <div class="section">
-    <div class="section-title">Avaliacao Formativa</div>
-    <div class="plain-box">${avaliacaoText}</div>
-  </div>
-
-  ${p.diferenciacaoPedagogica ? `
-  <div class="section">
-    <div class="section-title">Diferenciacao Pedagogica</div>
-    <div class="plain-box">
-      <p><strong>Alunos com dificuldades:</strong> ${p.diferenciacaoPedagogica.dificuldades}</p>
-      <p style="margin-top:8px;"><strong>Alunos avancados:</strong> ${p.diferenciacaoPedagogica.avancados}</p>
-    </div>
-  </div>` : ""}
-
-  <div class="section">
-    <div class="section-title">Observacoes</div>
-    <div class="obs-box">${observacoesText}</div>
+  <div class="sec-block">
+    <div class="sec-heading">8. Observações / Diferenciação Pedagógica</div>
+    ${p.diferenciacaoPedagogica ? `
+      ${dash("Alunos com dificuldades", p.diferenciacaoPedagogica.dificuldades)}
+      ${dash("Alunos avançados", p.diferenciacaoPedagogica.avancados)}` : ""}
+    ${p.observacoes ? `<p>${p.observacoes}</p>` : ""}
+    ${!p.diferenciacaoPedagogica && !p.observacoes ? "<p>—</p>" : ""}
   </div>
 
   <div class="footer">
-    ${profile.instituicao || "Lesson Planner Pro"} &bull; ${dataFormatada}
+    <span>${profile.instituicao || "EcoEducacional"} &bull; ${dataFormatada}</span>
+    <span>Professor(a): ${profile.nome || "________________________"}</span>
   </div>
+
 </body>
 </html>`;
   };
