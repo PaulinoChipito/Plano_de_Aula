@@ -351,20 +351,6 @@ export default function StatisticsScreen() {
                           </Text>
                         </View>
                         <View style={styles.classCardActions}>
-                          <Pressable
-                            onPress={(e) => { e.stopPropagation?.(); setExportTarget({ turma: c, type: "pauta" }); }}
-                            hitSlop={8}
-                            style={({ pressed }) => [styles.cardExportBtn, { opacity: pressed ? 0.6 : 1 }]}
-                          >
-                            <Icon name="document-text" size={16} color="#6366F1" />
-                          </Pressable>
-                          <Pressable
-                            onPress={(e) => { e.stopPropagation?.(); setExportTarget({ turma: c, type: "attendance" }); }}
-                            hitSlop={8}
-                            style={({ pressed }) => [styles.cardExportBtn, { opacity: pressed ? 0.6 : 1 }]}
-                          >
-                            <Icon name="calendar" size={16} color="#14B8A6" />
-                          </Pressable>
                           <Icon
                             name={isExpanded ? "chevron-up" : "chevron-down"}
                             size={18}
@@ -388,6 +374,25 @@ export default function StatisticsScreen() {
                             {stats.totalFaltas} faltas
                           </Text>
                         </View>
+                      </View>
+
+                      {/* Export buttons */}
+                      <View style={styles.classExportRow}>
+                        <Pressable
+                          onPress={() => setExportTarget({ turma: c, type: "pauta" })}
+                          style={({ pressed }) => [styles.classExportBtn, { opacity: pressed ? 0.7 : 1 }]}
+                        >
+                          <Icon name="document-text" size={15} color="#6366F1" />
+                          <Text style={[styles.classExportBtnText, { color: "#6366F1" }]}>Pauta Completa</Text>
+                        </Pressable>
+                        <View style={styles.classStatDivider} />
+                        <Pressable
+                          onPress={() => setExportTarget({ turma: c, type: "attendance" })}
+                          style={({ pressed }) => [styles.classExportBtn, { opacity: pressed ? 0.7 : 1 }]}
+                        >
+                          <Icon name="calendar" size={15} color="#14B8A6" />
+                          <Text style={[styles.classExportBtnText, { color: "#14B8A6" }]}>Mapa Presenças</Text>
+                        </Pressable>
                       </View>
 
                       <View style={styles.classStatsRow}>
@@ -649,6 +654,15 @@ const styles = StyleSheet.create({
   classMeta: { flexDirection: "row", alignItems: "center", gap: 4 },
   classMetaText: { fontFamily: "Inter_400Regular", fontSize: 12, color: Colors.textMuted },
 
+  classExportRow: {
+    flexDirection: "row", alignItems: "center",
+    borderTopWidth: 1, borderTopColor: Colors.borderLight,
+  },
+  classExportBtn: {
+    flex: 1, flexDirection: "row", alignItems: "center", justifyContent: "center",
+    gap: 6, paddingVertical: 10,
+  },
+  classExportBtnText: { fontFamily: "Inter_500Medium", fontSize: 12 },
   classStatsRow: {
     flexDirection: "row", borderTopWidth: 1, borderTopColor: Colors.borderLight,
   },

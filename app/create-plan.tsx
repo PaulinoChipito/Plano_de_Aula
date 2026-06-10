@@ -7,8 +7,6 @@ import {
   Pressable,
   Platform,
   ScrollView,
-  ActivityIndicator,
-  Alert,
   KeyboardAvoidingView,
 } from "react-native";
 import { router } from "expo-router";
@@ -19,10 +17,6 @@ import * as Haptics from "expo-haptics";
 import Colors from "@/constants/colors";
 import { generateId, saveLessonPlan, LessonPlan } from "@/lib/storage";
 import { usePeriod } from "@/lib/periodContext";
-import {
-  generateLessonPlanOffline,
-  GenerationStatus,
-} from "@/lib/localAI";
 
 export default function CreatePlanScreen() {
   const insets = useSafeAreaInsets();
@@ -33,9 +27,6 @@ export default function CreatePlanScreen() {
   const [disciplina, setDisciplina] = useState("");
   const [tema, setTema] = useState("");
   const [duracao, setDuracao] = useState("");
-  const [loading, setLoading] = useState(false);
-  const [mode, setMode] = useState<"choose" | "manual" | "ai">("choose");
-
   const [sumario, setSumario] = useState("");
   const [objetivoGeral, setObjetivoGeral] = useState("");
   const [objetivosEspecificos, setObjetivosEspecificos] = useState<string[]>([""]);
@@ -46,100 +37,11 @@ export default function CreatePlanScreen() {
   const [perguntasTarefa, setPerguntasTarefa] = useState<string[]>([""]);
   const [tarefasPraticas, setTarefasPraticas] = useState<string[]>([""]);
 
-  const [aiPlan, setAiPlan] = useState<LessonPlan | null>(null);
-  const [editSumario, setEditSumario] = useState("");
-  const [editObjetivoGeral, setEditObjetivoGeral] = useState("");
-  const [genStatus, setGenStatus] = useState<GenerationStatus>({ stage: "idle" });
   const { currentPeriod } = usePeriod();
 
-  const canGenerate =
-    classe.trim() && disciplina.trim() && tema.trim() && duracao.trim();
-  const canSaveManual =
-    classe.trim() && disciplina.trim() && tema.trim() && duracao.trim() && sumario.trim();
+  const canSave = classe.trim() && disciplina.trim() && tema.trim() && duracao.trim() && sumario.trim();
 
-  const sumarioParaIA = sumario.trim();
-
-  const generateWithAI = async () => {
-    setLoading(true);
-    setGenStatus({ stage: "idle" });
-    try {
-      const result = await generateLessonPlanOffline(
-        classe,
-        disciplina,
-        tema,
-        duracao,
-        (status) => setGenStatus(status),
-        sumarioParaIA,
-      );
-
-      const plan: LessonPlan = {
-        id: generateId(),
-        classe,
-        disciplina,
-        tema,
-        duracao,
-        sumario: sumarioParaIA || result.sumario,
-        objetivoGeral: result.objetivoGeral,
-        objetivosEspecificos: result.objetivosEspecificos,
-        conteudos: result.conteudos,
-        metodosPrincipais: result.metodosPrincipais,
-        metodos: result.metodos,
-        meios: result.meios,
-        desenvolvimentoAula: result.desenvolvimentoAula,
-        atividades: result.desenvolvimentoAula.map((e) => ({
-          descricao: `${e.etapa} — Prof: ${e.actividadesProfessor}`,
-          tempo: e.duracao,
-        })),
-        perguntasControlo: result.perguntasControlo,
-        tarefaDeCasa: result.tarefaDeCasa,
-        tarefasPraticas: result.tarefasPraticas,
-        perguntasTarefa: result.tarefaDeCasa?.map((t) => t.descricao).filter(Boolean) || [],
-        avaliacao: result.avaliacao,
-        diferenciacaoPedagogica: result.diferenciacaoPedagogica,
-        faixaEtaria: result.faixaEtaria,
-        observacoes: result.observacoes,
-        score: result.score,
-        sugestoes: result.sugestoes,
-        createdAt: new Date().toISOString(),
-        periodo: currentPeriod,
-      };
-
-      setAiPlan(plan);
-      setEditSumario(plan.sumario);
-      setEditObjetivoGeral(plan.objetivoGeral);
-      setGenStatus({ stage: "done" });
-
-      if (Platform.OS !== "web") {
-        Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
-      }
-    } catch (error: any) {
-      setGenStatus({ stage: "error", error: error.message });
-      Alert.alert(
-        "Erro ao gerar",
-        Platform.OS === "web"
-          ? "Ocorreu um erro ao carregar o modelo de IA. Verifique a sua ligação à internet para a primeira descarga."
-          : "Não foi possível gerar o plano. Tente novamente.",
-      );
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  const handleSaveAI = async () => {
-    if (!aiPlan) return;
-    const updatedPlan: LessonPlan = {
-      ...aiPlan,
-      sumario: editSumario,
-      objetivoGeral: editObjetivoGeral,
-    };
-    await saveLessonPlan(updatedPlan);
-    if (Platform.OS !== "web") {
-      Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
-    }
-    router.back();
-  };
-
-  const handleSaveManual = async () => {
+  const handleSave = async () => {
     const plan: LessonPlan = {
       id: generateId(),
       classe,
@@ -167,10 +69,7 @@ export default function CreatePlanScreen() {
     router.back();
   };
 
-  const addListItem = (
-    list: string[],
-    setter: React.Dispatch<React.SetStateAction<string[]>>,
-  ) => {
+  const addListItem = (list: string[], setter: React.Dispatch<React.SetStateAction<string[]>>) => {
     setter([...list, ""]);
   };
 
@@ -194,9 +93,7 @@ export default function CreatePlanScreen() {
     setter(list.filter((_, i) => i !== index));
   };
 
-  const addAtividade = () => {
-    setAtividades([...atividades, { descricao: "", tempo: "" }]);
-  };
+  const addAtividade = () => setAtividades([...atividades, { descricao: "", tempo: "" }]);
 
   const updateAtividade = (index: number, field: "descricao" | "tempo", value: string) => {
     const updated = [...atividades];
@@ -207,12 +104,6 @@ export default function CreatePlanScreen() {
   const removeAtividade = (index: number) => {
     if (atividades.length <= 1) return;
     setAtividades(atividades.filter((_, i) => i !== index));
-  };
-
-  const getScoreColor = (score: number) => {
-    if (score >= 80) return Colors.success;
-    if (score >= 60) return Colors.warning;
-    return Colors.error;
   };
 
   const renderDynamicList = (
@@ -261,7 +152,7 @@ export default function CreatePlanScreen() {
         >
           <Icon name="chevron-back" size={24} color="#fff" />
         </Pressable>
-        <Text style={styles.headerTitle}>Novo Plano</Text>
+        <Text style={styles.headerTitle}>Novo Plano de Aula</Text>
         <View style={{ width: 40 }} />
       </View>
 
@@ -272,302 +163,125 @@ export default function CreatePlanScreen() {
         <ScrollView
           contentContainerStyle={[styles.content, { paddingBottom: bottomPadding + 20 }]}
           showsVerticalScrollIndicator={false}
+          keyboardShouldPersistTaps="handled"
         >
-          {mode === "choose" && (
-            <>
-              <View style={styles.inputGroup}>
-                <Text style={styles.label}>Classe</Text>
-                <TextInput style={styles.input} value={classe} onChangeText={setClasse} placeholder="Ex: 10a Classe" placeholderTextColor={Colors.textMuted} />
-              </View>
-              <View style={styles.inputGroup}>
-                <Text style={styles.label}>Disciplina</Text>
-                <TextInput style={styles.input} value={disciplina} onChangeText={setDisciplina} placeholder="Ex: Matematica" placeholderTextColor={Colors.textMuted} />
-              </View>
-              <View style={styles.inputGroup}>
-                <Text style={styles.label}>Tema</Text>
-                <TextInput style={styles.input} value={tema} onChangeText={setTema} placeholder="Ex: Equacoes do 2o grau" placeholderTextColor={Colors.textMuted} />
-              </View>
-              <View style={styles.inputGroup}>
-                <Text style={styles.label}>Sumario</Text>
-                <Text style={styles.labelHint}>Descreva brevemente o que vai ser ensinado. A IA usará este texto para criar um plano mais específico.</Text>
-                <TextInput
-                  style={[styles.input, styles.textArea]}
-                  value={sumario}
-                  onChangeText={setSumario}
-                  multiline
-                  placeholder="Ex: Revisao dos numeros naturais, introducao ao conceito de equacao, resolucao de equacoes simples com uma incognita..."
-                  placeholderTextColor={Colors.textMuted}
-                />
-              </View>
-              <View style={styles.inputGroup}>
-                <Text style={styles.label}>Duracao (minutos)</Text>
-                <TextInput style={styles.input} value={duracao} onChangeText={setDuracao} placeholder="Ex: 45" placeholderTextColor={Colors.textMuted} keyboardType="numeric" />
-              </View>
+          {/* Secção 1 — Dados Identificativos */}
+          <View style={styles.sectionHeader}>
+            <View style={styles.sectionNum}><Text style={styles.sectionNumText}>1</Text></View>
+            <Text style={styles.sectionTitle}>Dados Identificativos</Text>
+          </View>
 
-              <View style={styles.modeButtons}>
-                <Pressable
-                  onPress={generateWithAI}
-                  disabled={!canGenerate || loading}
-                  style={({ pressed }) => [
-                    styles.generateBtn,
-                    !canGenerate && styles.generateBtnDisabled,
-                    { opacity: pressed && canGenerate ? 0.9 : 1 },
-                  ]}
-                >
-                  {loading ? (
-                    <>
-                      <ActivityIndicator color="#fff" size="small" />
-                      <Text style={styles.generateBtnText} numberOfLines={1}>
-                        {genStatus.message || "A gerar..."}
-                      </Text>
-                    </>
-                  ) : (
-                    <>
-                      <Icon name="robot" size={20} color="#fff" />
-                      <Text style={styles.generateBtnText}>Gerar com IA</Text>
-                    </>
-                  )}
-                </Pressable>
-                {loading && genStatus.stage === "downloading" && typeof genStatus.progress === "number" && (
-                  <View style={styles.progressBarContainer}>
-                    <View style={[styles.progressBar, { width: `${genStatus.progress}%` as any }]} />
-                  </View>
-                )}
-                <View style={styles.aiInfoCard}>
-                  <Icon name="chip" size={14} color={Colors.primary} />
-                  <Text style={styles.aiInfoText}>
-                    {Platform.OS === "web"
-                      ? "Usa o modelo Qwen2.5-0.5B localmente no browser (sem envio de dados). Primeira utilização requer descarga (~300 MB)."
-                      : "Geração offline baseada em modelos pedagógicos. Sem necessidade de internet ou chave API."}
-                  </Text>
+          <View style={styles.inputGroup}>
+            <Text style={styles.label}>Classe / Turma *</Text>
+            <TextInput style={styles.input} value={classe} onChangeText={setClasse} placeholder="Ex: 10.ª Classe, Turma A" placeholderTextColor={Colors.textMuted} />
+          </View>
+          <View style={styles.inputGroup}>
+            <Text style={styles.label}>Disciplina *</Text>
+            <TextInput style={styles.input} value={disciplina} onChangeText={setDisciplina} placeholder="Ex: Matemática" placeholderTextColor={Colors.textMuted} />
+          </View>
+          <View style={styles.inputGroup}>
+            <Text style={styles.label}>Tema *</Text>
+            <TextInput style={styles.input} value={tema} onChangeText={setTema} placeholder="Ex: Equações do 2.º Grau" placeholderTextColor={Colors.textMuted} />
+          </View>
+          <View style={styles.row}>
+            <View style={[styles.inputGroup, { flex: 1 }]}>
+              <Text style={styles.label}>Duração (min) *</Text>
+              <TextInput style={styles.input} value={duracao} onChangeText={setDuracao} placeholder="Ex: 45" placeholderTextColor={Colors.textMuted} keyboardType="numeric" />
+            </View>
+          </View>
+
+          {/* Secção 2 — Objectivos */}
+          <View style={styles.sectionHeader}>
+            <View style={styles.sectionNum}><Text style={styles.sectionNumText}>2</Text></View>
+            <Text style={styles.sectionTitle}>Objectivos da Aula</Text>
+          </View>
+
+          <View style={styles.inputGroup}>
+            <Text style={styles.label}>Sumário *</Text>
+            <TextInput style={[styles.input, styles.textArea]} value={sumario} onChangeText={setSumario} multiline placeholder="Resumo breve do que vai ser ensinado..." placeholderTextColor={Colors.textMuted} />
+          </View>
+          <View style={styles.inputGroup}>
+            <Text style={styles.label}>Objectivo Geral</Text>
+            <TextInput style={[styles.input, styles.textArea]} value={objetivoGeral} onChangeText={setObjetivoGeral} multiline placeholder="Objectivo geral da aula..." placeholderTextColor={Colors.textMuted} />
+          </View>
+          {renderDynamicList("Objectivos Específicos", objetivosEspecificos, setObjetivosEspecificos, "Objectivo")}
+
+          {/* Secção 3 — Conteúdos e Métodos */}
+          <View style={styles.sectionHeader}>
+            <View style={styles.sectionNum}><Text style={styles.sectionNumText}>3</Text></View>
+            <Text style={styles.sectionTitle}>Métodos e Meios</Text>
+          </View>
+
+          <View style={styles.inputGroup}>
+            <Text style={styles.label}>Métodos de Ensino</Text>
+            <TextInput style={[styles.input, styles.textArea]} value={metodos} onChangeText={setMetodos} multiline placeholder="Ex: Expositivo, elaboração conjunta, trabalho em grupo..." placeholderTextColor={Colors.textMuted} />
+          </View>
+          <View style={styles.inputGroup}>
+            <Text style={styles.label}>Meios de Ensino</Text>
+            <TextInput style={[styles.input, styles.textArea]} value={meios} onChangeText={setMeios} multiline placeholder="Ex: Quadro, giz, livro didático, fichas..." placeholderTextColor={Colors.textMuted} />
+          </View>
+
+          {/* Secção 4 — Desenvolvimento */}
+          <View style={styles.sectionHeader}>
+            <View style={styles.sectionNum}><Text style={styles.sectionNumText}>4</Text></View>
+            <Text style={styles.sectionTitle}>Desenvolvimento da Aula</Text>
+          </View>
+
+          <View style={styles.inputGroup}>
+            <Text style={styles.label}>Sequência de Actividades</Text>
+            {atividades.map((at, i) => (
+              <View key={i} style={styles.atividadeInputRow}>
+                <View style={styles.atividadeInputs}>
+                  <TextInput
+                    style={[styles.input, { flex: 1 }]}
+                    value={at.descricao}
+                    onChangeText={(v) => updateAtividade(i, "descricao", v)}
+                    placeholder={`Actividade ${i + 1} (ex: Motivação / Introdução)`}
+                    placeholderTextColor={Colors.textMuted}
+                  />
+                  <TextInput
+                    style={[styles.input, { width: 80 }]}
+                    value={at.tempo}
+                    onChangeText={(v) => updateAtividade(i, "tempo", v)}
+                    placeholder="Tempo"
+                    placeholderTextColor={Colors.textMuted}
+                  />
                 </View>
-
-                <Pressable
-                  onPress={() => setMode("manual")}
-                  disabled={!canGenerate}
-                  style={({ pressed }) => [
-                    styles.manualBtn,
-                    !canGenerate && styles.manualBtnDisabled,
-                    { opacity: pressed && canGenerate ? 0.9 : 1 },
-                  ]}
-                >
-                  <Icon name="edit" size={18} color={canGenerate ? Colors.primary : Colors.textMuted} />
-                  <Text style={[styles.manualBtnText, !canGenerate && { color: Colors.textMuted }]}>
-                    Criar Manualmente
-                  </Text>
-                </Pressable>
-              </View>
-            </>
-          )}
-
-          {mode === "manual" && (
-            <>
-              <View style={styles.modeHeader}>
-                <Icon name="edit" size={18} color={Colors.primary} />
-                <Text style={styles.modeHeaderText}>Modo Manual - Offline</Text>
-              </View>
-
-              <View style={styles.metaChips}>
-                <View style={styles.metaChip}><Text style={styles.metaChipText}>{classe}</Text></View>
-                <View style={styles.metaChip}><Text style={styles.metaChipText}>{disciplina}</Text></View>
-                <View style={styles.metaChip}><Text style={styles.metaChipText}>{duracao} min</Text></View>
-              </View>
-
-              <View style={styles.inputGroup}>
-                <Text style={styles.label}>Sumario</Text>
-                <TextInput style={[styles.input, styles.textArea]} value={sumario} onChangeText={setSumario} multiline placeholder="Resumo da aula..." placeholderTextColor={Colors.textMuted} />
-              </View>
-
-              <View style={styles.inputGroup}>
-                <Text style={styles.label}>Objectivo Geral</Text>
-                <TextInput style={[styles.input, styles.textArea]} value={objetivoGeral} onChangeText={setObjetivoGeral} multiline placeholder="Objectivo geral da aula..." placeholderTextColor={Colors.textMuted} />
-              </View>
-
-              {renderDynamicList("Objectivos Específicos", objetivosEspecificos, setObjetivosEspecificos, "Objectivo")}
-
-              <View style={styles.inputGroup}>
-                <Text style={styles.label}>Metodos de Ensino</Text>
-                <TextInput style={[styles.input, styles.textArea]} value={metodos} onChangeText={setMetodos} multiline placeholder="Ex: Expositivo, elaboracao conjunta..." placeholderTextColor={Colors.textMuted} />
-              </View>
-
-              <View style={styles.inputGroup}>
-                <Text style={styles.label}>Meios de Ensino</Text>
-                <TextInput style={[styles.input, styles.textArea]} value={meios} onChangeText={setMeios} multiline placeholder="Ex: Quadro, giz, livro..." placeholderTextColor={Colors.textMuted} />
-              </View>
-
-              <View style={styles.inputGroup}>
-                <Text style={styles.label}>Sequência de Actividades</Text>
-                {atividades.map((at, i) => (
-                  <View key={i} style={styles.atividadeInputRow}>
-                    <View style={styles.atividadeInputs}>
-                      <TextInput style={[styles.input, { flex: 1 }]} value={at.descricao} onChangeText={(v) => updateAtividade(i, "descricao", v)} placeholder={`Actividade ${i + 1}`} placeholderTextColor={Colors.textMuted} />
-                      <TextInput style={[styles.input, { width: 80 }]} value={at.tempo} onChangeText={(v) => updateAtividade(i, "tempo", v)} placeholder="Tempo" placeholderTextColor={Colors.textMuted} />
-                    </View>
-                    {atividades.length > 1 && (
-                      <Pressable onPress={() => removeAtividade(i)} style={styles.removeBtn}>
-                        <Icon name="close" size={18} color={Colors.error} />
-                      </Pressable>
-                    )}
-                  </View>
-                ))}
-                <Pressable onPress={addAtividade} style={styles.addItemBtn}>
-                  <Icon name="add" size={16} color={Colors.primary} />
-                  <Text style={styles.addItemText}>Adicionar actividade</Text>
-                </Pressable>
-              </View>
-
-              {renderDynamicList("Perguntas de Controlo", perguntasControlo, setPerguntasControlo, "Pergunta")}
-              {renderDynamicList("Actividades Práticas (exercícios de sala)", tarefasPraticas, setTarefasPraticas, "Actividade")}
-              {renderDynamicList("Perguntas de TPC (Tarefa de Casa)", perguntasTarefa, setPerguntasTarefa, "Pergunta TPC")}
-
-              <Pressable
-                onPress={handleSaveManual}
-                disabled={!canSaveManual}
-                style={({ pressed }) => [
-                  styles.saveBtn,
-                  !canSaveManual && { backgroundColor: Colors.textMuted },
-                  { opacity: pressed ? 0.9 : 1 },
-                ]}
-              >
-                <Icon name="check" size={20} color="#fff" />
-                <Text style={styles.saveBtnText}>Guardar Plano</Text>
-              </Pressable>
-            </>
-          )}
-
-          {aiPlan && (
-            <>
-              <View style={styles.scoreCard}>
-                <View style={styles.scoreRow}>
-                  <Text style={styles.scoreLabel}>Score Pedagogico</Text>
-                  <View style={[styles.scoreBadge, { backgroundColor: getScoreColor(aiPlan.score) + "15" }]}>
-                    <Text style={[styles.scoreValue, { color: getScoreColor(aiPlan.score) }]}>{aiPlan.score}/100</Text>
-                  </View>
-                </View>
-                {aiPlan.sugestoes.length > 0 && (
-                  <View style={styles.sugestoesContainer}>
-                    {aiPlan.sugestoes.map((s, i) => (
-                      <View key={i} style={styles.sugestaoItem}>
-                        <Icon name="zap" size={14} color={Colors.accent} />
-                        <Text style={styles.sugestaoText}>{s}</Text>
-                      </View>
-                    ))}
-                  </View>
+                {atividades.length > 1 && (
+                  <Pressable onPress={() => removeAtividade(i)} style={styles.removeBtn}>
+                    <Icon name="close" size={18} color={Colors.error} />
+                  </Pressable>
                 )}
               </View>
+            ))}
+            <Pressable onPress={addAtividade} style={styles.addItemBtn}>
+              <Icon name="add" size={16} color={Colors.primary} />
+              <Text style={styles.addItemText}>Adicionar actividade</Text>
+            </Pressable>
+          </View>
 
-              <View style={styles.editSection}>
-                <Text style={styles.editLabel}>Sumario</Text>
-                <TextInput style={[styles.input, styles.textArea]} value={editSumario} onChangeText={setEditSumario} multiline numberOfLines={3} />
-              </View>
+          {/* Secção 5 — Avaliação */}
+          <View style={styles.sectionHeader}>
+            <View style={styles.sectionNum}><Text style={styles.sectionNumText}>5</Text></View>
+            <Text style={styles.sectionTitle}>Avaliação e TPC</Text>
+          </View>
 
-              <View style={styles.editSection}>
-                <Text style={styles.editLabel}>Objectivo Geral</Text>
-                <TextInput style={[styles.input, styles.textArea]} value={editObjetivoGeral} onChangeText={setEditObjetivoGeral} multiline numberOfLines={2} />
-              </View>
+          {renderDynamicList("Perguntas de Controlo", perguntasControlo, setPerguntasControlo, "Pergunta")}
+          {renderDynamicList("Actividades Práticas (exercícios de sala)", tarefasPraticas, setTarefasPraticas, "Actividade")}
+          {renderDynamicList("Tarefa de Casa (TPC)", perguntasTarefa, setPerguntasTarefa, "TPC")}
 
-              {aiPlan.conteudos && aiPlan.conteudos.length > 0 && (
-                <View style={styles.readOnlySection}>
-                  <Text style={styles.editLabel}>Conteudos</Text>
-                  {aiPlan.conteudos.map((c, i) => (
-                    <View key={i} style={styles.bulletItem}>
-                      <View style={styles.bullet} />
-                      <Text style={styles.bulletText}>{c}</Text>
-                    </View>
-                  ))}
-                </View>
-              )}
-
-              <View style={styles.readOnlySection}>
-                <Text style={styles.editLabel}>Objectivos Específicos</Text>
-                {aiPlan.objetivosEspecificos.map((obj, i) => (
-                  <View key={i} style={styles.bulletItem}>
-                    <View style={styles.bullet} />
-                    <Text style={styles.bulletText}>{obj}</Text>
-                  </View>
-                ))}
-              </View>
-
-              {aiPlan.metodosPrincipais && (
-                <View style={styles.readOnlySection}>
-                  <Text style={styles.editLabel}>Metodo(s) Principal(is)</Text>
-                  <Text style={[styles.readOnlyText, { color: Colors.primary, fontWeight: "600" }]}>{aiPlan.metodosPrincipais}</Text>
-                </View>
-              )}
-
-              <View style={styles.readOnlySection}>
-                <Text style={styles.editLabel}>Metodos, Tecnicas e Meios de Ensino</Text>
-                <Text style={styles.readOnlyText}>{aiPlan.metodos}</Text>
-                {aiPlan.meios ? <Text style={[styles.readOnlyText, { marginTop: 4 }]}>Meios: {aiPlan.meios}</Text> : null}
-              </View>
-
-              {aiPlan.desenvolvimentoAula && aiPlan.desenvolvimentoAula.length > 0 && (
-                <View style={styles.readOnlySection}>
-                  <Text style={styles.editLabel}>Desenvolvimento da Aula</Text>
-                  {aiPlan.desenvolvimentoAula.map((etapa, i) => (
-                    <View key={i} style={styles.etapaCard}>
-                      <View style={styles.etapaHeader}>
-                        <Text style={styles.etapaNome}>{etapa.etapa}</Text>
-                        <Text style={styles.etapaDuracao}>{etapa.duracao}</Text>
-                      </View>
-                      <Text style={styles.etapaRoleLabel}>Professor:</Text>
-                      <Text style={styles.etapaRoleText}>{etapa.actividadesProfessor}</Text>
-                      <Text style={styles.etapaRoleLabel}>Alunos:</Text>
-                      <Text style={styles.etapaRoleText}>{etapa.actividadesAlunos}</Text>
-                    </View>
-                  ))}
-                </View>
-              )}
-
-              <View style={styles.readOnlySection}>
-                <Text style={styles.editLabel}>Perguntas de Controlo</Text>
-                {aiPlan.perguntasControlo.map((p, i) => (
-                  <View key={i} style={styles.bulletItem}>
-                    <Icon name="help-circle" size={14} color={Colors.primary} />
-                    <Text style={styles.bulletText}>{p}</Text>
-                  </View>
-                ))}
-              </View>
-
-              {aiPlan.tarefaDeCasa && aiPlan.tarefaDeCasa.length > 0 && (
-                <View style={styles.readOnlySection}>
-                  <Text style={styles.editLabel}>TPC — Tarefa de Casa</Text>
-                  {aiPlan.tarefaDeCasa.map((t, i) => (
-                    <View key={i} style={styles.tpcItem}>
-                      <Icon name="book-open" size={14} color={Colors.accent} />
-                      <View style={{ flex: 1 }}>
-                        <Text style={styles.bulletText}>{t.descricao}</Text>
-                        {t.referencia ? <Text style={styles.tpcMeta}>{t.referencia}</Text> : null}
-                        {t.tempoEstimado ? <Text style={styles.tpcMeta}>Tempo: {t.tempoEstimado}</Text> : null}
-                      </View>
-                    </View>
-                  ))}
-                </View>
-              )}
-
-              {aiPlan.avaliacao && (
-                <View style={styles.readOnlySection}>
-                  <Text style={styles.editLabel}>Avaliacao Formativa</Text>
-                  <Text style={styles.readOnlyText}>{aiPlan.avaliacao}</Text>
-                </View>
-              )}
-
-              {aiPlan.diferenciacaoPedagogica && (
-                <View style={styles.readOnlySection}>
-                  <Text style={styles.editLabel}>Diferenciacao Pedagogica</Text>
-                  <Text style={[styles.tpcMeta, { marginBottom: 2 }]}>Alunos com dificuldades:</Text>
-                  <Text style={styles.readOnlyText}>{aiPlan.diferenciacaoPedagogica.dificuldades}</Text>
-                  <Text style={[styles.tpcMeta, { marginTop: 8, marginBottom: 2 }]}>Alunos avancados:</Text>
-                  <Text style={styles.readOnlyText}>{aiPlan.diferenciacaoPedagogica.avancados}</Text>
-                </View>
-              )}
-
-              <Pressable onPress={handleSaveAI} style={({ pressed }) => [styles.saveBtn, { opacity: pressed ? 0.9 : 1 }]}>
-                <Icon name="check" size={20} color="#fff" />
-                <Text style={styles.saveBtnText}>Guardar Plano</Text>
-              </Pressable>
-            </>
-          )}
+          <Pressable
+            onPress={handleSave}
+            disabled={!canSave}
+            style={({ pressed }) => [
+              styles.saveBtn,
+              !canSave && { backgroundColor: Colors.textMuted },
+              { opacity: pressed ? 0.9 : 1 },
+            ]}
+          >
+            <Icon name="check" size={20} color="#fff" />
+            <Text style={styles.saveBtnText}>Guardar Plano</Text>
+          </Pressable>
         </ScrollView>
       </KeyboardAvoidingView>
     </View>
@@ -583,107 +297,45 @@ const styles = StyleSheet.create({
   },
   backBtn: { width: 40, height: 40, alignItems: "center", justifyContent: "center" },
   headerTitle: { fontFamily: "Inter_700Bold", fontSize: 18, color: Colors.text },
-  content: { padding: 20, gap: 16 },
-  inputGroup: { gap: 8 },
-  label: { fontFamily: "Inter_600SemiBold", fontSize: 14, color: Colors.text },
+  content: { padding: 20, gap: 14 },
+
+  sectionHeader: {
+    flexDirection: "row", alignItems: "center", gap: 10,
+    marginTop: 8, marginBottom: 2,
+  },
+  sectionNum: {
+    width: 26, height: 26, borderRadius: 13,
+    backgroundColor: Colors.primary, alignItems: "center", justifyContent: "center",
+  },
+  sectionNumText: { fontFamily: "Inter_700Bold", fontSize: 13, color: "#fff" },
+  sectionTitle: { fontFamily: "Inter_700Bold", fontSize: 15, color: Colors.text },
+
+  row: { flexDirection: "row", gap: 10 },
+  inputGroup: { gap: 6 },
+  label: { fontFamily: "Inter_600SemiBold", fontSize: 13, color: Colors.text },
   input: {
     backgroundColor: Colors.surface, borderRadius: 12, borderWidth: 1, borderColor: Colors.border,
     paddingHorizontal: 14, paddingVertical: 12, fontFamily: "Inter_400Regular", fontSize: 15, color: Colors.text,
   },
-  textArea: { minHeight: 80, textAlignVertical: "top" },
-  modeButtons: { gap: 12, marginTop: 4 },
-  generateBtn: {
-    flexDirection: "row", alignItems: "center", justifyContent: "center", gap: 10,
-    backgroundColor: Colors.primary, borderRadius: 14, paddingVertical: 16,
-  },
-  generateBtnDisabled: { backgroundColor: Colors.textMuted },
-  generateBtnText: { fontFamily: "Inter_600SemiBold", fontSize: 16, color: "#fff" },
-  manualBtn: {
-    flexDirection: "row", alignItems: "center", justifyContent: "center", gap: 10,
-    backgroundColor: Colors.surface, borderRadius: 14, paddingVertical: 16,
-    borderWidth: 1.5, borderColor: Colors.primary,
-  },
-  manualBtnDisabled: { borderColor: Colors.textMuted },
-  manualBtnText: { fontFamily: "Inter_600SemiBold", fontSize: 16, color: Colors.primary },
-  modeHeader: {
-    flexDirection: "row", alignItems: "center", gap: 8,
-    backgroundColor: Colors.primary + "10", borderRadius: 10, paddingHorizontal: 14, paddingVertical: 10,
-  },
-  modeHeaderText: { fontFamily: "Inter_600SemiBold", fontSize: 14, color: Colors.primary },
-  metaChips: { flexDirection: "row", gap: 8, flexWrap: "wrap" },
-  metaChip: { backgroundColor: Colors.primary + "12", paddingHorizontal: 10, paddingVertical: 6, borderRadius: 8 },
-  metaChipText: { fontFamily: "Inter_500Medium", fontSize: 12, color: Colors.primary },
+  textArea: { minHeight: 72, textAlignVertical: "top" },
+
   dynamicRow: { flexDirection: "row", alignItems: "center", gap: 8 },
   removeBtn: {
-    width: 32, height: 32, borderRadius: 8, backgroundColor: Colors.error + "10",
-    alignItems: "center", justifyContent: "center",
+    width: 36, height: 36, alignItems: "center", justifyContent: "center",
+    backgroundColor: Colors.error + "12", borderRadius: 10,
   },
   addItemBtn: {
-    flexDirection: "row", alignItems: "center", gap: 6, alignSelf: "flex-start",
-    paddingHorizontal: 12, paddingVertical: 8, borderRadius: 8, backgroundColor: Colors.primary + "10",
+    flexDirection: "row", alignItems: "center", gap: 6,
+    paddingVertical: 8, paddingHorizontal: 4,
   },
   addItemText: { fontFamily: "Inter_500Medium", fontSize: 13, color: Colors.primary },
-  atividadeInputRow: { flexDirection: "row", alignItems: "center", gap: 8 },
-  atividadeInputs: { flex: 1, flexDirection: "row", gap: 8 },
-  scoreCard: {
-    backgroundColor: Colors.surface, borderRadius: 16, padding: 16,
-    borderWidth: 1, borderColor: Colors.border,
-  },
-  scoreRow: { flexDirection: "row", justifyContent: "space-between", alignItems: "center" },
-  scoreLabel: { fontFamily: "Inter_600SemiBold", fontSize: 16, color: Colors.text },
-  scoreBadge: { paddingHorizontal: 12, paddingVertical: 6, borderRadius: 10 },
-  scoreValue: { fontFamily: "Inter_700Bold", fontSize: 16 },
-  sugestoesContainer: { marginTop: 14, gap: 8 },
-  sugestaoItem: { flexDirection: "row", alignItems: "flex-start", gap: 8 },
-  sugestaoText: { flex: 1, fontFamily: "Inter_400Regular", fontSize: 13, color: Colors.textSecondary, lineHeight: 18 },
-  editSection: { gap: 6 },
-  editLabel: { fontFamily: "Inter_600SemiBold", fontSize: 14, color: Colors.text, marginBottom: 4 },
-  readOnlySection: { backgroundColor: Colors.surface, borderRadius: 14, padding: 16, gap: 8, borderWidth: 1, borderColor: Colors.border },
-  readOnlyText: { fontFamily: "Inter_400Regular", fontSize: 14, color: Colors.textSecondary, lineHeight: 20 },
-  bulletItem: { flexDirection: "row", alignItems: "flex-start", gap: 8, paddingVertical: 2 },
-  bullet: { width: 6, height: 6, borderRadius: 3, backgroundColor: Colors.primary, marginTop: 6 },
-  bulletText: { flex: 1, fontFamily: "Inter_400Regular", fontSize: 14, color: Colors.textSecondary, lineHeight: 20 },
-  atividadeItem: { flexDirection: "row", alignItems: "flex-start", gap: 12 },
-  atividadeNum: { width: 28, height: 28, borderRadius: 14, backgroundColor: Colors.primary + "15", alignItems: "center", justifyContent: "center" },
-  atividadeNumText: { fontFamily: "Inter_600SemiBold", fontSize: 12, color: Colors.primary },
-  atividadeContent: { flex: 1 },
-  atividadeDesc: { fontFamily: "Inter_400Regular", fontSize: 14, color: Colors.textSecondary, lineHeight: 20 },
-  atividadeTempo: { fontFamily: "Inter_500Medium", fontSize: 12, color: Colors.primary, marginTop: 2 },
+
+  atividadeInputRow: { gap: 6, marginBottom: 8 },
+  atividadeInputs: { flexDirection: "row", gap: 8 },
+
   saveBtn: {
     flexDirection: "row", alignItems: "center", justifyContent: "center", gap: 10,
-    backgroundColor: Colors.success, borderRadius: 14, paddingVertical: 16, marginTop: 8,
+    backgroundColor: Colors.primary, borderRadius: 14, paddingVertical: 16, marginTop: 8,
   },
   saveBtnText: { fontFamily: "Inter_600SemiBold", fontSize: 16, color: "#fff" },
-  progressBarContainer: {
-    height: 4, backgroundColor: Colors.border, borderRadius: 2, overflow: "hidden",
-  },
-  progressBar: {
-    height: 4, backgroundColor: Colors.primary, borderRadius: 2,
-  },
-  aiInfoCard: {
-    flexDirection: "row", alignItems: "flex-start", gap: 8,
-    backgroundColor: Colors.primary + "0D", borderRadius: 10,
-    paddingHorizontal: 12, paddingVertical: 10,
-  },
-  aiInfoText: {
-    flex: 1, fontFamily: "Inter_400Regular", fontSize: 12,
-    color: Colors.textSecondary, lineHeight: 17,
-  },
-  etapaCard: {
-    backgroundColor: Colors.background, borderRadius: 10, padding: 12,
-    borderLeftWidth: 3, borderLeftColor: Colors.primary,
-  },
-  etapaHeader: {
-    flexDirection: "row", justifyContent: "space-between", alignItems: "center", marginBottom: 6,
-  },
-  etapaNome: { fontFamily: "Inter_600SemiBold", fontSize: 13, color: Colors.text },
-  etapaDuracao: {
-    fontFamily: "Inter_500Medium", fontSize: 12, color: Colors.primary,
-    backgroundColor: Colors.primary + "12", paddingHorizontal: 8, paddingVertical: 2, borderRadius: 6,
-  },
-  etapaRoleLabel: { fontFamily: "Inter_600SemiBold", fontSize: 12, color: Colors.textSecondary, marginTop: 4 },
-  etapaRoleText: { fontFamily: "Inter_400Regular", fontSize: 13, color: Colors.textSecondary, lineHeight: 18, marginTop: 2 },
-  tpcItem: { flexDirection: "row", alignItems: "flex-start", gap: 8, paddingVertical: 4 },
-  tpcMeta: { fontFamily: "Inter_400Regular", fontSize: 12, color: Colors.primary, marginTop: 2, fontStyle: "italic" },
-  labelHint: { fontFamily: "Inter_400Regular", fontSize: 12, color: Colors.textSecondary, marginBottom: 6, lineHeight: 16 },
 });

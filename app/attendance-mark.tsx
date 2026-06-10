@@ -46,6 +46,7 @@ export default function AttendanceMarkScreen() {
   const [activeTab, setActiveTab] = useState<Tab>("hoje");
   const [classGroup, setClassGroup] = useState<ClassGroup | null>(null);
   const [attendance, setAttendanceState] = useState<Map<string, boolean>>(new Map());
+  const [justificadas, setJustificadas] = useState<Set<string>>(new Set());
   const [allRecords, setAllRecords] = useState<AttendanceRecord[]>([]);
   const [expandedDate, setExpandedDate] = useState<string | null>(null);
   const [showLimitModal, setShowLimitModal] = useState(false);
@@ -64,11 +65,14 @@ export default function AttendanceMarkScreen() {
         );
         const todayRecord = periodRecords.find((r) => r.data === today);
         const map = new Map<string, boolean>();
+        const justSet = new Set<string>();
         found.alunos.forEach((a) => {
           const existing = todayRecord?.registos.find((r) => r.alunoId === a.id);
           map.set(a.id, existing ? existing.presente : true);
+          if (existing && !existing.presente && existing.justificada) justSet.add(a.id);
         });
         setAttendanceState(map);
+        setJustificadas(justSet);
         setAllRecords(periodRecords);
       }
     });
@@ -85,15 +89,31 @@ export default function AttendanceMarkScreen() {
     });
   };
 
+  const toggleJustificada = (alunoId: string) => {
+    const isAbsent = !(attendance.get(alunoId) ?? true);
+    if (!isAbsent) return;
+    if (Platform.OS !== "web") Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
+    setJustificadas((prev) => {
+      const next = new Set(prev);
+      if (next.has(alunoId)) next.delete(alunoId);
+      else next.add(alunoId);
+      return next;
+    });
+  };
+
   const handleSave = async () => {
     if (!classGroup) return;
     const record: AttendanceRecord = {
       turmaId: turmaId!,
       data: today,
-      registos: classGroup.alunos.map((a) => ({
-        alunoId: a.id,
-        presente: attendance.get(a.id) ?? true,
-      })),
+      registos: classGroup.alunos.map((a) => {
+        const presente = attendance.get(a.id) ?? true;
+        return {
+          alunoId: a.id,
+          presente,
+          justificada: !presente && justificadas.has(a.id) ? true : undefined,
+        };
+      }),
       periodo: currentPeriod,
     };
     await saveAttendance(record);
@@ -143,15 +163,18 @@ export default function AttendanceMarkScreen() {
 
   const renderStudent = ({ item, index }: { item: Student; index: number }) => {
     const isPresent = attendance.get(item.id) ?? true;
+    const isJustificada = !isPresent && justificadas.has(item.id);
     const stats = getStudentStats(item.id);
 
     return (
       <Pressable
         onPress={() => toggleAttendance(item.id)}
+        onLongPress={() => toggleJustificada(item.id)}
+        delayLongPress={400}
         style={({ pressed }) => [
           styles.studentCard,
           { opacity: pressed ? 0.95 : 1 },
-          !isPresent && styles.studentCardAbsent,
+          !isPresent && (isJustificada ? styles.studentCardJustificada : styles.studentCardAbsent),
           stats.reprovado && styles.studentCardReprovado,
         ]}
       >
@@ -162,6 +185,11 @@ export default function AttendanceMarkScreen() {
           <Text style={[styles.studentName, !isPresent && styles.studentNameAbsent]}>
             {item.nome}
           </Text>
+          {!isPresent && isJustificada && (
+            <View style={styles.justificadaBadge}>
+              <Text style={styles.justificadaBadgeText}>Falta Justificada</Text>
+            </View>
+          )}
           {stats.total > 0 && (
             <Text style={styles.studentStats}>
               {stats.pct}% freq. · {stats.faltas} falta{stats.faltas !== 1 ? "s" : ""}
@@ -175,8 +203,8 @@ export default function AttendanceMarkScreen() {
             </View>
           )}
         </View>
-        <View style={[styles.toggleBtn, isPresent ? styles.togglePresent : styles.toggleAbsent]}>
-          <Icon name={isPresent ? "checkmark" : "close"} size={18} color="#fff" />
+        <View style={[styles.toggleBtn, isPresent ? styles.togglePresent : isJustificada ? styles.toggleJustificada : styles.toggleAbsent]}>
+          <Text style={styles.toggleBtnText}>{isPresent ? "P" : isJustificada ? "FJ" : "F"}</Text>
         </View>
       </Pressable>
     );
@@ -213,11 +241,24 @@ export default function AttendanceMarkScreen() {
                 P: {presentRegistos.length}
               </Text>
             </View>
-            <View style={[styles.historyBadge, { backgroundColor: Colors.error + "20" }]}>
-              <Text style={[styles.historyBadgeText, { color: Colors.error }]}>
-                F: {absentRegistos.length}
-              </Text>
-            </View>
+            {(() => {
+              const justCount = absentRegistos.filter((r) => r.justificada).length;
+              const unjustCount = absentRegistos.length - justCount;
+              return (
+                <>
+                  {unjustCount > 0 && (
+                    <View style={[styles.historyBadge, { backgroundColor: Colors.error + "20" }]}>
+                      <Text style={[styles.historyBadgeText, { color: Colors.error }]}>F: {unjustCount}</Text>
+                    </View>
+                  )}
+                  {justCount > 0 && (
+                    <View style={[styles.historyBadge, { backgroundColor: "#F59E0B20" }]}>
+                      <Text style={[styles.historyBadgeText, { color: "#F59E0B" }]}>FJ: {justCount}</Text>
+                    </View>
+                  )}
+                </>
+              );
+            })()}
             <Text style={styles.historyPct}>{pct}%</Text>
             <Icon
               name={isExpanded ? "chevron-up" : "chevron-down"}
@@ -229,19 +270,41 @@ export default function AttendanceMarkScreen() {
 
         {isExpanded && (
           <View style={styles.historyDetail}>
-            {absentRegistos.length > 0 && (
-              <View style={styles.historyGroup}>
-                <Text style={styles.historyGroupTitle}>
-                  <Icon name="close" size={12} color={Colors.error} /> Faltas ({absentRegistos.length})
-                </Text>
-                {absentRegistos.map((r) => (
-                  <View key={r.alunoId} style={styles.historyRow}>
-                    <View style={[styles.historyDot, { backgroundColor: Colors.error }]} />
-                    <Text style={styles.historyRowName}>{getStudentName(r.alunoId)}</Text>
-                  </View>
-                ))}
-              </View>
-            )}
+            {absentRegistos.length > 0 && (() => {
+              const justRegistos = absentRegistos.filter((r) => r.justificada);
+              const unjustRegistos = absentRegistos.filter((r) => !r.justificada);
+              return (
+                <View style={styles.historyGroup}>
+                  {unjustRegistos.length > 0 && (
+                    <>
+                      <Text style={styles.historyGroupTitle}>
+                        Faltas ({unjustRegistos.length})
+                      </Text>
+                      {unjustRegistos.map((r) => (
+                        <View key={r.alunoId} style={styles.historyRow}>
+                          <View style={[styles.historyDot, { backgroundColor: Colors.error }]} />
+                          <Text style={styles.historyRowName}>{getStudentName(r.alunoId)}</Text>
+                        </View>
+                      ))}
+                    </>
+                  )}
+                  {justRegistos.length > 0 && (
+                    <>
+                      <Text style={[styles.historyGroupTitle, { color: "#F59E0B", marginTop: unjustRegistos.length > 0 ? 8 : 0 }]}>
+                        Faltas Justificadas ({justRegistos.length})
+                      </Text>
+                      {justRegistos.map((r) => (
+                        <View key={r.alunoId} style={styles.historyRow}>
+                          <View style={[styles.historyDot, { backgroundColor: "#F59E0B" }]} />
+                          <Text style={styles.historyRowName}>{getStudentName(r.alunoId)}</Text>
+                          <View style={styles.fjBadge}><Text style={styles.fjBadgeText}>FJ</Text></View>
+                        </View>
+                      ))}
+                    </>
+                  )}
+                </View>
+              );
+            })()}
             {presentRegistos.length > 0 && (
               <View style={styles.historyGroup}>
                 <Text style={styles.historyGroupTitle}>
@@ -468,6 +531,7 @@ const styles = StyleSheet.create({
     borderWidth: 1, borderColor: Colors.border,
   },
   studentCardAbsent: { backgroundColor: "rgba(248,113,113,0.1)", borderColor: "rgba(248,113,113,0.3)" },
+  studentCardJustificada: { backgroundColor: "rgba(245,158,11,0.1)", borderColor: "rgba(245,158,11,0.3)" },
   studentNum: { width: 28, height: 28, borderRadius: 14, backgroundColor: Colors.primary + "12", alignItems: "center", justifyContent: "center" },
   studentNumText: { fontFamily: "Inter_600SemiBold", fontSize: 12, color: Colors.primary },
   studentInfo: { flex: 1 },
@@ -477,6 +541,13 @@ const styles = StyleSheet.create({
   toggleBtn: { width: 36, height: 36, borderRadius: 18, alignItems: "center", justifyContent: "center" },
   togglePresent: { backgroundColor: Colors.success },
   toggleAbsent: { backgroundColor: Colors.error },
+  toggleJustificada: { backgroundColor: "#F59E0B" },
+  toggleBtnText: { fontFamily: "Inter_700Bold", fontSize: 11, color: "#fff" },
+  justificadaBadge: {
+    alignSelf: "flex-start", backgroundColor: "#F59E0B20",
+    borderRadius: 4, paddingHorizontal: 5, paddingVertical: 1, marginTop: 2,
+  },
+  justificadaBadgeText: { fontFamily: "Inter_600SemiBold", fontSize: 10, color: "#F59E0B" },
   historyCard: {
     backgroundColor: Colors.surface, borderRadius: 14,
     borderWidth: 1, borderColor: Colors.border, overflow: "hidden",
@@ -511,7 +582,9 @@ const styles = StyleSheet.create({
   },
   historyRow: { flexDirection: "row", alignItems: "center", gap: 8, paddingVertical: 2 },
   historyDot: { width: 6, height: 6, borderRadius: 3 },
-  historyRowName: { fontFamily: "Inter_400Regular", fontSize: 14, color: Colors.text },
+  historyRowName: { fontFamily: "Inter_400Regular", fontSize: 14, color: Colors.text, flex: 1 },
+  fjBadge: { backgroundColor: "#F59E0B20", borderRadius: 4, paddingHorizontal: 5, paddingVertical: 1 },
+  fjBadgeText: { fontFamily: "Inter_700Bold", fontSize: 10, color: "#F59E0B" },
   historyHeader2: { marginBottom: 4, paddingHorizontal: 4 },
   historyHeader2Text: { fontFamily: "Inter_500Medium", fontSize: 13, color: Colors.textMuted },
   emptyHistory: { alignItems: "center", paddingTop: 80, gap: 10 },

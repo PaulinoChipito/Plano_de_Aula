@@ -43,8 +43,9 @@ export default function StudentGradesScreen() {
   const [newMacNota, setNewMacNota] = useState("");
   const [nptValue, setNptValue] = useState("");
   const [observacao, setObservacao] = useState("");
-  const [editingEntryId, setEditingEntryId] = useState<string | null>(null);
-  const [editingEntryValue, setEditingEntryValue] = useState("");
+  const [macPopupEntry, setMacPopupEntry] = useState<{ entry: GradeEntry; index: number } | null>(null);
+  const [macPopupEditing, setMacPopupEditing] = useState(false);
+  const [macPopupEditValue, setMacPopupEditValue] = useState("");
 
   const { currentPeriod } = usePeriod();
 
@@ -155,68 +156,62 @@ export default function StudentGradesScreen() {
     }
   };
 
-  const handleEditMac = (entry: GradeEntry) => {
-    setEditingEntryId(entry.id);
-    setEditingEntryValue(String(entry.nota));
+  const formatMacDate = (data: string) => {
+    if (!data) return "—";
+    const d = new Date(data);
+    if (isNaN(d.getTime())) return data;
+    return d.toLocaleDateString("pt-PT", { day: "2-digit", month: "long", year: "numeric" });
   };
 
-  const handleSaveEditMac = async () => {
-    if (!selectedStudent || !editingEntryId) return;
-    const nota = parseFloat(editingEntryValue.replace(",", "."));
+  const openMacPopup = (entry: GradeEntry, index: number) => {
+    setMacPopupEntry({ entry, index });
+    setMacPopupEditing(false);
+  };
+
+  const closeMacPopup = () => {
+    setMacPopupEntry(null);
+    setMacPopupEditing(false);
+    setMacPopupEditValue("");
+  };
+
+  const handleSaveMacEdit = async () => {
+    if (!selectedStudent || !macPopupEntry) return;
+    const nota = parseFloat(macPopupEditValue.replace(",", "."));
     if (isNaN(nota) || nota < 0 || nota > maxNota) {
-      if (Platform.OS === "web") {
-        window.alert(`Nota inválida. Deve estar entre 0 e ${maxNota}.`);
-      } else {
-        Alert.alert("Nota inválida", `A nota deve estar entre 0 e ${maxNota}.`);
-      }
+      if (Platform.OS === "web") window.alert(`Nota inválida. Deve estar entre 0 e ${maxNota}.`);
+      else Alert.alert("Nota inválida", `A nota deve estar entre 0 e ${maxNota}.`);
       return;
     }
-
     const existing = getStudentGrade(selectedStudent.id);
     if (!existing) return;
-
     const roundedNota = Math.round(nota * 10) / 10;
     const updatedGrade: StudentGrade = {
       ...existing,
-      mac: existing.mac.map((e) =>
-        e.id === editingEntryId ? { ...e, nota: roundedNota } : e,
-      ),
+      mac: existing.mac.map((e) => e.id === macPopupEntry.entry.id ? { ...e, nota: roundedNota } : e),
       periodo: currentPeriod,
     };
-
     try {
       await saveGrade(updatedGrade);
       updateGradesState(updatedGrade);
-      setEditingEntryId(null);
-      setEditingEntryValue("");
-    } catch (e) {
+      closeMacPopup();
+      if (Platform.OS !== "web") Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+    } catch {
       if (Platform.OS === "web") window.alert("Erro ao guardar. Tente novamente.");
       else Alert.alert("Erro", "Não foi possível guardar a nota.");
     }
-    if (Platform.OS !== "web") Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
   };
 
-  const handleDeleteMac = (entryId: string) => {
-    if (!selectedStudent) return;
-    Alert.alert("Eliminar Nota", "Tem a certeza que deseja remover esta nota?", [
-      { text: "Cancelar", style: "cancel" },
-      {
-        text: "Eliminar",
-        style: "destructive",
-        onPress: async () => {
-          const existing = getStudentGrade(selectedStudent.id);
-          if (!existing) return;
-
-          const updatedGrade: StudentGrade = {
-            ...existing,
-            mac: existing.mac.filter((e) => e.id !== entryId),
-          };
-
-          await saveGrade(updatedGrade);
-          updateGradesState(updatedGrade);
-        },
-      },
-    ]);
+  const handleDeleteMacFromPopup = async () => {
+    if (!selectedStudent || !macPopupEntry) return;
+    const existing = getStudentGrade(selectedStudent.id);
+    if (!existing) return;
+    const updatedGrade: StudentGrade = {
+      ...existing,
+      mac: existing.mac.filter((e) => e.id !== macPopupEntry.entry.id),
+    };
+    await saveGrade(updatedGrade);
+    updateGradesState(updatedGrade);
+    closeMacPopup();
   };
 
   const handleSaveNptObs = async () => {
@@ -264,10 +259,15 @@ export default function StudentGradesScreen() {
     ? getNotaFinal(selectedGrade.mac, selectedGrade.npt)
     : null;
 
+  const threshold = isPrimario ? 5 : 10;
+
   const renderStudent = ({ item, index }: { item: Student; index: number }) => {
     const grade = getStudentGrade(item.id);
     const macAvg = grade ? getMacAverage(grade.mac) : null;
     const notaFinal = grade ? getNotaFinal(grade.mac, grade.npt) : null;
+    const macNeg = macAvg !== null && macAvg < threshold;
+    const nptNeg = grade?.npt !== null && grade?.npt !== undefined && grade.npt < threshold;
+    const nfNeg = notaFinal !== null && notaFinal < threshold;
 
     return (
       <Pressable
@@ -282,21 +282,21 @@ export default function StudentGradesScreen() {
         </View>
         <View style={styles.gradeInfo}>
           {macAvg !== null && grade && grade.mac.length > 0 && (
-            <View style={styles.gradeBadge}>
-              <Text style={styles.gradeLabel}>MAC</Text>
-              <Text style={styles.gradeValue}>{macAvg}</Text>
+            <View style={[styles.gradeBadge, macNeg && styles.gradeBadgeNeg]}>
+              <Text style={[styles.gradeLabel, macNeg && styles.gradeLabelNeg]}>MAC</Text>
+              <Text style={[styles.gradeValue, macNeg && styles.gradeValueNeg]}>{macAvg}</Text>
             </View>
           )}
           {grade?.npt !== null && grade?.npt !== undefined && (
-            <View style={[styles.gradeBadge, styles.nptBadge]}>
-              <Text style={[styles.gradeLabel, { color: "#6366F1" }]}>NPT</Text>
-              <Text style={[styles.gradeValue, { color: "#6366F1" }]}>{grade.npt}</Text>
+            <View style={[styles.gradeBadge, nptNeg ? styles.gradeBadgeNeg : styles.nptBadge]}>
+              <Text style={[styles.gradeLabel, nptNeg ? styles.gradeLabelNeg : { color: "#6366F1" }]}>NPT</Text>
+              <Text style={[styles.gradeValue, nptNeg ? styles.gradeValueNeg : { color: "#6366F1" }]}>{grade.npt}</Text>
             </View>
           )}
           {notaFinal !== null && grade && (grade.mac.length > 0 || grade.npt !== null) && (
-            <View style={[styles.gradeBadge, styles.nfBadge]}>
-              <Text style={[styles.gradeLabel, { color: Colors.success }]}>NF</Text>
-              <Text style={[styles.gradeValue, { color: Colors.success }]}>{notaFinal}</Text>
+            <View style={[styles.gradeBadge, nfNeg ? styles.gradeBadgeNeg : styles.nfBadge]}>
+              <Text style={[styles.gradeLabel, nfNeg ? styles.gradeLabelNeg : { color: Colors.success }]}>NF</Text>
+              <Text style={[styles.gradeValue, nfNeg ? styles.gradeValueNeg : { color: Colors.success }]}>{notaFinal}</Text>
             </View>
           )}
         </View>
@@ -348,6 +348,68 @@ export default function StudentGradesScreen() {
         }
       />
 
+      {/* MAC entry detail popup */}
+      <Modal visible={!!macPopupEntry} transparent animationType="fade" onRequestClose={closeMacPopup}>
+        <Pressable style={styles.modalOverlay} onPress={closeMacPopup}>
+          <Pressable style={[styles.modalContent, { maxHeight: "auto" as any, paddingBottom: 20 }]} onPress={() => {}}>
+            <Text style={[styles.modalTitle, { marginBottom: 4 }]}>
+              AC{(macPopupEntry?.index ?? 0) + 1}
+            </Text>
+            <Text style={styles.macPopupDate}>
+              Registada em: {macPopupEntry ? formatMacDate(macPopupEntry.entry.data) : ""}
+            </Text>
+            {macPopupEditing ? (
+              <>
+                <TextInput
+                  style={[styles.modalInput, { marginTop: 12, marginBottom: 8 }]}
+                  value={macPopupEditValue}
+                  onChangeText={setMacPopupEditValue}
+                  keyboardType="numeric"
+                  autoFocus
+                  selectTextOnFocus
+                  placeholder={`Nota (0–${maxNota})`}
+                  placeholderTextColor={Colors.textMuted}
+                />
+                <Pressable
+                  onPress={handleSaveMacEdit}
+                  style={({ pressed }) => [styles.macPopupActionBtn, { backgroundColor: Colors.primary, opacity: pressed ? 0.85 : 1 }]}
+                >
+                  <Icon name="checkmark" size={16} color="#fff" />
+                  <Text style={styles.macPopupActionBtnText}>Guardar</Text>
+                </Pressable>
+                <Pressable
+                  onPress={() => setMacPopupEditing(false)}
+                  style={({ pressed }) => [styles.macPopupSecondaryBtn, { opacity: pressed ? 0.75 : 1 }]}
+                >
+                  <Text style={styles.macPopupSecondaryBtnText}>Cancelar</Text>
+                </Pressable>
+              </>
+            ) : (
+              <>
+                <Text style={styles.macPopupValue}>{macPopupEntry?.entry.nota}</Text>
+                <Pressable
+                  onPress={() => {
+                    setMacPopupEditValue(String(macPopupEntry?.entry.nota ?? ""));
+                    setMacPopupEditing(true);
+                  }}
+                  style={({ pressed }) => [styles.macPopupActionBtn, { backgroundColor: Colors.primary + "18", opacity: pressed ? 0.85 : 1 }]}
+                >
+                  <Icon name="edit-2" size={16} color={Colors.primary} />
+                  <Text style={[styles.macPopupActionBtnText, { color: Colors.primary }]}>Editar</Text>
+                </Pressable>
+                <Pressable
+                  onPress={handleDeleteMacFromPopup}
+                  style={({ pressed }) => [styles.macPopupActionBtn, { backgroundColor: Colors.error + "15", opacity: pressed ? 0.85 : 1, marginTop: 8 }]}
+                >
+                  <Icon name="trash-2" size={16} color={Colors.error} />
+                  <Text style={[styles.macPopupActionBtnText, { color: Colors.error }]}>Eliminar</Text>
+                </Pressable>
+              </>
+            )}
+          </Pressable>
+        </Pressable>
+      </Modal>
+
       <Modal visible={showModal} transparent animationType="fade" onRequestClose={() => setShowModal(false)}>
         <Pressable style={styles.modalOverlay} onPress={() => setShowModal(false)}>
           <Pressable style={styles.modalContent} onPress={() => {}}>
@@ -358,45 +420,24 @@ export default function StudentGradesScreen() {
                 <Text style={styles.modalSectionTitle}>MAC — Médias de Avaliação Contínua</Text>
                 {selectedGrade && selectedGrade.mac.length > 0 && (
                   <View style={styles.macHistory}>
-                    {selectedGrade.mac.map((entry, i) => (
-                      <Pressable
-                        key={entry.id}
-                        onPress={() => handleEditMac(entry)}
-                        onLongPress={() => handleDeleteMac(entry.id)}
-                        style={({ pressed }) => [
-                          styles.macEntry,
-                          editingEntryId === entry.id && styles.macEntryEditing,
-                          { opacity: pressed ? 0.8 : 1 },
-                        ]}
-                      >
-                        {editingEntryId === entry.id ? (
-                          <View style={styles.macEditContainer}>
-                            <TextInput
-                              style={styles.macEditInput}
-                              value={editingEntryValue}
-                              onChangeText={setEditingEntryValue}
-                              keyboardType="numeric"
-                              autoFocus
-                              selectTextOnFocus
-                            />
-                            <View style={styles.macEditButtons}>
-                              <Pressable onPress={handleSaveEditMac} style={styles.macEditSave}>
-                                <Icon name="checkmark" size={14} color={Colors.success} />
-                              </Pressable>
-                              <Pressable onPress={() => setEditingEntryId(null)} style={styles.macEditCancel}>
-                                <Icon name="close" size={14} color={Colors.error} />
-                              </Pressable>
-                            </View>
-                          </View>
-                        ) : (
-                          <>
-                            <Text style={styles.macEntryNum}>AC{i + 1}</Text>
-                            <Text style={styles.macEntryValue}>{entry.nota}</Text>
-                            <Icon name="edit-2" size={10} color={Colors.textMuted} />
-                          </>
-                        )}
-                      </Pressable>
-                    ))}
+                    {selectedGrade.mac.map((entry, i) => {
+                      const isNeg = entry.nota < threshold;
+                      return (
+                        <Pressable
+                          key={entry.id}
+                          onPress={() => openMacPopup(entry, i)}
+                          style={({ pressed }) => [
+                            styles.macEntry,
+                            isNeg && styles.macEntryNeg,
+                            { opacity: pressed ? 0.8 : 1 },
+                          ]}
+                        >
+                          <Text style={styles.macEntryNum}>AC{i + 1}</Text>
+                          <Text style={[styles.macEntryValue, isNeg && { color: Colors.error }]}>{entry.nota}</Text>
+                          <Icon name="edit-2" size={10} color={Colors.textMuted} />
+                        </Pressable>
+                      );
+                    })}
                     <View style={[styles.macEntry, styles.macAvgEntry]}>
                       <Text style={[styles.macEntryNum, { color: Colors.primary }]}>Média</Text>
                       <Text style={[styles.macEntryValue, { color: Colors.primary, fontFamily: "Inter_700Bold" as const }]}>
@@ -406,7 +447,7 @@ export default function StudentGradesScreen() {
                   </View>
                 )}
                 {selectedGrade && selectedGrade.mac.length > 0 && (
-                  <Text style={styles.macHint}>Toque para editar, mantenha premido para eliminar</Text>
+                  <Text style={styles.macHint}>Toque numa nota para ver detalhes ou editar</Text>
                 )}
                 <View style={styles.addMacRow}>
                   <TextInput
@@ -496,10 +537,13 @@ const styles = StyleSheet.create({
   studentName: { fontFamily: "Inter_600SemiBold", fontSize: 15, color: Colors.text },
   gradeInfo: { flexDirection: "row", gap: 5 },
   gradeBadge: { backgroundColor: Colors.primary + "12", paddingHorizontal: 7, paddingVertical: 4, borderRadius: 6, alignItems: "center" },
+  gradeBadgeNeg: { backgroundColor: Colors.error + "15" },
   nptBadge: { backgroundColor: "#6366F112" },
   nfBadge: { backgroundColor: Colors.success + "12" },
   gradeLabel: { fontFamily: "Inter_500Medium", fontSize: 10, color: Colors.primary },
+  gradeLabelNeg: { color: Colors.error },
   gradeValue: { fontFamily: "Inter_700Bold", fontSize: 13, color: Colors.primary },
+  gradeValueNeg: { color: Colors.error },
   emptyContainer: { alignItems: "center", paddingTop: 80, gap: 8 },
   emptyTitle: { fontFamily: "Inter_600SemiBold", fontSize: 18, color: Colors.text, marginTop: 8 },
   modalOverlay: { flex: 1, backgroundColor: "rgba(0,0,0,0.7)", justifyContent: "center", paddingHorizontal: 24 },
@@ -512,17 +556,20 @@ const styles = StyleSheet.create({
     backgroundColor: Colors.background, borderRadius: 8, paddingHorizontal: 10, paddingVertical: 6,
     alignItems: "center", minWidth: 52, gap: 2,
   },
-  macEntryEditing: { borderWidth: 1, borderColor: Colors.primary, backgroundColor: Colors.primary + "08" },
-  macEditContainer: { alignItems: "center", gap: 4 },
-  macEditInput: {
-    fontFamily: "Inter_600SemiBold", fontSize: 14, color: Colors.text,
-    textAlign: "center", width: 50, paddingVertical: 2,
-    borderBottomWidth: 1, borderBottomColor: Colors.primary,
-  },
-  macEditButtons: { flexDirection: "row", gap: 8 },
-  macEditSave: { padding: 2 },
-  macEditCancel: { padding: 2 },
+  macEntryNeg: { borderWidth: 1, borderColor: Colors.error + "40", backgroundColor: Colors.error + "08" },
   macAvgEntry: { backgroundColor: Colors.primary + "12" },
+  macPopupDate: { fontFamily: "Inter_400Regular", fontSize: 13, color: Colors.textSecondary, marginBottom: 8 },
+  macPopupValue: {
+    fontFamily: "Inter_700Bold", fontSize: 36, color: Colors.text,
+    textAlign: "center", marginVertical: 12,
+  },
+  macPopupActionBtn: {
+    flexDirection: "row", alignItems: "center", justifyContent: "center", gap: 8,
+    borderRadius: 12, paddingVertical: 12, paddingHorizontal: 16,
+  },
+  macPopupActionBtnText: { fontFamily: "Inter_600SemiBold", fontSize: 15, color: "#fff" },
+  macPopupSecondaryBtn: { alignSelf: "center", marginTop: 8, paddingVertical: 6 },
+  macPopupSecondaryBtnText: { fontFamily: "Inter_500Medium", fontSize: 14, color: Colors.textSecondary },
   macEntryNum: { fontFamily: "Inter_500Medium", fontSize: 10, color: Colors.textSecondary },
   macEntryValue: { fontFamily: "Inter_600SemiBold", fontSize: 14, color: Colors.text },
   macHint: { fontFamily: "Inter_400Regular", fontSize: 11, color: Colors.textMuted, fontStyle: "italic" as const, marginBottom: 8 },

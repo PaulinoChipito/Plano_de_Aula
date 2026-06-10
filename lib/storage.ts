@@ -89,7 +89,7 @@ export interface StudentGrade {
 export interface AttendanceRecord {
   turmaId: string;
   data: string;
-  registos: { alunoId: string; presente: boolean }[];
+  registos: { alunoId: string; presente: boolean; justificada?: boolean }[];
   periodo?: string;
 }
 

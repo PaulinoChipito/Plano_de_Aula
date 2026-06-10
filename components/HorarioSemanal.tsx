@@ -19,15 +19,15 @@ import { getAulas, saveAula, deleteAula, generateId, Aula } from "@/lib/storage"
 const DIAS_SEMANA = ["Segunda", "Terça", "Quarta", "Quinta", "Sexta", "Sábado"];
 const DIAS_CURTO = ["Seg", "Ter", "Qua", "Qui", "Sex", "Sáb"];
 const HOUR_START = 7;
-const HOUR_END = 20;
+const HOUR_END = 24;
 const HOUR_H = 64;
 const DAY_COL_W = 108;
 const TIME_COL_W = 46;
 const HEADER_H = 42;
 const GRID_TOTAL_H = (HOUR_END - HOUR_START) * HOUR_H;
-const HOURS = Array.from({ length: HOUR_END - HOUR_START + 1 }, (_, i) => HOUR_START + i);
+const HOURS = Array.from({ length: HOUR_END - HOUR_START }, (_, i) => HOUR_START + i);
 
-const DISC_COLORS = [
+const TURMA_COLORS = [
   "#6366F1", "#14B8A6", "#A855F7", "#F59E0B", "#EF4444",
   "#10B981", "#3B82F6", "#EC4899", "#06B6D4", "#84CC16",
 ];
@@ -38,12 +38,12 @@ const DISCIPLINAS_SUGERIDAS = [
   "Arte", "Filosofia", "Sociologia", "Informática",
 ];
 
-function getDiscColor(disciplina: string): string {
+function getTurmaColor(turma: string): string {
   let hash = 0;
-  for (let i = 0; i < disciplina.length; i++) {
-    hash = disciplina.charCodeAt(i) + ((hash << 5) - hash);
+  for (let i = 0; i < turma.length; i++) {
+    hash = turma.charCodeAt(i) + ((hash << 5) - hash);
   }
-  return DISC_COLORS[Math.abs(hash) % DISC_COLORS.length];
+  return TURMA_COLORS[Math.abs(hash) % TURMA_COLORS.length];
 }
 
 function timeToMinutes(t: string): number {
@@ -189,17 +189,17 @@ export default function HorarioSemanal() {
         </View>
       </View>
 
-      {/* Legend */}
+      {/* Turma colour legend */}
       {aulas.length > 0 && (
         <ScrollView
           horizontal
           showsHorizontalScrollIndicator={false}
           contentContainerStyle={styles.legendRow}
         >
-          {Array.from(new Set(aulas.map((a) => a.disciplina))).map((disc) => (
-            <View key={disc} style={[styles.legendChip, { borderLeftColor: getDiscColor(disc) }]}>
-              <View style={[styles.legendDot, { backgroundColor: getDiscColor(disc) }]} />
-              <Text style={styles.legendText} numberOfLines={1}>{disc}</Text>
+          {Array.from(new Set(aulas.map((a) => a.turma))).map((turma) => (
+            <View key={turma} style={[styles.legendChip, { borderLeftColor: getTurmaColor(turma) }]}>
+              <View style={[styles.legendDot, { backgroundColor: getTurmaColor(turma) }]} />
+              <Text style={styles.legendText} numberOfLines={1}>{turma}</Text>
             </View>
           ))}
         </ScrollView>
@@ -258,7 +258,7 @@ export default function HorarioSemanal() {
                       const endMin = timeToMinutes(aula.horaFim) - HOUR_START * 60;
                       const topPx = (startMin / 60) * HOUR_H;
                       const heightPx = Math.max(((endMin - startMin) / 60) * HOUR_H, 28);
-                      const color = getDiscColor(aula.disciplina);
+                      const color = getTurmaColor(aula.turma);
                       return (
                         <Pressable
                           key={aula.id}

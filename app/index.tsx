@@ -8,6 +8,7 @@ import {
   Platform,
   Animated,
   useWindowDimensions,
+  Modal,
 } from "react-native";
 import { router, useFocusEffect } from "expo-router";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
@@ -139,6 +140,7 @@ export default function Dashboard() {
 
   const cardScales = useRef(GRID_ITEMS.map(() => new Animated.Value(1))).current;
   const [atencaoAlunos, setAtencaoAlunos] = useState<AlertStudent[]>([]);
+  const [showAllAlerts, setShowAllAlerts] = useState(false);
   const [tickerIdx, setTickerIdx] = useState(0);
   const tickerY = useRef(new Animated.Value(0)).current;
   const tickerTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -423,9 +425,59 @@ export default function Dashboard() {
                     {renderItem(nxt)}
                   </Animated.View>
                 </View>
+                {atencaoAlunos.length > 1 && (
+                  <Pressable
+                    onPress={() => setShowAllAlerts(true)}
+                    style={({ pressed }) => [styles.verTodosBtn, { opacity: pressed ? 0.75 : 1 }]}
+                  >
+                    <Icon name="users" size={13} color="#FBBF24" />
+                    <Text style={styles.verTodosText}>Ver todos ({atencaoAlunos.length})</Text>
+                    <Icon name="chevron-forward" size={13} color="rgba(253,230,138,0.6)" />
+                  </Pressable>
+                )}
               </View>
             );
           })()}
+
+          {/* Modal: full alert list */}
+          <Modal visible={showAllAlerts} transparent animationType="slide" onRequestClose={() => setShowAllAlerts(false)}>
+            <Pressable style={styles.allAlertsOverlay} onPress={() => setShowAllAlerts(false)}>
+              <Pressable style={styles.allAlertsSheet} onPress={() => {}}>
+                <View style={styles.allAlertsHandle} />
+                <View style={styles.allAlertsHeader}>
+                  <Icon name="warning" size={16} color="#FBBF24" />
+                  <Text style={styles.allAlertsTitle}>{atencaoAlunos.length} alunos a precisar de atenção</Text>
+                </View>
+                <ScrollView showsVerticalScrollIndicator={false} style={{ maxHeight: 420 }}>
+                  {atencaoAlunos.map((a) => (
+                    <Pressable
+                      key={`${a.turmaId}-${a.alunoId}`}
+                      onPress={() => { setShowAllAlerts(false); setTimeout(() => handleAlertPress(a), 100); }}
+                      style={({ pressed }) => [styles.allAlertsRow, { opacity: pressed ? 0.8 : 1 }]}
+                    >
+                      <View style={styles.allAlertsRowIcon}>
+                        <Icon
+                          name={a.motivo === "reprovado_faltas" ? "close-circle" : "alert-circle"}
+                          size={16}
+                          color={a.motivo === "reprovado_faltas" ? "#FCA5A5" : "#FDE68A"}
+                        />
+                      </View>
+                      <View style={{ flex: 1 }}>
+                        <Text style={styles.allAlertsRowName}>{a.nome}</Text>
+                        <Text style={styles.allAlertsRowMeta}>
+                          {a.turma} · {a.motivo === "reprovado_faltas" ? "Reprovado por faltas" : "Sem avaliações"}
+                        </Text>
+                      </View>
+                      <Icon name="chevron-forward" size={16} color={Colors.textMuted} />
+                    </Pressable>
+                  ))}
+                </ScrollView>
+                <Pressable onPress={() => setShowAllAlerts(false)} style={styles.allAlertsCancelBtn}>
+                  <Text style={styles.allAlertsCancelText}>Fechar</Text>
+                </Pressable>
+              </Pressable>
+            </Pressable>
+          </Modal>
 
           <View style={styles.footer}>
             <View style={styles.footerBadge}>
@@ -571,6 +623,34 @@ const styles = StyleSheet.create({
   alertTickerMeta: {
     fontFamily: "Inter_400Regular", fontSize: 11, color: "rgba(255,255,255,0.55)", marginTop: 1,
   },
+  verTodosBtn: {
+    flexDirection: "row", alignItems: "center", justifyContent: "center", gap: 6,
+    paddingVertical: 9, paddingHorizontal: 14,
+    borderTopWidth: 1, borderTopColor: "rgba(251,191,36,0.2)",
+  },
+  verTodosText: { fontFamily: "Inter_600SemiBold", fontSize: 12, color: "#FDE68A" },
+  allAlertsOverlay: {
+    flex: 1, backgroundColor: "rgba(0,0,0,0.7)", justifyContent: "flex-end",
+  },
+  allAlertsSheet: {
+    backgroundColor: Colors.modalBg, borderTopLeftRadius: 24, borderTopRightRadius: 24,
+    padding: 20, paddingBottom: 32, borderWidth: 1, borderColor: Colors.border,
+  },
+  allAlertsHandle: {
+    width: 40, height: 4, borderRadius: 2, backgroundColor: "rgba(255,255,255,0.2)",
+    alignSelf: "center", marginBottom: 16,
+  },
+  allAlertsHeader: { flexDirection: "row", alignItems: "center", gap: 8, marginBottom: 12 },
+  allAlertsTitle: { fontFamily: "Inter_700Bold", fontSize: 16, color: "#FDE68A" },
+  allAlertsRow: {
+    flexDirection: "row", alignItems: "center", gap: 12,
+    paddingVertical: 12, borderBottomWidth: 1, borderBottomColor: Colors.borderLight,
+  },
+  allAlertsRowIcon: { width: 32, height: 32, alignItems: "center", justifyContent: "center" },
+  allAlertsRowName: { fontFamily: "Inter_600SemiBold", fontSize: 14, color: Colors.text },
+  allAlertsRowMeta: { fontFamily: "Inter_400Regular", fontSize: 12, color: Colors.textSecondary, marginTop: 1 },
+  allAlertsCancelBtn: { alignSelf: "center", marginTop: 16, paddingVertical: 8, paddingHorizontal: 20 },
+  allAlertsCancelText: { fontFamily: "Inter_500Medium", fontSize: 14, color: Colors.textSecondary },
 
   footer: { marginTop: 32, alignItems: "center" },
   footerBadge: {
