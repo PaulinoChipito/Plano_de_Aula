@@ -18,6 +18,7 @@ import * as Haptics from "expo-haptics";
 import Svg, { Path } from "react-native-svg";
 import { usePeriod } from "@/lib/periodContext";
 import { getClasses, getGrades, getAttendance } from "@/lib/storage";
+import Colors from "@/constants/colors";
 
 interface AlertStudent {
   nome: string;
