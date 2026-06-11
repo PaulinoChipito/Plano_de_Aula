@@ -17,6 +17,7 @@ import { LinearGradient } from "expo-linear-gradient";
 import * as Haptics from "expo-haptics";
 import Svg, { Path } from "react-native-svg";
 import { usePeriod } from "@/lib/periodContext";
+import { useYear } from "@/lib/yearContext";
 import { getClasses, getGrades, getAttendance } from "@/lib/storage";
 import Colors from "@/constants/colors";
 
@@ -132,6 +133,8 @@ export default function Dashboard() {
   const { width: screenWidth } = useWindowDimensions();
   const topPadding = Platform.OS === "web" ? 16 : insets.top;
   const { currentPeriod, setPeriod, periodLabels, periodKeys, currentPeriodLabel, refreshProfile } = usePeriod();
+  const { currentYear, years } = useYear();
+  const defaultYear = years[0] ?? "";
 
   const cardWidth = (screenWidth - CARD_PADDING * 2 - CARD_GAP) / 2;
   const iconContainerSize = Math.min(64, Math.max(44, Math.round(cardWidth * 0.36)));
@@ -156,10 +159,11 @@ export default function Dashboard() {
       ]);
       const alerts: AlertStudent[] = [];
 
-      for (const turma of classes) {
+      const yearClasses = classes.filter((c) => (c.anoLectivo ?? defaultYear) === currentYear);
+      for (const turma of yearClasses) {
         for (const aluno of turma.alunos) {
           const grade = grades.find(
-            (g) => g.alunoId === aluno.id && g.turmaId === turma.id && (g.periodo ?? "I") === currentPeriod
+            (g) => g.alunoId === aluno.id && g.turmaId === turma.id && (g.anoLectivo ?? defaultYear) === currentYear && (g.periodo ?? "I") === currentPeriod
           );
           const semNotas = !grade || (grade.mac.length === 0 && grade.npt === null);
           if (semNotas) {
@@ -169,7 +173,7 @@ export default function Dashboard() {
 
         if (turma.faltasLimite) {
           const periodRecords = attendance.filter(
-            (r) => r.turmaId === turma.id && (r.periodo ?? "I") === currentPeriod
+            (r) => r.turmaId === turma.id && (r.anoLectivo ?? defaultYear) === currentYear && (r.periodo ?? "I") === currentPeriod
           );
           for (const aluno of turma.alunos) {
             const faltas = periodRecords.filter(
@@ -194,7 +198,7 @@ export default function Dashboard() {
     } catch {
       // silent fail
     }
-  }, [currentPeriod, tickerY]);
+  }, [currentPeriod, currentYear, defaultYear, tickerY]);
 
   useFocusEffect(
     useCallback(() => {

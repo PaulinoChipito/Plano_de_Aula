@@ -51,6 +51,7 @@ export interface LessonPlan {
   sugestoes: string[];
   createdAt: string;
   periodo?: string;
+  anoLectivo?: string;
 }
 
 export interface Student {
@@ -69,6 +70,7 @@ export interface ClassGroup {
   createdAt: string;
   faltasLimite?: number;
   nivelEnsino?: string;
+  anoLectivo?: string;
 }
 
 export interface GradeEntry {
@@ -84,6 +86,7 @@ export interface StudentGrade {
   npt: number | null;
   observacao: string;
   periodo?: string;
+  anoLectivo?: string;
 }
 
 export interface AttendanceRecord {
@@ -91,6 +94,7 @@ export interface AttendanceRecord {
   data: string;
   registos: { alunoId: string; presente: boolean; justificada?: boolean }[];
   periodo?: string;
+  anoLectivo?: string;
 }
 
 export interface AgendaEvent {
@@ -101,6 +105,7 @@ export interface AgendaEvent {
   hora: string;
   descricao: string;
   periodo?: string;
+  anoLectivo?: string;
 }
 
 export const NIVEL_ENSINO_OPTIONS = [

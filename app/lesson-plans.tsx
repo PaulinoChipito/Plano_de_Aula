@@ -16,6 +16,7 @@ import * as Haptics from "expo-haptics";
 import Colors from "@/constants/colors";
 import { getLessonPlans, deleteLessonPlan, LessonPlan } from "@/lib/storage";
 import { usePeriod } from "@/lib/periodContext";
+import { useYear } from "@/lib/yearContext";
 
 export default function LessonPlansScreen() {
   const insets = useSafeAreaInsets();
@@ -23,13 +24,15 @@ export default function LessonPlansScreen() {
   const bottomPadding = Platform.OS === "web" ? 34 : insets.bottom;
   const [plans, setPlans] = useState<LessonPlan[]>([]);
   const { currentPeriod, currentPeriodLabel } = usePeriod();
+  const { currentYear, years } = useYear();
+  const defaultYear = years[0] ?? "";
 
   useFocusEffect(
     useCallback(() => {
       getLessonPlans().then((all) =>
-        setPlans(all.filter((p) => (p.periodo ?? "I") === currentPeriod)),
+        setPlans(all.filter((p) => (p.anoLectivo ?? defaultYear) === currentYear && (p.periodo ?? "I") === currentPeriod)),
       );
-    }, [currentPeriod]),
+    }, [currentPeriod, currentYear, defaultYear]),
   );
 
   const handleDelete = (id: string) => {

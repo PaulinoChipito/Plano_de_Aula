@@ -26,6 +26,7 @@ import {
   AttendanceRecord,
 } from "@/lib/storage";
 import { usePeriod } from "@/lib/periodContext";
+import { useYear } from "@/lib/yearContext";
 
 type Tab = "hoje" | "historico";
 
@@ -54,6 +55,8 @@ export default function AttendanceMarkScreen() {
   const today = new Date().toISOString().split("T")[0];
 
   const { currentPeriod, currentPeriodLabel } = usePeriod();
+  const { currentYear, years } = useYear();
+  const defaultYear = years[0] ?? "";
 
   const load = useCallback(() => {
     Promise.all([getClasses(), getAttendance()]).then(([classes, records]) => {
@@ -61,7 +64,7 @@ export default function AttendanceMarkScreen() {
       if (found) {
         setClassGroup(found);
         const periodRecords = records.filter(
-          (r) => r.turmaId === turmaId && (r.periodo ?? "I") === currentPeriod,
+          (r) => r.turmaId === turmaId && (r.anoLectivo ?? defaultYear) === currentYear && (r.periodo ?? "I") === currentPeriod,
         );
         const todayRecord = periodRecords.find((r) => r.data === today);
         const map = new Map<string, boolean>();
@@ -115,6 +118,7 @@ export default function AttendanceMarkScreen() {
         };
       }),
       periodo: currentPeriod,
+      anoLectivo: currentYear,
     };
     await saveAttendance(record);
     if (Platform.OS !== "web") Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);

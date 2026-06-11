@@ -33,6 +33,7 @@ import {
   setupPin,
   verifyPin,
 } from "@/lib/auth";
+import { useYear } from "@/lib/yearContext";
 
 export default function SettingsScreen() {
   const insets = useSafeAreaInsets();
@@ -50,6 +51,11 @@ export default function SettingsScreen() {
   const [pinError, setPinError] = useState("");
   const [pinMode, setPinMode] = useState<"setup" | "disable">("setup");
   const [pinDisable, setPinDisable] = useState("");
+
+  const { currentYear, years, setYear, addYear, isLatestYear } = useYear();
+  const [showYearModal, setShowYearModal] = useState(false);
+  const [newYearInput, setNewYearInput] = useState("");
+  const [yearError, setYearError] = useState("");
 
   const [profile, setProfile] = useState<TeacherProfile>({
     nome: "",
@@ -174,6 +180,38 @@ export default function SettingsScreen() {
     await setBiometricEnabled(!authSettings.biometricEnabled);
     await refreshAuth();
     if (Platform.OS !== "web") Haptics.selectionAsync();
+  };
+
+  const openYearModal = () => {
+    const latestYear = years.length > 0 ? years[years.length - 1] : "";
+    const suggestion = latestYear
+      ? (() => {
+          const parts = latestYear.split("/");
+          if (parts.length === 2) {
+            const y2 = parseInt(parts[1]);
+            return !isNaN(y2) ? `${y2}/${y2 + 1}` : "";
+          }
+          return "";
+        })()
+      : "";
+    setNewYearInput(suggestion);
+    setYearError("");
+    setShowYearModal(true);
+  };
+
+  const handleCreateYear = async () => {
+    const label = newYearInput.trim();
+    if (!label) {
+      setYearError("Introduza o ano lectivo.");
+      return;
+    }
+    if (years.includes(label)) {
+      setYearError("Este ano lectivo já existe.");
+      return;
+    }
+    await addYear(label);
+    setShowYearModal(false);
+    if (Platform.OS !== "web") Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
   };
 
   const handleResetModel = () => {
@@ -343,6 +381,75 @@ export default function SettingsScreen() {
 
           <View style={styles.section}>
             <View style={styles.sectionHeader}>
+              <View style={[styles.sectionIconContainer, { backgroundColor: "#f59e0b15" }]}>
+                <Icon name="calendar" size={20} color="#f59e0b" />
+              </View>
+              <View style={{ flex: 1 }}>
+                <Text style={styles.sectionTitle}>Ano Lectivo</Text>
+                <Text style={styles.sectionSubtitle}>
+                  Gerencie os anos lectivos e consulte dados anteriores
+                </Text>
+              </View>
+            </View>
+
+            {!isLatestYear && (
+              <View style={styles.yearHistoryBanner}>
+                <Icon name="history" size={15} color="#f59e0b" />
+                <Text style={styles.yearHistoryBannerText}>
+                  A visualizar dados de {currentYear}
+                </Text>
+              </View>
+            )}
+
+            <View style={{ gap: 8 }}>
+              {[...years].reverse().map((y) => {
+                const isActive = y === currentYear;
+                const isLatest = y === years[years.length - 1];
+                return (
+                  <Pressable
+                    key={y}
+                    onPress={() => {
+                      if (!isActive) {
+                        setYear(y);
+                        if (Platform.OS !== "web") Haptics.selectionAsync();
+                      }
+                    }}
+                    style={({ pressed }) => [
+                      styles.yearRow,
+                      isActive && styles.yearRowActive,
+                      pressed && !isActive && { opacity: 0.75 },
+                    ]}
+                  >
+                    <View style={{ flex: 1 }}>
+                      <Text style={[styles.yearLabel, isActive && styles.yearLabelActive]}>{y}</Text>
+                      {isLatest && (
+                        <Text style={styles.yearSubLabel}>Actual</Text>
+                      )}
+                    </View>
+                    {isActive ? (
+                      <View style={styles.yearActiveBadge}>
+                        <Icon name="check" size={13} color="#fff" />
+                        <Text style={styles.yearActiveBadgeText}>Em uso</Text>
+                      </View>
+                    ) : (
+                      <Text style={styles.yearSelectText}>Ver dados</Text>
+                    )}
+                  </Pressable>
+                );
+              })}
+            </View>
+
+            <Pressable
+              onPress={openYearModal}
+              style={({ pressed }) => [styles.yearNewBtn, { opacity: pressed ? 0.85 : 1 }]}
+            >
+              <Icon name="plus" size={17} color="#f59e0b" />
+              <Text style={styles.yearNewBtnText}>Novo Ano Lectivo</Text>
+            </Pressable>
+          </View>
+
+          <View style={styles.section}>
+            <View style={styles.sectionHeader}>
               <View style={[styles.sectionIconContainer, { backgroundColor: Colors.primaryLight + "20" }]}>
                 <Icon name="shield" size={20} color={Colors.primaryLight} />
               </View>
@@ -474,6 +581,44 @@ export default function SettingsScreen() {
           </View>
         </ScrollView>
       </KeyboardAvoidingView>
+
+      <Modal visible={showYearModal} transparent animationType="fade" onRequestClose={() => setShowYearModal(false)}>
+        <Pressable style={styles.modalOverlay} onPress={() => setShowYearModal(false)}>
+          <Pressable style={styles.modalContent} onPress={() => {}}>
+            <Text style={styles.modalTitle}>Novo Ano Lectivo</Text>
+            <Text style={[styles.sectionSubtitle, { marginBottom: 12 }]}>
+              Os dados actuais ficam arquivados e poderá consultá-los a qualquer momento.
+            </Text>
+            <Text style={styles.inputLabel}>Designação do ano lectivo</Text>
+            <TextInput
+              style={[styles.profileInput, { marginTop: 6, marginBottom: 4 }]}
+              value={newYearInput}
+              onChangeText={(t) => { setNewYearInput(t); setYearError(""); }}
+              placeholder="Ex: 2025/2026"
+              placeholderTextColor={Colors.textMuted}
+              autoCapitalize="none"
+            />
+            {yearError ? (
+              <Text style={[styles.fieldHint, { color: Colors.error }]}>{yearError}</Text>
+            ) : (
+              <Text style={styles.fieldHint}>Formato sugerido: AAAA/AAAA</Text>
+            )}
+            <Pressable
+              onPress={handleCreateYear}
+              style={({ pressed }) => [styles.yearCreateBtn, { opacity: pressed ? 0.85 : 1, marginTop: 16 }]}
+            >
+              <Icon name="plus" size={17} color="#fff" />
+              <Text style={styles.saveBtnText}>Criar e Activar</Text>
+            </Pressable>
+            <Pressable
+              onPress={() => setShowYearModal(false)}
+              style={({ pressed }) => [styles.pinCancel, { opacity: pressed ? 0.7 : 1 }]}
+            >
+              <Text style={styles.pinCancelText}>Cancelar</Text>
+            </Pressable>
+          </Pressable>
+        </Pressable>
+      </Modal>
 
       <Modal visible={showNivelModal} transparent animationType="fade" onRequestClose={() => setShowNivelModal(false)}>
         <Pressable style={styles.modalOverlay} onPress={() => setShowNivelModal(false)}>
@@ -902,10 +1047,102 @@ const styles = StyleSheet.create({
     fontSize: 22,
     color: Colors.text,
   },
-  pinCancel: { marginTop: 16, paddingVertical: 8, paddingHorizontal: 18 },
+  pinCancel: { marginTop: 16, paddingVertical: 8, paddingHorizontal: 18, alignSelf: "center" },
   pinCancelText: {
     fontFamily: "Inter_500Medium",
     fontSize: 14,
     color: Colors.textSecondary,
+  },
+  yearRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    paddingHorizontal: 14,
+    paddingVertical: 13,
+    borderRadius: 12,
+    borderWidth: 1,
+    borderColor: Colors.border,
+    backgroundColor: "rgba(255,255,255,0.04)",
+  },
+  yearRowActive: {
+    borderColor: "#f59e0b80",
+    backgroundColor: "#f59e0b12",
+  },
+  yearLabel: {
+    fontFamily: "Inter_500Medium",
+    fontSize: 15,
+    color: Colors.textSecondary,
+  },
+  yearLabelActive: {
+    color: "#f59e0b",
+    fontFamily: "Inter_600SemiBold",
+  },
+  yearSubLabel: {
+    fontFamily: "Inter_400Regular",
+    fontSize: 11,
+    color: Colors.textMuted,
+    marginTop: 2,
+  },
+  yearActiveBadge: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 5,
+    backgroundColor: "#f59e0b",
+    paddingHorizontal: 10,
+    paddingVertical: 5,
+    borderRadius: 8,
+  },
+  yearActiveBadgeText: {
+    fontFamily: "Inter_600SemiBold",
+    fontSize: 12,
+    color: "#fff",
+  },
+  yearSelectText: {
+    fontFamily: "Inter_500Medium",
+    fontSize: 13,
+    color: Colors.primary,
+  },
+  yearNewBtn: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
+    gap: 8,
+    marginTop: 14,
+    paddingVertical: 13,
+    borderRadius: 12,
+    borderWidth: 1,
+    borderColor: "#f59e0b40",
+    backgroundColor: "#f59e0b10",
+  },
+  yearNewBtnText: {
+    fontFamily: "Inter_600SemiBold",
+    fontSize: 14,
+    color: "#f59e0b",
+  },
+  yearHistoryBanner: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 8,
+    backgroundColor: "#f59e0b15",
+    borderRadius: 10,
+    paddingHorizontal: 12,
+    paddingVertical: 10,
+    marginBottom: 14,
+    borderWidth: 1,
+    borderColor: "#f59e0b30",
+  },
+  yearHistoryBannerText: {
+    fontFamily: "Inter_500Medium",
+    fontSize: 13,
+    color: "#f59e0b",
+    flex: 1,
+  },
+  yearCreateBtn: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
+    gap: 8,
+    backgroundColor: "#f59e0b",
+    borderRadius: 12,
+    paddingVertical: 14,
   },
 });

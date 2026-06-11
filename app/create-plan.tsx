@@ -17,6 +17,7 @@ import * as Haptics from "expo-haptics";
 import Colors from "@/constants/colors";
 import { generateId, saveLessonPlan, LessonPlan } from "@/lib/storage";
 import { usePeriod } from "@/lib/periodContext";
+import { useYear } from "@/lib/yearContext";
 
 export default function CreatePlanScreen() {
   const insets = useSafeAreaInsets();
@@ -38,6 +39,7 @@ export default function CreatePlanScreen() {
   const [tarefasPraticas, setTarefasPraticas] = useState<string[]>([""]);
 
   const { currentPeriod } = usePeriod();
+  const { currentYear } = useYear();
 
   const canSave = classe.trim() && disciplina.trim() && tema.trim() && duracao.trim() && sumario.trim();
 
@@ -61,6 +63,7 @@ export default function CreatePlanScreen() {
       sugestoes: [],
       createdAt: new Date().toISOString(),
       periodo: currentPeriod,
+      anoLectivo: currentYear,
     };
     await saveLessonPlan(plan);
     if (Platform.OS !== "web") {

@@ -15,6 +15,7 @@ import { isOnboardingDone } from "@/lib/storage";
 import { router } from "expo-router";
 import { AuthGate } from "@/components/AuthGate";
 import { PeriodProvider } from "@/lib/periodContext";
+import { YearProvider } from "@/lib/yearContext";
 
 SplashScreen.preventAutoHideAsync();
 
@@ -67,11 +68,13 @@ export default function RootLayout() {
     <ErrorBoundary>
       <GestureHandlerRootView style={{ flex: 1 }}>
         <KeyboardProvider>
-          <PeriodProvider>
-            <AuthGate>
-              <RootLayoutNav />
-            </AuthGate>
-          </PeriodProvider>
+          <YearProvider>
+            <PeriodProvider>
+              <AuthGate>
+                <RootLayoutNav />
+              </AuthGate>
+            </PeriodProvider>
+          </YearProvider>
         </KeyboardProvider>
       </GestureHandlerRootView>
     </ErrorBoundary>

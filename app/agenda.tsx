@@ -18,6 +18,7 @@ import * as Haptics from "expo-haptics";
 import Colors from "@/constants/colors";
 import { getEvents, saveEvent, deleteEvent, generateId, AgendaEvent } from "@/lib/storage";
 import { usePeriod } from "@/lib/periodContext";
+import { useYear } from "@/lib/yearContext";
 import HorarioSemanal from "@/components/HorarioSemanal";
 
 const EVENT_TYPES = [
@@ -43,17 +44,19 @@ export default function AgendaScreen() {
   const [hora, setHora] = useState("08:00");
   const [descricao, setDescricao] = useState("");
   const { currentPeriod, currentPeriodLabel } = usePeriod();
+  const { currentYear, years } = useYear();
+  const defaultYear = years[0] ?? "";
 
   useFocusEffect(
     useCallback(() => {
       getEvents().then((evts) => {
         setEvents(
           evts
-            .filter((e) => (e.periodo ?? "I") === currentPeriod)
+            .filter((e) => (e.anoLectivo ?? defaultYear) === currentYear && (e.periodo ?? "I") === currentPeriod)
             .sort((a, b) => a.data.localeCompare(b.data) || a.hora.localeCompare(b.hora)),
         );
       });
-    }, [currentPeriod]),
+    }, [currentPeriod, currentYear, defaultYear]),
   );
 
   const handleCreate = async () => {
@@ -66,6 +69,7 @@ export default function AgendaScreen() {
       hora,
       descricao: descricao.trim(),
       periodo: currentPeriod,
+      anoLectivo: currentYear,
     };
     await saveEvent(event);
     setEvents((prev) =>

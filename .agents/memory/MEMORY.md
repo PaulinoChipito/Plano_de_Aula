@@ -3,3 +3,4 @@
 - [Attendance justification](attendance-justification.md) — justified absences via Set<string> state + justificada? on AttendanceRecord.registos; long-press toggles; FJ shown in orange.
 - [MAC popup modal](mac-popup.md) — tapping a MAC entry shows popup (not inline edit) with date/Edit/Delete; GradeEntry has data: string date field.
 - [Schedule colors by turma](schedule-colors.md) — HorarioSemanal colors blocks by turma (getTurmaColor), not discipline; HOUR_END=24 covers up to 23h.
+- [Ano Lectivo multi-year system](ano-lectivo.md) — lib/yearContext.tsx mirrors periodContext; data filtered by anoLectivo?? years[0]; all 9 screens + storage models updated; managed via Settings > Ano Lectivo section.

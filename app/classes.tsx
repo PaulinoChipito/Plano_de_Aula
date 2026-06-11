@@ -17,6 +17,7 @@ import { LinearGradient } from "expo-linear-gradient";
 import * as Haptics from "expo-haptics";
 import Colors from "@/constants/colors";
 import { getClasses, saveClass, deleteClass, generateId, ClassGroup, getTeacherProfile, NIVEL_ENSINO_OPTIONS } from "@/lib/storage";
+import { useYear } from "@/lib/yearContext";
 import ExportMenu from "@/components/ExportMenu";
 import { exportPdfFromHtml, exportExcel } from "@/lib/exports";
 import { studentsListHtml, studentsListExcel } from "@/lib/exportTemplates";
@@ -31,11 +32,13 @@ export default function ClassesScreen() {
   const [newDisciplina, setNewDisciplina] = useState("");
   const [newNivel, setNewNivel] = useState(NIVEL_ENSINO_OPTIONS[1]);
   const [exportTarget, setExportTarget] = useState<ClassGroup | null>(null);
+  const { currentYear, years } = useYear();
+  const defaultYear = years[0] ?? "";
 
   useFocusEffect(
     useCallback(() => {
-      getClasses().then(setClasses);
-    }, []),
+      getClasses().then((c) => setClasses(c.filter((cl) => (cl.anoLectivo ?? defaultYear) === currentYear)));
+    }, [currentYear, defaultYear]),
   );
 
   const handleCreate = async () => {
@@ -47,6 +50,7 @@ export default function ClassesScreen() {
       nivelEnsino: newNivel,
       alunos: [],
       createdAt: new Date().toISOString(),
+      anoLectivo: currentYear,
     };
     await saveClass(newClass);
     setClasses((prev) => [newClass, ...prev]);

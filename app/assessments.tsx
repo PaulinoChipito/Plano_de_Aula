@@ -18,6 +18,7 @@ import ExportMenu from "@/components/ExportMenu";
 import { exportPdfFromHtml, exportExcel } from "@/lib/exports";
 import { miniPautaHtml, miniPautaExcel } from "@/lib/exportTemplates";
 import { usePeriod } from "@/lib/periodContext";
+import { useYear } from "@/lib/yearContext";
 
 export default function AssessmentsScreen() {
   const insets = useSafeAreaInsets();
@@ -26,17 +27,19 @@ export default function AssessmentsScreen() {
   const [classes, setClasses] = useState<ClassGroup[]>([]);
   const [exportTarget, setExportTarget] = useState<ClassGroup | null>(null);
   const { currentPeriod, currentPeriodLabel } = usePeriod();
+  const { currentYear, years } = useYear();
+  const defaultYear = years[0] ?? "";
 
   useFocusEffect(
     useCallback(() => {
-      getClasses().then(setClasses);
-    }, []),
+      getClasses().then((c) => setClasses(c.filter((cl) => (cl.anoLectivo ?? defaultYear) === currentYear)));
+    }, [currentYear, defaultYear]),
   );
 
   const handleExportPdf = async () => {
     if (!exportTarget) return;
     const [allGrades, profile] = await Promise.all([getGrades(), getTeacherProfile()]);
-    const grades = allGrades.filter((g) => (g.periodo ?? "I") === currentPeriod && g.turmaId === exportTarget.id);
+    const grades = allGrades.filter((g) => (g.anoLectivo ?? defaultYear) === currentYear && (g.periodo ?? "I") === currentPeriod && g.turmaId === exportTarget.id);
     const html = miniPautaHtml(exportTarget, grades, profile, currentPeriodLabel);
     await exportPdfFromHtml(html, `Mini_Pauta_${exportTarget.designacao}_${currentPeriodLabel}`);
   };
@@ -44,7 +47,7 @@ export default function AssessmentsScreen() {
   const handleExportExcel = async () => {
     if (!exportTarget) return;
     const [allGrades, profile] = await Promise.all([getGrades(), getTeacherProfile()]);
-    const grades = allGrades.filter((g) => (g.periodo ?? "I") === currentPeriod && g.turmaId === exportTarget.id);
+    const grades = allGrades.filter((g) => (g.anoLectivo ?? defaultYear) === currentYear && (g.periodo ?? "I") === currentPeriod && g.turmaId === exportTarget.id);
     const sheet = miniPautaExcel(exportTarget, grades, profile, currentPeriodLabel);
     await exportExcel(sheet.rows, `Mini_Pauta_${exportTarget.designacao}_${currentPeriodLabel}`, sheet.name, {
       merges: sheet.merges,

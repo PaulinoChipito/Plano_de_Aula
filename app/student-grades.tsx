@@ -29,6 +29,7 @@ import {
 } from "@/lib/storage";
 import { getMacAverage, getNotaFinal, MAC_PESO, NPT_PESO } from "@/lib/gradeUtils";
 import { usePeriod } from "@/lib/periodContext";
+import { useYear } from "@/lib/yearContext";
 
 export default function StudentGradesScreen() {
   const { turmaId, alunoId: autoAlunoId } = useLocalSearchParams<{ turmaId: string; alunoId?: string }>();
@@ -48,6 +49,8 @@ export default function StudentGradesScreen() {
   const [macPopupEditValue, setMacPopupEditValue] = useState("");
 
   const { currentPeriod } = usePeriod();
+  const { currentYear, years } = useYear();
+  const defaultYear = years[0] ?? "";
 
   useEffect(() => {
     Promise.all([getClasses(), getGrades()]).then(([classes, allGrades]) => {
@@ -58,7 +61,7 @@ export default function StudentGradesScreen() {
           const targetStudent = found.alunos.find((a) => a.id === autoAlunoId);
           if (targetStudent) {
             const existingGrade = allGrades.find(
-              (g) => g.alunoId === autoAlunoId && g.turmaId === turmaId && (g.periodo ?? "I") === currentPeriod,
+              (g) => g.alunoId === autoAlunoId && g.turmaId === turmaId && (g.anoLectivo ?? defaultYear) === currentYear && (g.periodo ?? "I") === currentPeriod,
             );
             setNptValue(existingGrade?.npt !== null && existingGrade?.npt !== undefined ? String(existingGrade.npt) : "");
             setObservacao(existingGrade?.observacao || "");
@@ -71,11 +74,11 @@ export default function StudentGradesScreen() {
       }
       setGrades(
         allGrades.filter(
-          (g) => g.turmaId === turmaId && (g.periodo ?? "I") === currentPeriod,
+          (g) => g.turmaId === turmaId && (g.anoLectivo ?? defaultYear) === currentYear && (g.periodo ?? "I") === currentPeriod,
         ),
       );
     });
-  }, [turmaId, currentPeriod, autoAlunoId]);
+  }, [turmaId, currentPeriod, currentYear, defaultYear, autoAlunoId]);
 
   const getStudentGrade = (alunoId: string): StudentGrade | undefined => {
     return grades.find((g) => g.alunoId === alunoId);
@@ -138,6 +141,7 @@ export default function StudentGradesScreen() {
       npt: existing?.npt ?? null,
       observacao: existing?.observacao || "",
       periodo: currentPeriod,
+      anoLectivo: currentYear,
     };
 
     try {
@@ -189,6 +193,7 @@ export default function StudentGradesScreen() {
       ...existing,
       mac: existing.mac.map((e) => e.id === macPopupEntry.entry.id ? { ...e, nota: roundedNota } : e),
       periodo: currentPeriod,
+      anoLectivo: currentYear,
     };
     try {
       await saveGrade(updatedGrade);
@@ -235,6 +240,7 @@ export default function StudentGradesScreen() {
       npt: npt !== null && !isNaN(npt) ? npt : null,
       observacao: observacao.trim(),
       periodo: currentPeriod,
+      anoLectivo: currentYear,
     };
 
     try {

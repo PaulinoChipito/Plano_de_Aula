@@ -24,6 +24,7 @@ import {
 } from "@/lib/storage";
 import { getMacAverage, getNotaFinal } from "@/lib/gradeUtils";
 import { usePeriod } from "@/lib/periodContext";
+import { useYear } from "@/lib/yearContext";
 import ExportMenu from "@/components/ExportMenu";
 import { exportPdfFromHtml, exportExcel } from "@/lib/exports";
 import { pautaCompletaHtml, pautaCompletaExcel, attendanceMapHtml, attendanceMapExcel } from "@/lib/exportTemplates";
@@ -42,22 +43,25 @@ export default function StatisticsScreen() {
   const [expandedClass, setExpandedClass] = useState<string | null>(null);
   const [exportTarget, setExportTarget] = useState<{ turma: ClassGroup; type: "pauta" | "attendance" } | null>(null);
   const { currentPeriod, currentPeriodLabel, periodKeys, periodLabels } = usePeriod();
+  const { currentYear, years } = useYear();
+  const defaultYear = years[0] ?? "";
 
   useFocusEffect(
     useCallback(() => {
       Promise.all([getClasses(), getGrades(), getAttendance(), getLessonPlans()]).then(
         ([c, g, a, plans]) => {
-          setClasses(c);
+          const yearClasses = c.filter((cl) => (cl.anoLectivo ?? defaultYear) === currentYear);
+          setClasses(yearClasses);
           setAllGrades(g);
           setAllAttendance(a);
-          setGrades(g.filter((gr) => (gr.periodo ?? "I") === currentPeriod));
-          setAttendance(a.filter((ar) => (ar.periodo ?? "I") === currentPeriod));
+          setGrades(g.filter((gr) => (gr.anoLectivo ?? defaultYear) === currentYear && (gr.periodo ?? "I") === currentPeriod));
+          setAttendance(a.filter((ar) => (ar.anoLectivo ?? defaultYear) === currentYear && (ar.periodo ?? "I") === currentPeriod));
           setLessonPlansCount(
-            plans.filter((p) => (p.periodo ?? "I") === currentPeriod).length,
+            plans.filter((p) => (p.anoLectivo ?? defaultYear) === currentYear && (p.periodo ?? "I") === currentPeriod).length,
           );
         },
       );
-    }, [currentPeriod]),
+    }, [currentPeriod, currentYear, defaultYear]),
   );
 
   const handleExportPautaPdf = async () => {
