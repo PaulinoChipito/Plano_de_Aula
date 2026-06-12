@@ -66,7 +66,6 @@ export default function StudentGradesScreen() {
             setNptValue(existingGrade?.npt !== null && existingGrade?.npt !== undefined ? String(existingGrade.npt) : "");
             setObservacao(existingGrade?.observacao || "");
             setNewMacNota("");
-            setEditingEntryId(null);
             setSelectedStudent(targetStudent);
             setShowModal(true);
           }
@@ -95,7 +94,6 @@ export default function StudentGradesScreen() {
       setObservacao("");
     }
     setNewMacNota("");
-    setEditingEntryId(null);
     setShowModal(true);
   };
 

@@ -5,8 +5,10 @@ import {
   AttendanceRecord,
   TeacherProfile,
   GradeEntry,
+  ExportHeader,
 } from "@/lib/storage";
 import { ExcelSheetSpec } from "@/lib/exports";
+import { Language, translations } from "@/lib/i18n";
 
 const NOW = () => {
   const d = new Date();
@@ -42,14 +44,22 @@ function fmtPct(n: number): string {
   return `${(Math.round(n * 10) / 10).toString().replace(".", ",")}`;
 }
 
+function escape(s: string): string {
+  return s.replace(/[&<>"']/g, (c) =>
+    ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c] as string),
+  );
+}
+
 const baseStylePortrait = `
   <style>
     @page { size: A4 portrait; margin: 14mm 12mm; }
     * { box-sizing: border-box; }
     body { font-family: 'Helvetica', 'Arial', sans-serif; color: #111; margin: 0; padding: 0; font-size: 10pt; }
-    .header { text-align: center; margin-bottom: 8px; }
-    .header .school { font-size: 13pt; font-weight: 700; letter-spacing: .3px; }
-    .header .doc { font-size: 11pt; font-weight: 600; margin-top: 4px; text-transform: uppercase; }
+    .doc-header { text-align: center; margin-bottom: 8px; }
+    .doc-header img { max-height: 65px; max-width: 220px; display: block; margin: 0 auto 5px; object-fit: contain; }
+    .doc-header .header-line { font-size: 10.5pt; font-weight: 600; text-align: center; margin: 1px 0; }
+    .doc-header .school { font-size: 13pt; font-weight: 700; letter-spacing: .3px; }
+    .doc-header .doc { font-size: 11pt; font-weight: 600; margin-top: 4px; text-transform: uppercase; }
     .meta { display: flex; justify-content: space-between; margin: 6px 0 8px; font-size: 9.5pt; }
     .meta .left, .meta .right { white-space: nowrap; }
     table { width: 100%; border-collapse: collapse; }
@@ -72,9 +82,11 @@ const baseStyleLandscape = `
     @page { size: A4 landscape; margin: 10mm 12mm; }
     * { box-sizing: border-box; }
     body { font-family: 'Helvetica', 'Arial', sans-serif; color: #111; margin: 0; padding: 0; font-size: 9.5pt; }
-    .header { text-align: center; margin-bottom: 8px; }
-    .header .school { font-size: 13pt; font-weight: 700; letter-spacing: .3px; }
-    .header .doc { font-size: 11pt; font-weight: 600; margin-top: 4px; text-transform: uppercase; }
+    .doc-header { text-align: center; margin-bottom: 8px; }
+    .doc-header img { max-height: 65px; max-width: 220px; display: block; margin: 0 auto 5px; object-fit: contain; }
+    .doc-header .header-line { font-size: 10pt; font-weight: 600; text-align: center; margin: 1px 0; }
+    .doc-header .school { font-size: 13pt; font-weight: 700; letter-spacing: .3px; }
+    .doc-header .doc { font-size: 11pt; font-weight: 600; margin-top: 4px; text-transform: uppercase; }
     .meta { display: flex; justify-content: space-between; margin: 6px 0 8px; font-size: 9.5pt; }
     .meta .left, .meta .right { white-space: nowrap; }
     table { width: 100%; border-collapse: collapse; }
@@ -97,15 +109,42 @@ function htmlDoc(title: string, body: string, landscape = false): string {
   return `<!doctype html><html lang="pt"><head><meta charset="utf-8"><title>${title}</title>${style}</head><body>${body}</body></html>`;
 }
 
-function escape(s: string): string {
-  return s.replace(/[&<>"']/g, (c) =>
-    ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c] as string),
-  );
+function renderDocHeader(
+  header: ExportHeader | null,
+  escola: string,
+  docTitle: string,
+): string {
+  if (!header || (!header.logoBase64 && header.linhas.length === 0)) {
+    return `
+      <div class="doc-header">
+        <div class="school">${escape(escola.toUpperCase())}</div>
+        <div class="doc">${escape(docTitle)}</div>
+      </div>`;
+  }
+  const logoHtml = header.logoBase64
+    ? `<img src="${header.logoBase64}" alt="logo" />`
+    : "";
+  const linesHtml = header.linhas
+    .filter((l) => l.trim())
+    .map((l) => `<div class="header-line">${escape(l)}</div>`)
+    .join("");
+  return `
+    <div class="doc-header">
+      ${logoHtml}
+      ${linesHtml}
+      <div class="doc">${escape(docTitle)}</div>
+    </div>`;
 }
 
 // ===== Lista de Alunos =====
 
-export function studentsListHtml(turma: ClassGroup, profile: TeacherProfile): string {
+export function studentsListHtml(
+  turma: ClassGroup,
+  profile: TeacherProfile,
+  header: ExportHeader | null = null,
+  lang: Language = "pt",
+): string {
+  const t = translations[lang];
   const escola = profile.instituicao || "Instituição de Ensino";
   const sorted = [...turma.alunos].sort((a, b) => a.nome.localeCompare(b.nome));
   const rows = sorted
@@ -121,52 +160,55 @@ export function studentsListHtml(turma: ClassGroup, profile: TeacherProfile): st
     .join("");
 
   const body = `
-    <div class="header">
-      <div class="school">${escape(escola.toUpperCase())}</div>
-      <div class="doc">Lista de Alunos</div>
-    </div>
+    ${renderDocHeader(header, escola, t.exportStudentList)}
     <div class="meta">
-      <div class="left"><b>Turma:</b> ${escape(turma.designacao)} &nbsp;&nbsp; <b>Disciplina:</b> ${escape(turma.disciplina)}</div>
-      <div class="right"><b>Ano Lectivo:</b> ${anoLectivo()} &nbsp;&nbsp; <b>Total:</b> ${turma.alunos.length}</div>
+      <div class="left"><b>${t.exportClass}:</b> ${escape(turma.designacao)} &nbsp;&nbsp; <b>${t.exportSubject}:</b> ${escape(turma.disciplina)}</div>
+      <div class="right"><b>${t.exportSchoolYear}:</b> ${anoLectivo()} &nbsp;&nbsp; <b>${t.exportTotal}:</b> ${turma.alunos.length}</div>
     </div>
     <table>
       <thead>
         <tr>
-          <th class="num-col">Nº</th>
-          <th class="name-col" style="text-align:center">Nome do Aluno</th>
-          <th>Idade</th>
-          <th>Telefone do Encarregado</th>
+          <th class="num-col">${t.exportStudentNum}</th>
+          <th class="name-col" style="text-align:center">${t.exportStudentName}</th>
+          <th>${t.exportAge}</th>
+          <th>${t.exportGuardianPhone}</th>
         </tr>
       </thead>
-      <tbody>${rows || `<tr><td colspan="4" style="padding:14px">Sem alunos</td></tr>`}</tbody>
+      <tbody>${rows || `<tr><td colspan="4" style="padding:14px">${t.exportNoStudents}</td></tr>`}</tbody>
     </table>
     <div class="footer">
-      <div class="prof">Professor(a): ${escape(profile.nome || "________________________")}</div>
-      <div>Emitido em: ${NOW()}</div>
+      <div class="prof">${t.exportTeacher}: ${escape(profile.nome || "________________________")}</div>
+      <div>${t.exportIssuedAt}: ${NOW()}</div>
     </div>
-    <div class="system">Processado pelo Sistema EcoEducacional · Gestão Pedagógica · Utilizador: ${escape(profile.nome || "professor")}</div>
+    <div class="system">${t.exportSystem} · ${escape(profile.nome || "")}</div>
   `;
-  return htmlDoc(`Lista de Alunos - ${turma.designacao}`, body);
+  return htmlDoc(`${t.exportStudentList} - ${turma.designacao}`, body);
 }
 
-export function studentsListExcel(turma: ClassGroup, profile: TeacherProfile): ExcelSheetSpec {
-  const escola = profile.instituicao || "Instituição de Ensino";
+export function studentsListExcel(
+  turma: ClassGroup,
+  profile: TeacherProfile,
+  header: ExportHeader | null = null,
+  lang: Language = "pt",
+): ExcelSheetSpec {
+  const t = translations[lang];
+  const escola = header?.linhas[0] || profile.instituicao || "Instituição de Ensino";
   const sorted = [...turma.alunos].sort((a, b) => a.nome.localeCompare(b.nome));
   const rows: (string | number | null)[][] = [
     [escola.toUpperCase()],
-    ["Lista de Alunos"],
+    [t.exportStudentList],
     [],
-    [`Turma: ${turma.designacao}`, "", `Disciplina: ${turma.disciplina}`, "", `Ano Lectivo: ${anoLectivo()}`],
+    [`${t.exportClass}: ${turma.designacao}`, "", `${t.exportSubject}: ${turma.disciplina}`, "", `${t.exportSchoolYear}: ${anoLectivo()}`],
     [],
-    ["Nº", "Nome do Aluno", "Idade", "Telefone Encarregado"],
+    [t.exportStudentNum, t.exportStudentName, t.exportAge, t.exportGuardianPhone],
     ...sorted.map((a, i) => [i + 1, a.nome, a.idade || "", a.telefoneEncarregado || ""] as (string | number)[]),
     [],
-    [`Total: ${turma.alunos.length}`],
-    [`Professor(a): ${profile.nome || ""}`],
-    [`Emitido em: ${NOW()}`],
+    [`${t.exportTotal}: ${turma.alunos.length}`],
+    [`${t.exportTeacher}: ${profile.nome || ""}`],
+    [`${t.exportIssuedAt}: ${NOW()}`],
   ];
   return {
-    name: `Alunos`,
+    name: t.exportStudentList,
     rows,
     colWidths: [6, 38, 8, 22],
     merges: [
@@ -208,9 +250,10 @@ interface TrimestreStats {
 function calcTrimestre(grade: StudentGrade | undefined): AlunoTrimestre {
   const macA = grade ? macAvg(grade.mac) : null;
   const nptA = grade?.npt ?? null;
+  // Uses same formula as app UI: MAC×60% + NPT×40% (INIDE)
   const mtA =
     macA !== null && nptA !== null
-      ? Math.round(((macA + nptA) / 2) * 10) / 10
+      ? Math.round((macA * 0.6 + nptA * 0.4) * 10) / 10
       : macA !== null
         ? macA
         : nptA;
@@ -231,7 +274,7 @@ function calcStats(linhas: AlunoLinha[], trim: "t1" | "t2" | "t3", threshold = 1
   return { presentes, ausentes, negativasMF, negativasF: 0, positivasMF, positivasF: 0 };
 }
 
-function statsRowHtml(label: string, s: TrimestreStats, total: number): string {
+function statsRowHtml(label: string, s: TrimestreStats, total: number, t: typeof translations.pt): string {
   const denom = total > 0 ? total : 1;
   const negPct = (s.negativasMF / denom) * 100;
   const posPct = (s.positivasMF / denom) * 100;
@@ -244,13 +287,15 @@ function statsRowHtml(label: string, s: TrimestreStats, total: number): string {
     </tr>`;
 }
 
-// Mini-pauta de UM único período — chamada a partir de assessments.tsx com grades já filtradas
 export function miniPautaHtml(
   turma: ClassGroup,
-  grades: StudentGrade[],   // já filtradas pelo período corrente
+  grades: StudentGrade[],
   profile: TeacherProfile,
   periodoLabel = "",
+  header: ExportHeader | null = null,
+  lang: Language = "pt",
 ): string {
+  const t = translations[lang];
   const escola = profile.instituicao || "Instituição de Ensino";
   const isPrimario = (turma.nivelEnsino || profile.nivelEnsino || "") === "Ensino Primário";
   const threshold = isPrimario ? 5 : 10;
@@ -258,8 +303,8 @@ export function miniPautaHtml(
 
   const linhas = sorted.map((s) => {
     const grade = grades.find((g) => g.alunoId === s.id && g.turmaId === turma.id);
-    const t = calcTrimestre(grade);
-    return { nome: s.nome, ...t, presente: !!grade && (grade.mac.length > 0 || grade.npt !== null) };
+    const tr = calcTrimestre(grade);
+    return { nome: s.nome, ...tr, presente: !!grade && (grade.mac.length > 0 || grade.npt !== null) };
   });
 
   const total = linhas.length;
@@ -286,30 +331,28 @@ export function miniPautaHtml(
 
   const periodoStr = periodoLabel ? ` — ${periodoLabel}` : "";
   const nivelLabel = turma.nivelEnsino || profile.nivelEnsino || "—";
+  const docTitle = `${t.exportMiniPauta}${periodoStr}`;
 
   const body = `
-    <div class="header">
-      <div class="school">${escape(escola.toUpperCase())}</div>
-      <div class="doc">Mini-Pauta do Professor${periodoStr}</div>
-    </div>
+    ${renderDocHeader(header, escola, docTitle)}
     <div class="meta">
-      <div class="left"><b>Curso:</b> ${escape(nivelLabel)} &nbsp;&nbsp; <b>Turma:</b> ${escape(turma.designacao)}</div>
-      <div class="right"><b>Disciplina:</b> ${escape(turma.disciplina)} &nbsp;&nbsp; <b>Ano Lectivo:</b> ${anoLectivo()}</div>
+      <div class="left"><b>${t.exportCourse}:</b> ${escape(nivelLabel)} &nbsp;&nbsp; <b>${t.exportClass}:</b> ${escape(turma.designacao)}</div>
+      <div class="right"><b>${t.exportSubject}:</b> ${escape(turma.disciplina)} &nbsp;&nbsp; <b>${t.exportSchoolYear}:</b> ${anoLectivo()}</div>
     </div>
     <table>
       <thead>
         <tr>
-          <th class="num-col">Nº</th>
-          <th class="name-col" style="text-align:center">Nome do Aluno</th>
+          <th class="num-col">${t.exportStudentNum}</th>
+          <th class="name-col" style="text-align:center">${t.exportStudentName}</th>
           <th>MAC</th><th>NPT</th><th>MT</th>
         </tr>
       </thead>
-      <tbody>${rowsHtml || `<tr><td colspan="5" style="padding:14px">Sem alunos</td></tr>`}</tbody>
+      <tbody>${rowsHtml || `<tr><td colspan="5" style="padding:14px">${t.exportNoStudents}</td></tr>`}</tbody>
     </table>
-    <div class="stats-title">Estatística${periodoStr}</div>
+    <div class="stats-title">${t.exportStats}${periodoStr}</div>
     <table class="stats-table" style="width:auto">
       <thead>
-        <tr><th>Presentes</th><th>Ausentes</th><th>Negativas (MT&lt;${threshold})</th><th>%</th><th>Positivas (MT≥${threshold})</th><th>%</th></tr>
+        <tr><th>${t.exportPresent}</th><th>${t.exportAbsent}</th><th>${t.exportNegative} (MT&lt;${threshold})</th><th>%</th><th>${t.exportPositive} (MT≥${threshold})</th><th>%</th></tr>
       </thead>
       <tbody>
         <tr>
@@ -320,28 +363,31 @@ export function miniPautaHtml(
       </tbody>
     </table>
     <div class="footer">
-      <div class="prof">Professor(a): ${escape(profile.nome || "________________________")}</div>
-      <div>Emitido em: ${NOW()}</div>
+      <div class="prof">${t.exportTeacher}: ${escape(profile.nome || "________________________")}</div>
+      <div>${t.exportIssuedAt}: ${NOW()}</div>
     </div>
-    <div class="system">Processado pelo Sistema EcoEducacional · Gestão Pedagógica · Utilizador: ${escape(profile.nome || "professor")}</div>
+    <div class="system">${t.exportSystem} · ${escape(profile.nome || "")}</div>
   `;
-  return htmlDoc(`Mini-Pauta - ${turma.designacao}${periodoStr}`, body, false);
+  return htmlDoc(`${t.exportMiniPauta} - ${turma.designacao}${periodoStr}`, body, false);
 }
 
 export function miniPautaExcel(
   turma: ClassGroup,
-  grades: StudentGrade[],   // já filtradas pelo período corrente
+  grades: StudentGrade[],
   profile: TeacherProfile,
   periodoLabel = "",
+  header: ExportHeader | null = null,
+  lang: Language = "pt",
 ): ExcelSheetSpec {
-  const escola = profile.instituicao || "Instituição de Ensino";
+  const t = translations[lang];
+  const escola = header?.linhas[0] || profile.instituicao || "Instituição de Ensino";
   const isPrimario = (turma.nivelEnsino || profile.nivelEnsino || "") === "Ensino Primário";
   const threshold = isPrimario ? 5 : 10;
   const sorted = [...turma.alunos].sort((a, b) => a.nome.localeCompare(b.nome));
   const linhas = sorted.map((s) => {
     const grade = grades.find((g) => g.alunoId === s.id && g.turmaId === turma.id);
-    const t = calcTrimestre(grade);
-    return { nome: s.nome, ...t, presente: !!grade && (grade.mac.length > 0 || grade.npt !== null) };
+    const tr = calcTrimestre(grade);
+    return { nome: s.nome, ...tr, presente: !!grade && (grade.mac.length > 0 || grade.npt !== null) };
   });
 
   const total = linhas.length;
@@ -355,22 +401,22 @@ export function miniPautaExcel(
 
   const rows: (string | number | null)[][] = [
     [escola.toUpperCase()],
-    [`Mini-Pauta do Professor${periodoStr}`],
+    [`${t.exportMiniPauta}${periodoStr}`],
     [],
-    [`Curso: ${nivelLabel}`, "", `Turma: ${turma.designacao}`, "", `Disciplina: ${turma.disciplina}`, "", `Ano Lectivo: ${anoLectivo()}`],
+    [`${t.exportCourse}: ${nivelLabel}`, "", `${t.exportClass}: ${turma.designacao}`, "", `${t.exportSubject}: ${turma.disciplina}`, "", `${t.exportSchoolYear}: ${anoLectivo()}`],
     [],
-    ["Nº", "Nome do Aluno", "MAC", "NPT", "MT"],
+    [t.exportStudentNum, t.exportStudentName, "MAC", "NPT", "MT"],
     ...linhas.map((l, i) => [i + 1, l.nome, l.mac, l.npt, l.mt]),
     [],
-    ["Estatística"],
-    [`Presentes`, `Ausentes`, `Negativas (MT<${threshold})`, "% Neg.", `Positivas (MT≥${threshold})`, "% Pos."],
+    [t.exportStats],
+    [`${t.exportPresent}`, `${t.exportAbsent}`, `${t.exportNegative} (MT<${threshold})`, "% Neg.", `${t.exportPositive} (MT≥${threshold})`, "% Pos."],
     [presentes, ausentes, negativas, Math.round((negativas / denom) * 1000) / 10, positivas, Math.round((positivas / denom) * 1000) / 10],
     [],
-    [`Professor(a): ${profile.nome || ""}`],
-    [`Emitido em: ${NOW()}`],
+    [`${t.exportTeacher}: ${profile.nome || ""}`],
+    [`${t.exportIssuedAt}: ${NOW()}`],
   ];
   return {
-    name: "Mini-Pauta",
+    name: t.exportMiniPauta,
     rows,
     colWidths: [4, 32, 9, 9, 9],
     merges: [
@@ -380,7 +426,7 @@ export function miniPautaExcel(
   };
 }
 
-// ===== Pauta Completa (todos os períodos — para Estatísticas) =====
+// ===== Pauta Completa (todos os períodos) =====
 
 function calcLinhaCompleta(
   student: Student,
@@ -414,14 +460,17 @@ export function pautaCompletaHtml(
   profile: TeacherProfile,
   periodKeys: string[],
   periodLabels: string[],
+  header: ExportHeader | null = null,
+  lang: Language = "pt",
 ): string {
+  const t = translations[lang];
   const escola = profile.instituicao || "Instituição de Ensino";
   const isPrimario = (turma.nivelEnsino || profile.nivelEnsino || "") === "Ensino Primário";
   const threshold = isPrimario ? 5 : 10;
   const sorted = [...turma.alunos].sort((a, b) => a.nome.localeCompare(b.nome));
   const linhas = sorted.map((s) => calcLinhaCompleta(s, turma.id, allGrades, periodKeys));
   const n = Math.min(periodKeys.length, 3);
-  const tLabel = (i: number) => periodLabels[i] ?? `${i + 1}º Período`;
+  const tLabel = (i: number) => periodLabels[i] ?? `${i + 1}º ${t.exportPeriod}`;
   const total = linhas.length;
 
   const mtCell = (mt: number | null) => {
@@ -448,24 +497,21 @@ export function pautaCompletaHtml(
     .join("");
 
   const body = `
-    <div class="header">
-      <div class="school">${escape(escola.toUpperCase())}</div>
-      <div class="doc">Pauta Completa — Todos os Períodos</div>
-    </div>
+    ${renderDocHeader(header, escola, t.exportFullPauta)}
     <div class="meta">
-      <div class="left"><b>Curso:</b> ${escape(turma.nivelEnsino || profile.nivelEnsino || "—")} &nbsp;&nbsp; <b>Turma:</b> ${escape(turma.designacao)}</div>
-      <div class="right"><b>Disciplina:</b> ${escape(turma.disciplina)} &nbsp;&nbsp; <b>Ano Lectivo:</b> ${anoLectivo()}</div>
+      <div class="left"><b>${t.exportCourse}:</b> ${escape(turma.nivelEnsino || profile.nivelEnsino || "—")} &nbsp;&nbsp; <b>${t.exportClass}:</b> ${escape(turma.designacao)}</div>
+      <div class="right"><b>${t.exportSubject}:</b> ${escape(turma.disciplina)} &nbsp;&nbsp; <b>${t.exportSchoolYear}:</b> ${anoLectivo()}</div>
     </div>
     <table>
       <thead>
         <tr>
-          <th rowspan="2" class="num-col">Nº</th>
-          <th rowspan="2" class="name-col" style="text-align:center">Nome do Aluno</th>
+          <th rowspan="2" class="num-col">${t.exportStudentNum}</th>
+          <th rowspan="2" class="name-col" style="text-align:center">${t.exportStudentName}</th>
           <th colspan="3">${tLabel(0)}</th>
           ${n >= 2 ? `<th colspan="3">${tLabel(1)}</th>` : ""}
           ${n >= 3 ? `<th colspan="3">${tLabel(2)}</th>` : ""}
-          <th rowspan="2">MFD</th><th rowspan="2">NE</th>
-          <th rowspan="2">Recurso</th><th rowspan="2">MF</th>
+          <th rowspan="2">${t.exportMFD}</th><th rowspan="2">${t.exportNE}</th>
+          <th rowspan="2">${t.exportRecurso}</th><th rowspan="2">${t.exportMF}</th>
         </tr>
         <tr>
           <th>MAC</th><th>NPT</th><th>MT</th>
@@ -473,36 +519,36 @@ export function pautaCompletaHtml(
           ${n >= 3 ? `<th>MAC</th><th>NPT</th><th>MT</th>` : ""}
         </tr>
       </thead>
-      <tbody>${rowsHtml || `<tr><td colspan="${2 + n * 3 + 4}" style="padding:14px">Sem alunos</td></tr>`}</tbody>
+      <tbody>${rowsHtml || `<tr><td colspan="${2 + n * 3 + 4}" style="padding:14px">${t.exportNoStudents}</td></tr>`}</tbody>
     </table>
-    <div class="stats-title">Estatística por Período</div>
+    <div class="stats-title">${t.exportStatsByPeriod}</div>
     <table class="stats-table">
       <thead>
         <tr>
-          <th rowspan="2" class="name-col" style="text-align:center">Período</th>
+          <th rowspan="2" class="name-col" style="text-align:center">${t.exportPeriod}</th>
           <th colspan="2">Alunos</th>
-          <th colspan="3">Negativas</th>
-          <th colspan="3">Positivas</th>
+          <th colspan="3">${t.exportNegative}</th>
+          <th colspan="3">${t.exportPositive}</th>
         </tr>
         <tr>
-          <th>Presentes</th><th>Ausentes</th>
-          <th>MF</th><th>F</th><th>%</th>
-          <th>MF</th><th>F</th><th>%</th>
+          <th>${t.exportPresent}</th><th>${t.exportAbsent}</th>
+          <th>${t.exportMF}</th><th>${t.exportF}</th><th>%</th>
+          <th>${t.exportMF}</th><th>${t.exportF}</th><th>%</th>
         </tr>
       </thead>
       <tbody>
-        ${statsRowHtml(tLabel(0), calcStats(linhas, "t1", threshold), total)}
-        ${n >= 2 ? statsRowHtml(tLabel(1), calcStats(linhas, "t2", threshold), total) : ""}
-        ${n >= 3 ? statsRowHtml(tLabel(2), calcStats(linhas, "t3", threshold), total) : ""}
+        ${statsRowHtml(tLabel(0), calcStats(linhas, "t1", threshold), total, t)}
+        ${n >= 2 ? statsRowHtml(tLabel(1), calcStats(linhas, "t2", threshold), total, t) : ""}
+        ${n >= 3 ? statsRowHtml(tLabel(2), calcStats(linhas, "t3", threshold), total, t) : ""}
       </tbody>
     </table>
     <div class="footer">
-      <div class="prof">Professor(a): ${escape(profile.nome || "________________________")}</div>
-      <div>Emitido em: ${NOW()}</div>
+      <div class="prof">${t.exportTeacher}: ${escape(profile.nome || "________________________")}</div>
+      <div>${t.exportIssuedAt}: ${NOW()}</div>
     </div>
-    <div class="system">Processado pelo Sistema EcoEducacional · Gestão Pedagógica · Utilizador: ${escape(profile.nome || "professor")}</div>
+    <div class="system">${t.exportSystem} · ${escape(profile.nome || "")}</div>
   `;
-  return htmlDoc(`Pauta Completa - ${turma.designacao}`, body, true);
+  return htmlDoc(`${t.exportFullPauta} - ${turma.designacao}`, body, true);
 }
 
 export function pautaCompletaExcel(
@@ -511,18 +557,21 @@ export function pautaCompletaExcel(
   profile: TeacherProfile,
   periodKeys: string[],
   periodLabels: string[],
+  header: ExportHeader | null = null,
+  lang: Language = "pt",
 ): ExcelSheetSpec {
-  const escola = profile.instituicao || "Instituição de Ensino";
+  const t = translations[lang];
+  const escola = header?.linhas[0] || profile.instituicao || "Instituição de Ensino";
   const sorted = [...turma.alunos].sort((a, b) => a.nome.localeCompare(b.nome));
   const linhas = sorted.map((s) => calcLinhaCompleta(s, turma.id, allGrades, periodKeys));
   const n = Math.min(periodKeys.length, 3);
-  const tLabel = (i: number) => periodLabels[i] ?? `${i + 1}º Período`;
+  const tLabel = (i: number) => periodLabels[i] ?? `${i + 1}º ${t.exportPeriod}`;
 
   const periodHeaders: string[] = [];
   for (let i = 0; i < n; i++) {
     periodHeaders.push(`${tLabel(i)} MAC`, `${tLabel(i)} NPT`, `${tLabel(i)} MT`);
   }
-  const dataHeader = ["Nº", "Nome do Aluno", ...periodHeaders, "MFD", "NE", "Recurso", "MF"];
+  const dataHeader = [t.exportStudentNum, t.exportStudentName, ...periodHeaders, t.exportMFD, t.exportNE, t.exportRecurso, t.exportMF];
   const totalCols = dataHeader.length;
 
   const dataRows = linhas.map((l, i) => {
@@ -535,10 +584,10 @@ export function pautaCompletaExcel(
 
   const statsData: (string | number | null)[][] = [
     [],
-    ["Estatística por Período"],
-    ["Período", "Presentes", "Ausentes", "Neg. MF", "Neg. F", "Neg. %", "Pos. MF", "Pos. F", "Pos. %"],
-    ...(["t1", "t2", "t3"] as const).slice(0, n).map((t, i) => {
-      const s = calcStats(linhas, t);
+    [t.exportStatsByPeriod],
+    [t.exportPeriod, t.exportPresent, t.exportAbsent, `${t.exportNegative} ${t.exportMF}`, `${t.exportNegative} ${t.exportF}`, "Neg. %", `${t.exportPositive} ${t.exportMF}`, `${t.exportPositive} ${t.exportF}`, "Pos. %"],
+    ...(["t1", "t2", "t3"] as const).slice(0, n).map((tr, i) => {
+      const s = calcStats(linhas, tr);
       const d = linhas.length > 0 ? linhas.length : 1;
       return [tLabel(i), s.presentes, s.ausentes, s.negativasMF, s.negativasF,
         Math.round((s.negativasMF / d) * 1000) / 10,
@@ -549,19 +598,19 @@ export function pautaCompletaExcel(
 
   const rows: (string | number | null)[][] = [
     [escola.toUpperCase()],
-    ["Pauta Completa — Todos os Períodos"],
+    [t.exportFullPauta],
     [],
-    [`Curso: ${profile.nivelEnsino || "—"}`, "", `Turma: ${turma.designacao}`, "", `Disciplina: ${turma.disciplina}`, "", `Ano Lectivo: ${anoLectivo()}`],
+    [`${t.exportCourse}: ${profile.nivelEnsino || "—"}`, "", `${t.exportClass}: ${turma.designacao}`, "", `${t.exportSubject}: ${turma.disciplina}`, "", `${t.exportSchoolYear}: ${anoLectivo()}`],
     [],
     dataHeader,
     ...dataRows,
     ...statsData,
     [],
-    [`Professor(a): ${profile.nome || ""}`],
-    [`Emitido em: ${NOW()}`],
+    [`${t.exportTeacher}: ${profile.nome || ""}`],
+    [`${t.exportIssuedAt}: ${NOW()}`],
   ];
   return {
-    name: "Pauta Completa",
+    name: t.exportFullPauta,
     rows,
     colWidths: [4, 32, ...periodHeaders.map(() => 8), 7, 7, 8, 7],
     merges: [
@@ -578,7 +627,10 @@ export function attendanceMapHtml(
   records: AttendanceRecord[],
   profile: TeacherProfile,
   periodoLabel = "",
+  header: ExportHeader | null = null,
+  lang: Language = "pt",
 ): string {
+  const t = translations[lang];
   const escola = profile.instituicao || "Instituição de Ensino";
   const sorted = [...turma.alunos].sort((a, b) => a.nome.localeCompare(b.nome));
   const turmaRecords = records
@@ -605,9 +657,10 @@ export function attendanceMapHtml(
           if (!reg) return `<td>—</td>`;
           if (reg.presente) {
             presencas++;
-            return `<td>P</td>`;
+            return `<td>${t.exportP}</td>`;
           }
-          return `<td style="color:#b91c1c"><b>F</b></td>`;
+          if (reg.justificada) return `<td style="color:#d97706"><b>${t.exportFJ}</b></td>`;
+          return `<td style="color:#b91c1c"><b>${t.exportF}</b></td>`;
         })
         .join("");
       const total = turmaRecords.length;
@@ -624,8 +677,7 @@ export function attendanceMapHtml(
     .join("");
 
   const totalSessoes = turmaRecords.length;
-  let totalPres = 0,
-    totalReg = 0;
+  let totalPres = 0, totalReg = 0;
   for (const r of turmaRecords) {
     for (const x of r.registos) {
       totalReg++;
@@ -635,43 +687,42 @@ export function attendanceMapHtml(
   const pctGeral = totalReg > 0 ? Math.round((totalPres / totalReg) * 1000) / 10 : 0;
 
   const periodoStr = periodoLabel ? ` — ${periodoLabel}` : "";
+  const docTitle = `${t.exportAttendanceMap}${periodoStr}`;
+
   const body = `
-    <div class="header">
-      <div class="school">${escape(escola.toUpperCase())}</div>
-      <div class="doc">Mapa de Presenças${periodoStr}</div>
-    </div>
+    ${renderDocHeader(header, escola, docTitle)}
     <div class="meta">
-      <div class="left"><b>Turma:</b> ${escape(turma.designacao)} &nbsp;&nbsp; <b>Disciplina:</b> ${escape(turma.disciplina)}</div>
-      <div class="right"><b>Ano Lectivo:</b> ${anoLectivo()} &nbsp;&nbsp; <b>Sessões:</b> ${totalSessoes}</div>
+      <div class="left"><b>${t.exportClass}:</b> ${escape(turma.designacao)} &nbsp;&nbsp; <b>${t.exportSubject}:</b> ${escape(turma.disciplina)}</div>
+      <div class="right"><b>${t.exportSchoolYear}:</b> ${anoLectivo()} &nbsp;&nbsp; <b>Sessões:</b> ${totalSessoes}</div>
     </div>
     <table>
       <thead>
         <tr>
-          <th class="num-col">Nº</th>
-          <th class="name-col" style="text-align:center">Nome do Aluno</th>
+          <th class="num-col">${t.exportStudentNum}</th>
+          <th class="name-col" style="text-align:center">${t.exportStudentName}</th>
           ${headerCols || `<th>Sem registos</th>`}
-          <th>Total</th>
+          <th>${t.exportTotal}</th>
           <th>%</th>
         </tr>
       </thead>
-      <tbody>${bodyRows || `<tr><td colspan="5" style="padding:14px">Sem alunos</td></tr>`}</tbody>
+      <tbody>${bodyRows || `<tr><td colspan="5" style="padding:14px">${t.exportNoStudents}</td></tr>`}</tbody>
     </table>
     <div class="stats-title">Resumo Geral</div>
     <table class="stats-table" style="width:auto">
       <tbody>
-        <tr><td class="name-col"><b>Total de sessões</b></td><td>${totalSessoes}</td></tr>
-        <tr><td class="name-col"><b>Total de presenças registadas</b></td><td>${totalPres} de ${totalReg}</td></tr>
-        <tr><td class="name-col"><b>Frequência média</b></td><td>${fmtPct(pctGeral)}%</td></tr>
+        <tr><td class="name-col"><b>${t.exportTotalLessons}</b></td><td>${totalSessoes}</td></tr>
+        <tr><td class="name-col"><b>${t.exportPresent}</b></td><td>${totalPres} de ${totalReg}</td></tr>
+        <tr><td class="name-col"><b>%</b></td><td>${fmtPct(pctGeral)}%</td></tr>
       </tbody>
     </table>
     <div class="footer">
-      <div class="prof">Professor(a): ${escape(profile.nome || "________________________")}</div>
-      <div>Emitido em: ${NOW()}</div>
+      <div class="prof">${t.exportTeacher}: ${escape(profile.nome || "________________________")}</div>
+      <div>${t.exportIssuedAt}: ${NOW()}</div>
     </div>
-    <div class="system">Processado pelo Sistema EcoEducacional · Gestão Pedagógica · Utilizador: ${escape(profile.nome || "professor")}</div>
-    <div style="margin-top:6px;font-size:8.5pt;color:#555">Legenda: P = Presente · F = Falta · — = Sem registo</div>
+    <div class="system">${t.exportSystem} · ${escape(profile.nome || "")}</div>
+    <div style="margin-top:6px;font-size:8.5pt;color:#555">${t.exportP} = ${t.exportPresent} · ${t.exportF} = ${t.exportAbsent} · ${t.exportFJ} = ${t.exportJustified}</div>
   `;
-  return htmlDoc(`Mapa de Presenças - ${turma.designacao}${periodoStr}`, body, true);
+  return htmlDoc(`${t.exportAttendanceMap} - ${turma.designacao}${periodoStr}`, body, true);
 }
 
 export function attendanceMapExcel(
@@ -679,8 +730,11 @@ export function attendanceMapExcel(
   records: AttendanceRecord[],
   profile: TeacherProfile,
   periodoLabel = "",
+  header: ExportHeader | null = null,
+  lang: Language = "pt",
 ): ExcelSheetSpec {
-  const escola = profile.instituicao || "Instituição de Ensino";
+  const t = translations[lang];
+  const escola = header?.linhas[0] || profile.instituicao || "Instituição de Ensino";
   const sorted = [...turma.alunos].sort((a, b) => a.nome.localeCompare(b.nome));
   const turmaRecords = records
     .filter((r) => r.turmaId === turma.id)
@@ -693,17 +747,15 @@ export function attendanceMapExcel(
       : `${String(d.getDate()).padStart(2, "0")}/${String(d.getMonth() + 1).padStart(2, "0")}`;
   });
 
-  const header: (string | number)[] = ["Nº", "Nome do Aluno", ...datas, "Total", "%"];
+  const excelHeader: (string | number)[] = [t.exportStudentNum, t.exportStudentName, ...datas, t.exportTotal, "%"];
   const dataRows = sorted.map((aluno, i) => {
     let pres = 0;
     const cells = turmaRecords.map((r) => {
       const reg = r.registos.find((x) => x.alunoId === aluno.id);
       if (!reg) return "—";
-      if (reg.presente) {
-        pres++;
-        return "P";
-      }
-      return "F";
+      if (reg.presente) { pres++; return t.exportP; }
+      if (reg.justificada) return t.exportFJ;
+      return t.exportF;
     });
     const total = turmaRecords.length;
     const pct = total > 0 ? Math.round((pres / total) * 1000) / 10 : 0;
@@ -713,32 +765,29 @@ export function attendanceMapExcel(
   const periodoStr = periodoLabel ? ` — ${periodoLabel}` : "";
   const rows: (string | number | null)[][] = [
     [escola.toUpperCase()],
-    [`Mapa de Presenças${periodoStr}`],
+    [`${t.exportAttendanceMap}${periodoStr}`],
     [],
     [
-      `Turma: ${turma.designacao}`,
-      "",
-      `Disciplina: ${turma.disciplina}`,
-      "",
-      `Ano Lectivo: ${anoLectivo()}`,
-      "",
+      `${t.exportClass}: ${turma.designacao}`, "",
+      `${t.exportSubject}: ${turma.disciplina}`, "",
+      `${t.exportSchoolYear}: ${anoLectivo()}`, "",
       `Sessões: ${turmaRecords.length}`,
     ],
     [],
-    header,
+    excelHeader,
     ...dataRows,
     [],
-    [`Professor(a): ${profile.nome || ""}`],
-    [`Emitido em: ${NOW()}`],
+    [`${t.exportTeacher}: ${profile.nome || ""}`],
+    [`${t.exportIssuedAt}: ${NOW()}`],
   ];
   const colWidths = [4, 32, ...datas.map(() => 7), 8, 7];
   return {
-    name: "Presencas",
+    name: t.exportAttendanceMap,
     rows,
     colWidths,
     merges: [
-      { s: { r: 0, c: 0 }, e: { r: 0, c: header.length - 1 } },
-      { s: { r: 1, c: 0 }, e: { r: 1, c: header.length - 1 } },
+      { s: { r: 0, c: 0 }, e: { r: 0, c: excelHeader.length - 1 } },
+      { s: { r: 1, c: 0 }, e: { r: 1, c: excelHeader.length - 1 } },
     ],
   };
 }

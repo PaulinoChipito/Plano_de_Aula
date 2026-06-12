@@ -4,3 +4,5 @@
 - [MAC popup modal](mac-popup.md) — tapping a MAC entry shows popup (not inline edit) with date/Edit/Delete; GradeEntry has data: string date field.
 - [Schedule colors by turma](schedule-colors.md) — HorarioSemanal colors blocks by turma (getTurmaColor), not discipline; HOUR_END=24 covers up to 23h.
 - [Ano Lectivo multi-year system](ano-lectivo.md) — lib/yearContext.tsx mirrors periodContext; data filtered by anoLectivo?? years[0]; all 9 screens + storage models updated; managed via Settings > Ano Lectivo section.
+- [i18n split: ts vs tsx](i18n-split.md) — lib/i18n.ts is pure TS (no JSX); lib/LanguageProvider.tsx holds the React component; import LanguageProvider from LanguageProvider.tsx, not i18n.ts.
+- [MT grade formula](mt-formula.md) — MT = MAC×0.6 + NPT×0.4 (INIDE 60/40). Fixed in exportTemplates.ts calcTrimestre. gradeUtils.ts already used this formula.

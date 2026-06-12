@@ -16,8 +16,9 @@ import Icon from "@/components/Icon";
 import { LinearGradient } from "expo-linear-gradient";
 import * as Haptics from "expo-haptics";
 import Colors from "@/constants/colors";
-import { getClasses, saveClass, deleteClass, generateId, ClassGroup, getTeacherProfile, NIVEL_ENSINO_OPTIONS } from "@/lib/storage";
+import { getClasses, saveClass, deleteClass, generateId, ClassGroup, getTeacherProfile, getExportHeader, NIVEL_ENSINO_OPTIONS } from "@/lib/storage";
 import { useYear } from "@/lib/yearContext";
+import { useLanguage } from "@/lib/i18n";
 import ExportMenu from "@/components/ExportMenu";
 import { exportPdfFromHtml, exportExcel } from "@/lib/exports";
 import { studentsListHtml, studentsListExcel } from "@/lib/exportTemplates";
@@ -34,6 +35,7 @@ export default function ClassesScreen() {
   const [exportTarget, setExportTarget] = useState<ClassGroup | null>(null);
   const { currentYear, years } = useYear();
   const defaultYear = years[0] ?? "";
+  const { lang } = useLanguage();
 
   useFocusEffect(
     useCallback(() => {
@@ -77,15 +79,15 @@ export default function ClassesScreen() {
 
   const handleExportPdf = async () => {
     if (!exportTarget) return;
-    const profile = await getTeacherProfile();
-    const html = studentsListHtml(exportTarget, profile);
+    const [profile, header] = await Promise.all([getTeacherProfile(), getExportHeader()]);
+    const html = studentsListHtml(exportTarget, profile, header, lang);
     await exportPdfFromHtml(html, `Lista_Alunos_${exportTarget.designacao}`);
   };
 
   const handleExportExcel = async () => {
     if (!exportTarget) return;
-    const profile = await getTeacherProfile();
-    const sheet = studentsListExcel(exportTarget, profile);
+    const [profile, header] = await Promise.all([getTeacherProfile(), getExportHeader()]);
+    const sheet = studentsListExcel(exportTarget, profile, header, lang);
     await exportExcel(sheet.rows, `Lista_Alunos_${exportTarget.designacao}`, sheet.name, {
       merges: sheet.merges,
       colWidths: sheet.colWidths,

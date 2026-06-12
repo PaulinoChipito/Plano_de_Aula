@@ -123,6 +123,21 @@ export interface TeacherProfile {
   disciplinas: string;
 }
 
+export interface ExportHeader {
+  logoBase64: string | null;
+  linhas: string[];
+}
+
+export interface Aula {
+  id: string;
+  disciplina: string;
+  turma: string;
+  dia: string;
+  horaInicio: string;
+  horaFim: string;
+  criadoEm: number;
+}
+
 const KEYS = {
   LESSON_PLANS: "lesson_plans",
   CLASSES: "classes",
@@ -133,6 +148,7 @@ const KEYS = {
   TEACHER_PROFILE: "teacher_profile",
   ONBOARDING_DONE: "onboarding_done",
   AULAS: "aulas_professor_v1",
+  EXPORT_HEADER: "export_header_v1",
 };
 
 async function getItem<T>(key: string, fallback: T): Promise<T> {
@@ -262,6 +278,14 @@ export async function saveTeacherProfile(profile: TeacherProfile): Promise<void>
   await setItem(KEYS.TEACHER_PROFILE, profile);
 }
 
+export async function getExportHeader(): Promise<ExportHeader> {
+  return getItem<ExportHeader>(KEYS.EXPORT_HEADER, { logoBase64: null, linhas: [] });
+}
+
+export async function saveExportHeader(header: ExportHeader): Promise<void> {
+  await setItem(KEYS.EXPORT_HEADER, header);
+}
+
 export async function isOnboardingDone(): Promise<boolean> {
   const val = await AsyncStorage.getItem(KEYS.ONBOARDING_DONE);
   return val === "true";
@@ -269,16 +293,6 @@ export async function isOnboardingDone(): Promise<boolean> {
 
 export async function markOnboardingDone(): Promise<void> {
   await AsyncStorage.setItem(KEYS.ONBOARDING_DONE, "true");
-}
-
-export interface Aula {
-  id: string;
-  disciplina: string;
-  turma: string;
-  dia: string;
-  horaInicio: string;
-  horaFim: string;
-  criadoEm: number;
 }
 
 export async function getAulas(): Promise<Aula[]> {

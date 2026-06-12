@@ -18,10 +18,12 @@ import {
   getAttendance,
   getLessonPlans,
   getTeacherProfile,
+  getExportHeader,
   ClassGroup,
   StudentGrade,
   AttendanceRecord,
 } from "@/lib/storage";
+import { useLanguage } from "@/lib/i18n";
 import { getMacAverage, getNotaFinal } from "@/lib/gradeUtils";
 import { usePeriod } from "@/lib/periodContext";
 import { useYear } from "@/lib/yearContext";
@@ -45,6 +47,7 @@ export default function StatisticsScreen() {
   const { currentPeriod, currentPeriodLabel, periodKeys, periodLabels } = usePeriod();
   const { currentYear, years } = useYear();
   const defaultYear = years[0] ?? "";
+  const { lang } = useLanguage();
 
   useFocusEffect(
     useCallback(() => {
@@ -66,15 +69,15 @@ export default function StatisticsScreen() {
 
   const handleExportPautaPdf = async () => {
     if (!exportTarget) return;
-    const profile = await getTeacherProfile();
-    const html = pautaCompletaHtml(exportTarget.turma, allGrades, profile, periodKeys, periodLabels);
+    const [profile, header] = await Promise.all([getTeacherProfile(), getExportHeader()]);
+    const html = pautaCompletaHtml(exportTarget.turma, allGrades, profile, periodKeys, periodLabels, header, lang);
     await exportPdfFromHtml(html, `Pauta_Completa_${exportTarget.turma.designacao}`);
   };
 
   const handleExportPautaExcel = async () => {
     if (!exportTarget) return;
-    const profile = await getTeacherProfile();
-    const sheet = pautaCompletaExcel(exportTarget.turma, allGrades, profile, periodKeys, periodLabels);
+    const [profile, header] = await Promise.all([getTeacherProfile(), getExportHeader()]);
+    const sheet = pautaCompletaExcel(exportTarget.turma, allGrades, profile, periodKeys, periodLabels, header, lang);
     await exportExcel(sheet.rows, `Pauta_Completa_${exportTarget.turma.designacao}`, sheet.name, {
       merges: sheet.merges,
       colWidths: sheet.colWidths,
@@ -83,15 +86,15 @@ export default function StatisticsScreen() {
 
   const handleExportAttendancePdf = async () => {
     if (!exportTarget) return;
-    const profile = await getTeacherProfile();
-    const html = attendanceMapHtml(exportTarget.turma, allAttendance, profile, "Todos os Períodos");
+    const [profile, header] = await Promise.all([getTeacherProfile(), getExportHeader()]);
+    const html = attendanceMapHtml(exportTarget.turma, allAttendance, profile, "Todos os Períodos", header, lang);
     await exportPdfFromHtml(html, `Mapa_Presencas_${exportTarget.turma.designacao}`);
   };
 
   const handleExportAttendanceExcel = async () => {
     if (!exportTarget) return;
-    const profile = await getTeacherProfile();
-    const sheet = attendanceMapExcel(exportTarget.turma, allAttendance, profile, "Todos os Períodos");
+    const [profile, header] = await Promise.all([getTeacherProfile(), getExportHeader()]);
+    const sheet = attendanceMapExcel(exportTarget.turma, allAttendance, profile, "Todos os Períodos", header, lang);
     await exportExcel(sheet.rows, `Mapa_Presencas_${exportTarget.turma.designacao}`, sheet.name, {
       merges: sheet.merges,
       colWidths: sheet.colWidths,

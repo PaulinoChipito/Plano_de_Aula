@@ -16,6 +16,7 @@ import { router } from "expo-router";
 import { AuthGate } from "@/components/AuthGate";
 import { PeriodProvider } from "@/lib/periodContext";
 import { YearProvider } from "@/lib/yearContext";
+import { LanguageProvider } from "@/lib/LanguageProvider";
 
 SplashScreen.preventAutoHideAsync();
 
@@ -44,6 +45,12 @@ function RootLayoutNav() {
       <Stack.Screen name="statistics" />
       <Stack.Screen name="agenda" />
       <Stack.Screen name="settings" />
+      <Stack.Screen name="settings-profile" />
+      <Stack.Screen name="settings-ano-letivo" />
+      <Stack.Screen name="settings-security" />
+      <Stack.Screen name="settings-idioma" />
+      <Stack.Screen name="settings-cabecalho" />
+      <Stack.Screen name="settings-sobre" />
     </Stack>
   );
 }
@@ -68,13 +75,15 @@ export default function RootLayout() {
     <ErrorBoundary>
       <GestureHandlerRootView style={{ flex: 1 }}>
         <KeyboardProvider>
-          <YearProvider>
-            <PeriodProvider>
-              <AuthGate>
-                <RootLayoutNav />
-              </AuthGate>
-            </PeriodProvider>
-          </YearProvider>
+          <LanguageProvider>
+            <YearProvider>
+              <PeriodProvider>
+                <AuthGate>
+                  <RootLayoutNav />
+                </AuthGate>
+              </PeriodProvider>
+            </YearProvider>
+          </LanguageProvider>
         </KeyboardProvider>
       </GestureHandlerRootView>
     </ErrorBoundary>

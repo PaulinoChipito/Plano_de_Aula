@@ -13,7 +13,8 @@ import { useSafeAreaInsets } from "react-native-safe-area-context";
 import Icon from "@/components/Icon";
 import { LinearGradient } from "expo-linear-gradient";
 import Colors from "@/constants/colors";
-import { getClasses, getAttendance, getTeacherProfile, ClassGroup, AttendanceRecord } from "@/lib/storage";
+import { getClasses, getAttendance, getTeacherProfile, getExportHeader, ClassGroup, AttendanceRecord } from "@/lib/storage";
+import { useLanguage } from "@/lib/i18n";
 import { usePeriod } from "@/lib/periodContext";
 import { useYear } from "@/lib/yearContext";
 import ExportMenu from "@/components/ExportMenu";
@@ -30,6 +31,7 @@ export default function AttendanceScreen() {
   const { currentPeriod, currentPeriodLabel } = usePeriod();
   const { currentYear, years } = useYear();
   const defaultYear = years[0] ?? "";
+  const { lang } = useLanguage();
 
   useFocusEffect(
     useCallback(() => {
@@ -55,15 +57,15 @@ export default function AttendanceScreen() {
 
   const handleExportPdf = async () => {
     if (!exportTarget) return;
-    const profile = await getTeacherProfile();
-    const html = attendanceMapHtml(exportTarget, attendance, profile, currentPeriodLabel);
+    const [profile, header] = await Promise.all([getTeacherProfile(), getExportHeader()]);
+    const html = attendanceMapHtml(exportTarget, attendance, profile, currentPeriodLabel, header, lang);
     await exportPdfFromHtml(html, `Mapa_Presencas_${exportTarget.designacao}_${currentPeriodLabel}`);
   };
 
   const handleExportExcel = async () => {
     if (!exportTarget) return;
-    const profile = await getTeacherProfile();
-    const sheet = attendanceMapExcel(exportTarget, attendance, profile, currentPeriodLabel);
+    const [profile, header] = await Promise.all([getTeacherProfile(), getExportHeader()]);
+    const sheet = attendanceMapExcel(exportTarget, attendance, profile, currentPeriodLabel, header, lang);
     await exportExcel(sheet.rows, `Mapa_Presencas_${exportTarget.designacao}_${currentPeriodLabel}`, sheet.name, {
       merges: sheet.merges,
       colWidths: sheet.colWidths,
