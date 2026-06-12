@@ -81,6 +81,7 @@ export default function StatisticsScreen() {
     await exportExcel(sheet.rows, `Pauta_Completa_${exportTarget.turma.designacao}`, sheet.name, {
       merges: sheet.merges,
       colWidths: sheet.colWidths,
+      cellStyles: sheet.cellStyles,
       folder: "pautas",
     });
   };
@@ -88,14 +89,14 @@ export default function StatisticsScreen() {
   const handleExportAttendancePdf = async () => {
     if (!exportTarget) return;
     const [profile, header] = await Promise.all([getTeacherProfile(), getExportHeader()]);
-    const html = attendanceMapHtml(exportTarget.turma, allAttendance, profile, "Todos os Períodos", header, lang);
+    const html = attendanceMapHtml(exportTarget.turma, allAttendance, profile, tr.statsAllPeriods, header, lang);
     await exportPdfFromHtml(html, `Mapa_Presencas_${exportTarget.turma.designacao}`, "faltas");
   };
 
   const handleExportAttendanceExcel = async () => {
     if (!exportTarget) return;
     const [profile, header] = await Promise.all([getTeacherProfile(), getExportHeader()]);
-    const sheet = attendanceMapExcel(exportTarget.turma, allAttendance, profile, "Todos os Períodos", header, lang);
+    const sheet = attendanceMapExcel(exportTarget.turma, allAttendance, profile, tr.statsAllPeriods, header, lang);
     await exportExcel(sheet.rows, `Mapa_Presencas_${exportTarget.turma.designacao}`, sheet.name, {
       merges: sheet.merges,
       colWidths: sheet.colWidths,
@@ -282,19 +283,19 @@ export default function StatisticsScreen() {
           <>
             {/* ── Sumário geral ── */}
             <View style={styles.section}>
-              <Text style={styles.sectionTitle}>Resumo Geral</Text>
+              <Text style={styles.sectionTitle}>{tr.globalStats}</Text>
               <View style={styles.metricsGrid}>
                 <View style={[styles.metricCard, { borderColor: "#6366F130" }]}>
                   <LinearGradient colors={["#6366F120", "#6366F105"]} style={styles.metricGrad} />
                   <Icon name="people" size={20} color="#818CF8" />
                   <Text style={styles.metricValue}>{totalStudents}</Text>
-                  <Text style={styles.metricLabel}>Alunos</Text>
+                  <Text style={styles.metricLabel}>{tr.statsStudentsLabel}</Text>
                 </View>
                 <View style={[styles.metricCard, { borderColor: "#14B8A630" }]}>
                   <LinearGradient colors={["#14B8A620", "#14B8A605"]} style={styles.metricGrad} />
                   <Icon name="school" size={20} color="#2DD4BF" />
                   <Text style={styles.metricValue}>{classes.length}</Text>
-                  <Text style={styles.metricLabel}>Turmas</Text>
+                  <Text style={styles.metricLabel}>{tr.statsClassesLabel}</Text>
                 </View>
                 <View style={[styles.metricCard, { borderColor: "#F59E0B30" }]}>
                   <LinearGradient colors={["#F59E0B20", "#F59E0B05"]} style={styles.metricGrad} />
@@ -302,13 +303,13 @@ export default function StatisticsScreen() {
                   <Text style={styles.metricValue}>
                     {globalMacAvg !== null ? globalMacAvg : "—"}
                   </Text>
-                  <Text style={styles.metricLabel}>Média MAC</Text>
+                  <Text style={styles.metricLabel}>{tr.statsMacAverageLabel}</Text>
                 </View>
                 <View style={[styles.metricCard, { borderColor: "#10B98130" }]}>
                   <LinearGradient colors={["#10B98120", "#10B98105"]} style={styles.metricGrad} />
                   <Icon name="calendar" size={20} color="#34D399" />
                   <Text style={styles.metricValue}>{totalAulas}</Text>
-                  <Text style={styles.metricLabel}>Aulas</Text>
+                  <Text style={styles.metricLabel}>{tr.scheduleLessonsLabel}</Text>
                 </View>
                 <View style={[styles.metricCard, { borderColor: "#F4366030" }]}>
                   <LinearGradient colors={["#F4366020", "#F4366005"]} style={styles.metricGrad} />
@@ -316,13 +317,13 @@ export default function StatisticsScreen() {
                   <Text style={styles.metricValue}>
                     {globalPresencaPct !== null ? `${globalPresencaPct}%` : "—"}
                   </Text>
-                  <Text style={styles.metricLabel}>Presença</Text>
+                  <Text style={styles.metricLabel}>{tr.statsPresenceLabel}</Text>
                 </View>
                 <View style={[styles.metricCard, { borderColor: "#8B5CF630" }]}>
                   <LinearGradient colors={["#8B5CF620", "#8B5CF605"]} style={styles.metricGrad} />
                   <Icon name="book-open-variant" size={20} color="#A78BFA" />
                   <Text style={styles.metricValue}>{lessonPlansCount}</Text>
-                  <Text style={styles.metricLabel}>Planos</Text>
+                  <Text style={styles.metricLabel}>{tr.statsPlansLabel}</Text>
                 </View>
               </View>
             </View>
@@ -330,7 +331,7 @@ export default function StatisticsScreen() {
             {/* ── Por turma ── */}
             {classes.length > 0 && (
               <View style={styles.section}>
-                <Text style={styles.sectionTitle}>Por Turma</Text>
+                <Text style={styles.sectionTitle}>{tr.perClassStats}</Text>
                 {classes.map((c) => {
                   const stats = getClassStats(c);
                   const isExpanded = expandedClass === c.id;
@@ -369,16 +370,16 @@ export default function StatisticsScreen() {
                       <View style={styles.classMetaRow}>
                         <View style={styles.classMeta}>
                           <Icon name="people" size={13} color={Colors.textMuted} />
-                          <Text style={styles.classMetaText}>{c.alunos.length} alunos</Text>
+                          <Text style={styles.classMetaText}>{c.alunos.length} {tr.studentsCount}</Text>
                         </View>
                         <View style={styles.classMeta}>
                           <Icon name="calendar" size={13} color={Colors.textMuted} />
-                          <Text style={styles.classMetaText}>{stats.numAulas} aulas</Text>
+                          <Text style={styles.classMetaText}>{stats.numAulas} {tr.lessonsCount}</Text>
                         </View>
                         <View style={styles.classMeta}>
                           <Icon name="close-circle" size={13} color={Colors.error} />
                           <Text style={[styles.classMetaText, { color: Colors.error }]}>
-                            {stats.totalFaltas} faltas
+                            {stats.totalFaltas} {tr.attendanceAbsencePlural}
                           </Text>
                         </View>
                       </View>
@@ -390,7 +391,7 @@ export default function StatisticsScreen() {
                           style={({ pressed }) => [styles.classExportBtn, { opacity: pressed ? 0.7 : 1 }]}
                         >
                           <Icon name="document-text" size={15} color="#6366F1" />
-                          <Text style={[styles.classExportBtnText, { color: "#6366F1" }]}>Pauta Completa</Text>
+                          <Text style={[styles.classExportBtnText, { color: "#6366F1" }]}>{tr.statsFullPauta}</Text>
                         </Pressable>
                         <View style={styles.classStatDivider} />
                         <Pressable
@@ -398,13 +399,13 @@ export default function StatisticsScreen() {
                           style={({ pressed }) => [styles.classExportBtn, { opacity: pressed ? 0.7 : 1 }]}
                         >
                           <Icon name="calendar" size={15} color="#14B8A6" />
-                          <Text style={[styles.classExportBtnText, { color: "#14B8A6" }]}>Mapa Presenças</Text>
+                          <Text style={[styles.classExportBtnText, { color: "#14B8A6" }]}>{tr.statsAttendanceMap}</Text>
                         </Pressable>
                       </View>
 
                       <View style={styles.classStatsRow}>
                         <View style={styles.classStatBox}>
-                          <Text style={styles.classStatLabel}>Presença</Text>
+                          <Text style={styles.classStatLabel}>{tr.statsPresenceLabel}</Text>
                           <Text
                             style={[
                               styles.classStatValue,
@@ -419,7 +420,7 @@ export default function StatisticsScreen() {
                         </View>
                         <View style={styles.classStatDivider} />
                         <View style={styles.classStatBox}>
-                          <Text style={styles.classStatLabel}>Média MAC</Text>
+                          <Text style={styles.classStatLabel}>{tr.statsMacAverageLabel}</Text>
                           <Text
                             style={[
                               styles.classStatValue,
@@ -434,7 +435,7 @@ export default function StatisticsScreen() {
                         </View>
                         <View style={styles.classStatDivider} />
                         <View style={styles.classStatBox}>
-                          <Text style={styles.classStatLabel}>Nota Final</Text>
+                          <Text style={styles.classStatLabel}>{tr.notaFinalDisplay}</Text>
                           <Text
                             style={[
                               styles.classStatValue,
@@ -450,12 +451,12 @@ export default function StatisticsScreen() {
                       {isExpanded && (
                         <View style={styles.studentTable}>
                           <View style={styles.tableHeader}>
-                            <Text style={[styles.tableHeaderText, { flex: 1 }]}>Aluno</Text>
+                            <Text style={[styles.tableHeaderText, { flex: 1 }]}>{tr.exportStudentName}</Text>
                             <Text style={styles.tableHeaderText}>MAC</Text>
                             <Text style={styles.tableHeaderText}>NPT</Text>
-                            <Text style={styles.tableHeaderText}>NF</Text>
-                            <Text style={styles.tableHeaderText}>Faltas</Text>
-                            <Text style={styles.tableHeaderText}>Freq.</Text>
+                            <Text style={styles.tableHeaderText}>MT</Text>
+                            <Text style={styles.tableHeaderText}>{tr.statsAbsencesLabel}</Text>
+                            <Text style={styles.tableHeaderText}>{tr.statsFrequencyLabel}</Text>
                           </View>
                           {sortedStudents.map((student, i) => {
                             const s = getStudentStats(c, student.id);
@@ -530,14 +531,14 @@ export default function StatisticsScreen() {
             {/* ── Alertas ── */}
             {(atRiskStudents.length > 0 || criticalAbsences.length > 0) && (
               <View style={styles.section}>
-                <Text style={styles.sectionTitle}>Alertas Pedagógicos</Text>
+                <Text style={styles.sectionTitle}>{tr.alertsTitle}</Text>
 
                 {atRiskStudents.length > 0 && (
                   <View style={[styles.alertCard, { borderLeftColor: Colors.error }]}>
                     <View style={styles.alertHeader}>
                       <Icon name="alert-triangle" size={16} color={Colors.error} />
                       <Text style={[styles.alertTitle, { color: Colors.error }]}>
-                        Notas abaixo de 10 ({atRiskStudents.length})
+                        {tr.statsGradesBelowTen} ({atRiskStudents.length})
                       </Text>
                     </View>
                     {atRiskStudents.map((s, i) => (
@@ -559,7 +560,7 @@ export default function StatisticsScreen() {
                     <View style={styles.alertHeader}>
                       <Icon name="alert-circle" size={16} color={Colors.warning} />
                       <Text style={[styles.alertTitle, { color: Colors.warning }]}>
-                        Frequência crítica &lt;75% ({criticalAbsences.length})
+                        {tr.statsCriticalFrequency} ({criticalAbsences.length})
                       </Text>
                     </View>
                     {criticalAbsences.map((s, i) => (
@@ -583,7 +584,7 @@ export default function StatisticsScreen() {
 
       <ExportMenu
         visible={!!exportTarget && exportTarget.type === "pauta"}
-        title="Pauta Completa — Todos os Períodos"
+        title={`${tr.statsFullPauta} — ${tr.statsAllPeriods}`}
         subtitle={exportTarget ? `${exportTarget.turma.designacao} · ${exportTarget.turma.disciplina}` : undefined}
         onClose={() => setExportTarget(null)}
         onPdf={handleExportPautaPdf}
@@ -591,7 +592,7 @@ export default function StatisticsScreen() {
       />
       <ExportMenu
         visible={!!exportTarget && exportTarget.type === "attendance"}
-        title="Mapa de Presenças — Todos os Períodos"
+        title={`${tr.statsAttendanceMap} — ${tr.statsAllPeriods}`}
         subtitle={exportTarget ? `${exportTarget.turma.designacao} · ${exportTarget.turma.disciplina}` : undefined}
         onClose={() => setExportTarget(null)}
         onPdf={handleExportAttendancePdf}

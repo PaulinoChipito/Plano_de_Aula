@@ -44,6 +44,45 @@ function fmtPct(n: number): string {
   return `${(Math.round(n * 10) / 10).toString().replace(".", ",")}`;
 }
 
+function getNegativeThreshold(turma: ClassGroup, profile: TeacherProfile): number {
+  const nivel = (turma.nivelEnsino || profile.nivelEnsino || "")
+    .toLowerCase()
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "");
+  return nivel.includes("primario") ? 5 : 10;
+}
+
+function isNegativeGrade(n: number | null, threshold: number): boolean {
+  return n !== null && n !== undefined && !isNaN(n as number) && n < threshold;
+}
+
+function isPositiveGrade(n: number | null, threshold: number): boolean {
+  return n !== null && n !== undefined && !isNaN(n as number) && n >= threshold;
+}
+
+function gradeTd(n: number | null, threshold: number, bold = false): string {
+  const isNeg = isNegativeGrade(n, threshold);
+  const isPos = isPositiveGrade(n, threshold);
+  const style = isNeg
+    ? ' style="color:#b91c1c;font-weight:700;"'
+    : isPos
+      ? ` style="color:#0000CD;${bold ? "font-weight:700;" : ""}"`
+      : "";
+  const value = bold && !isNeg && !isPos ? `<b>${fmt(n)}</b>` : fmt(n);
+  return `<td${style}>${value}</td>`;
+}
+
+function gradeCellStyle(r: number, c: number, color: "negative" | "positive") {
+  const isNegative = color === "negative";
+  return {
+    r,
+    c,
+    fontColor: isNegative ? "B91C1C" : "0000CD",
+    bold: isNegative,
+    numFmt: isNegative ? "[Red]0.0" : "[Blue]0.0",
+  };
+}
+
 function escape(s: string): string {
   return s.replace(/[&<>"']/g, (c) =>
     ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c] as string),
@@ -251,14 +290,23 @@ interface TrimestreStats {
 function calcTrimestre(grade: StudentGrade | undefined): AlunoTrimestre {
   const macA = grade ? macAvg(grade.mac) : null;
   const nptA = grade?.npt ?? null;
-  // Uses same formula as app UI: MAC×60% + NPT×40% (INIDE)
+  // Trimestral average: MAC plus NPT divided by 2.
   const mtA =
     macA !== null && nptA !== null
-      ? Math.round((macA * 0.6 + nptA * 0.4) * 10) / 10
+      ? Math.round(((macA + nptA) / 2) * 10) / 10
       : macA !== null
         ? macA
         : nptA;
   return { mac: macA, npt: nptA, mt: mtA };
+}
+
+function calcTerceiroTrimestrePautaCompleta(grade: StudentGrade | undefined): AlunoTrimestre {
+  const macA = grade ? macAvg(grade.mac) : null;
+  return { mac: macA, npt: null, mt: macA };
+}
+
+function isExamClass(turma: ClassGroup): boolean {
+  return /^\s*(6|9|12)(?!\d)/.test(turma.designacao.trim());
 }
 
 function calcStats(linhas: AlunoLinha[], trim: "t1" | "t2" | "t3", threshold = 10): TrimestreStats {
@@ -298,8 +346,7 @@ export function miniPautaHtml(
 ): string {
   const t = translations[lang];
   const escola = profile.instituicao || "Instituição de Ensino";
-  const isPrimario = (turma.nivelEnsino || profile.nivelEnsino || "") === "Ensino Primário";
-  const threshold = isPrimario ? 5 : 10;
+  const threshold = getNegativeThreshold(turma, profile);
   const sorted = [...turma.alunos].sort((a, b) => a.nome.localeCompare(b.nome));
 
   const linhas = sorted.map((s) => {
@@ -317,15 +364,13 @@ export function miniPautaHtml(
 
   const rowsHtml = linhas
     .map((l, i) => {
-      const isNegativa = l.presente && l.mt !== null && l.mt < threshold;
-      const mtStyle = isNegativa ? ' style="color:#b91c1c;font-weight:700;"' : "";
       return `
       <tr>
         <td>${i + 1}</td>
         <td class="name-col">${escape(l.nome)}</td>
-        <td>${fmt(l.mac)}</td>
-        <td>${fmt(l.npt)}</td>
-        <td${mtStyle}>${fmt(l.mt)}</td>
+        ${gradeTd(l.mac, threshold)}
+        ${gradeTd(l.npt, threshold)}
+        ${gradeTd(l.mt, threshold)}
       </tr>`;
     })
     .join("");
@@ -382,8 +427,7 @@ export function miniPautaExcel(
 ): ExcelSheetSpec {
   const t = translations[lang];
   const escola = header?.linhas[0] || profile.instituicao || "Instituição de Ensino";
-  const isPrimario = (turma.nivelEnsino || profile.nivelEnsino || "") === "Ensino Primário";
-  const threshold = isPrimario ? 5 : 10;
+  const threshold = getNegativeThreshold(turma, profile);
   const sorted = [...turma.alunos].sort((a, b) => a.nome.localeCompare(b.nome));
   const linhas = sorted.map((s) => {
     const grade = grades.find((g) => g.alunoId === s.id && g.turmaId === turma.id);
@@ -416,9 +460,20 @@ export function miniPautaExcel(
     [`${t.exportTeacher}: ${profile.nome || ""}`],
     [`${t.exportIssuedAt}: ${NOW()}`],
   ];
+  const cellStyles = linhas.flatMap((l, i) => {
+    const r = 6 + i;
+    return [l.mac, l.npt, l.mt].flatMap((value, idx) =>
+      isNegativeGrade(value, threshold)
+        ? [gradeCellStyle(r, 2 + idx, "negative")]
+        : isPositiveGrade(value, threshold)
+          ? [gradeCellStyle(r, 2 + idx, "positive")]
+          : [],
+    );
+  });
   return {
     name: t.exportMiniPauta,
     rows,
+    cellStyles,
     colWidths: [4, 32, 9, 9, 9],
     merges: [
       { s: { r: 0, c: 0 }, e: { r: 0, c: 4 } },
@@ -434,6 +489,7 @@ function calcLinhaCompleta(
   turmaId: string,
   allGrades: StudentGrade[],
   periodKeys: string[],
+  examClass: boolean,
 ): AlunoLinha {
   const sg = allGrades.filter((g) => g.alunoId === student.id && g.turmaId === turmaId);
   const empty: AlunoTrimestre = { mac: null, npt: null, mt: null };
@@ -442,15 +498,30 @@ function calcLinhaCompleta(
 
   const t1 = getPeriodo(periodKeys[0] ?? "I");
   const t2 = periodKeys[1] ? getPeriodo(periodKeys[1]) : empty;
-  const t3 = periodKeys[2] ? getPeriodo(periodKeys[2]) : empty;
+  const gradeT3 = periodKeys[2]
+    ? sg.find((g) => (g.periodo ?? "I") === periodKeys[2])
+    : undefined;
+  const t3 = periodKeys[2]
+    ? examClass
+      ? calcTerceiroTrimestrePautaCompleta(gradeT3)
+      : getPeriodo(periodKeys[2])
+    : empty;
 
-  const mts = [t1.mt, t2.mt, t3.mt].filter((v): v is number => v !== null);
-  const mfd = mts.length > 0
-    ? Math.round((mts.reduce((a, b) => a + b, 0) / 3) * 10) / 10
-    : null;
+  const isTrimestral = periodKeys.length >= 3;
+  const ne = isTrimestral && examClass ? gradeT3?.npt ?? null : null;
+  const mfd = isTrimestral
+    ? t1.mt !== null && t2.mt !== null && t3.mt !== null
+      ? Math.round(((t1.mt + t2.mt + t3.mt) / 3) * 10) / 10
+      : null
+    : avg([t1.mt, t2.mt].filter((v): v is number => v !== null));
+  const mf = isTrimestral && examClass
+    ? mfd !== null && ne !== null
+      ? Math.round(((mfd + ne) / 2) * 10) / 10
+      : null
+    : mfd;
 
   return {
-    nome: student.nome, t1, t2, t3, mfd, ne: null, recurso: null, mf: mfd,
+    nome: student.nome, t1, t2, t3, mfd, ne, recurso: null, mf,
     presente: sg.some((g) => g.mac.length > 0 || g.npt !== null),
   };
 }
@@ -466,34 +537,29 @@ export function pautaCompletaHtml(
 ): string {
   const t = translations[lang];
   const escola = profile.instituicao || "Instituição de Ensino";
-  const isPrimario = (turma.nivelEnsino || profile.nivelEnsino || "") === "Ensino Primário";
-  const threshold = isPrimario ? 5 : 10;
+  const threshold = getNegativeThreshold(turma, profile);
   const sorted = [...turma.alunos].sort((a, b) => a.nome.localeCompare(b.nome));
-  const linhas = sorted.map((s) => calcLinhaCompleta(s, turma.id, allGrades, periodKeys));
+  const examClass = isExamClass(turma);
+  const linhas = sorted.map((s) => calcLinhaCompleta(s, turma.id, allGrades, periodKeys, examClass));
   const n = Math.min(periodKeys.length, 3);
   const tLabel = (i: number) => periodLabels[i] ?? `${i + 1}º ${t.exportPeriod}`;
   const total = linhas.length;
-
-  const mtCell = (mt: number | null) => {
-    const isNeg = mt !== null && mt < threshold;
-    return isNeg ? `<td style="color:#b91c1c;font-weight:700;">${fmt(mt)}</td>` : `<td>${fmt(mt)}</td>`;
-  };
-
-  const mfCell = (mf: number | null) => {
-    const isNeg = mf !== null && mf < threshold;
-    return isNeg ? `<td style="color:#b91c1c;font-weight:700;">${fmt(mf)}</td>` : `<td><b>${fmt(mf)}</b></td>`;
-  };
+  const finalColumnsCount = examClass ? 4 : 1;
+  const finalHeaderHtml = examClass
+    ? `<th rowspan="2">${t.exportMFD}</th><th rowspan="2">${t.exportNE}</th><th rowspan="2">${t.exportRecurso}</th><th rowspan="2">${t.exportMF}</th>`
+    : `<th rowspan="2">${t.exportMF}</th>`;
 
   const rowsHtml = linhas
     .map((l, i) => `
       <tr>
         <td>${i + 1}</td>
         <td class="name-col">${escape(l.nome)}</td>
-        <td>${fmt(l.t1.mac)}</td><td>${fmt(l.t1.npt)}</td>${mtCell(l.t1.mt)}
-        ${n >= 2 ? `<td>${fmt(l.t2.mac)}</td><td>${fmt(l.t2.npt)}</td>${mtCell(l.t2.mt)}` : ""}
-        ${n >= 3 ? `<td>${fmt(l.t3.mac)}</td><td>${fmt(l.t3.npt)}</td>${mtCell(l.t3.mt)}` : ""}
-        <td>${fmt(l.mfd)}</td><td>${fmt(l.ne)}</td><td>${fmt(l.recurso)}</td>
-        ${mfCell(l.mf)}
+        ${gradeTd(l.t1.mac, threshold)}${gradeTd(l.t1.npt, threshold)}${gradeTd(l.t1.mt, threshold)}
+        ${n >= 2 ? `${gradeTd(l.t2.mac, threshold)}${gradeTd(l.t2.npt, threshold)}${gradeTd(l.t2.mt, threshold)}` : ""}
+        ${n >= 3 ? `${gradeTd(l.t3.mac, threshold)}${gradeTd(l.t3.npt, threshold)}${gradeTd(l.t3.mt, threshold)}` : ""}
+        ${examClass
+          ? `${gradeTd(l.mfd, threshold)}${gradeTd(l.ne, threshold)}${gradeTd(l.recurso, threshold)}${gradeTd(l.mf, threshold, true)}`
+          : `${gradeTd(l.mf, threshold, true)}`}
       </tr>`)
     .join("");
 
@@ -511,8 +577,7 @@ export function pautaCompletaHtml(
           <th colspan="3">${tLabel(0)}</th>
           ${n >= 2 ? `<th colspan="3">${tLabel(1)}</th>` : ""}
           ${n >= 3 ? `<th colspan="3">${tLabel(2)}</th>` : ""}
-          <th rowspan="2">${t.exportMFD}</th><th rowspan="2">${t.exportNE}</th>
-          <th rowspan="2">${t.exportRecurso}</th><th rowspan="2">${t.exportMF}</th>
+          ${finalHeaderHtml}
         </tr>
         <tr>
           <th>MAC</th><th>NPT</th><th>MT</th>
@@ -520,7 +585,7 @@ export function pautaCompletaHtml(
           ${n >= 3 ? `<th>MAC</th><th>NPT</th><th>MT</th>` : ""}
         </tr>
       </thead>
-      <tbody>${rowsHtml || `<tr><td colspan="${2 + n * 3 + 4}" style="padding:14px">${t.exportNoStudents}</td></tr>`}</tbody>
+      <tbody>${rowsHtml || `<tr><td colspan="${2 + n * 3 + finalColumnsCount}" style="padding:14px">${t.exportNoStudents}</td></tr>`}</tbody>
     </table>
     <div class="stats-title">${t.exportStatsByPeriod}</div>
     <table class="stats-table">
@@ -563,8 +628,10 @@ export function pautaCompletaExcel(
 ): ExcelSheetSpec {
   const t = translations[lang];
   const escola = header?.linhas[0] || profile.instituicao || "Instituição de Ensino";
+  const threshold = getNegativeThreshold(turma, profile);
   const sorted = [...turma.alunos].sort((a, b) => a.nome.localeCompare(b.nome));
-  const linhas = sorted.map((s) => calcLinhaCompleta(s, turma.id, allGrades, periodKeys));
+  const examClass = isExamClass(turma);
+  const linhas = sorted.map((s) => calcLinhaCompleta(s, turma.id, allGrades, periodKeys, examClass));
   const n = Math.min(periodKeys.length, 3);
   const tLabel = (i: number) => periodLabels[i] ?? `${i + 1}º ${t.exportPeriod}`;
 
@@ -572,7 +639,8 @@ export function pautaCompletaExcel(
   for (let i = 0; i < n; i++) {
     periodHeaders.push(`${tLabel(i)} MAC`, `${tLabel(i)} NPT`, `${tLabel(i)} MT`);
   }
-  const dataHeader = [t.exportStudentNum, t.exportStudentName, ...periodHeaders, t.exportMFD, t.exportNE, t.exportRecurso, t.exportMF];
+  const finalHeaders = examClass ? [t.exportMFD, t.exportNE, t.exportRecurso, t.exportMF] : [t.exportMF];
+  const dataHeader = [t.exportStudentNum, t.exportStudentName, ...periodHeaders, ...finalHeaders];
   const totalCols = dataHeader.length;
 
   const dataRows = linhas.map((l, i) => {
@@ -580,7 +648,9 @@ export function pautaCompletaExcel(
     pd.push(l.t1.mac, l.t1.npt, l.t1.mt);
     if (n >= 2) pd.push(l.t2.mac, l.t2.npt, l.t2.mt);
     if (n >= 3) pd.push(l.t3.mac, l.t3.npt, l.t3.mt);
-    return [i + 1, l.nome, ...pd, l.mfd, l.ne, l.recurso, l.mf];
+    return examClass
+      ? [i + 1, l.nome, ...pd, l.mfd, l.ne, l.recurso, l.mf]
+      : [i + 1, l.nome, ...pd, l.mf];
   });
 
   const statsData: (string | number | null)[][] = [
@@ -588,7 +658,7 @@ export function pautaCompletaExcel(
     [t.exportStatsByPeriod],
     [t.exportPeriod, t.exportPresent, t.exportAbsent, `${t.exportNegative} ${t.exportMF}`, `${t.exportNegative} ${t.exportF}`, "Neg. %", `${t.exportPositive} ${t.exportMF}`, `${t.exportPositive} ${t.exportF}`, "Pos. %"],
     ...(["t1", "t2", "t3"] as const).slice(0, n).map((tr, i) => {
-      const s = calcStats(linhas, tr);
+      const s = calcStats(linhas, tr, threshold);
       const d = linhas.length > 0 ? linhas.length : 1;
       return [tLabel(i), s.presentes, s.ausentes, s.negativasMF, s.negativasF,
         Math.round((s.negativasMF / d) * 1000) / 10,
@@ -610,10 +680,27 @@ export function pautaCompletaExcel(
     [`${t.exportTeacher}: ${profile.nome || ""}`],
     [`${t.exportIssuedAt}: ${NOW()}`],
   ];
+  const dataStartRow = 6;
+  const cellStyles = linhas.flatMap((l, rowIndex) => {
+    const r = dataStartRow + rowIndex;
+    const values: (number | null)[] = [l.t1.mac, l.t1.npt, l.t1.mt];
+    if (n >= 2) values.push(l.t2.mac, l.t2.npt, l.t2.mt);
+    if (n >= 3) values.push(l.t3.mac, l.t3.npt, l.t3.mt);
+    if (examClass) values.push(l.mfd, l.ne, l.recurso, l.mf);
+    else values.push(l.mf);
+    return values.flatMap((value, idx) =>
+      isNegativeGrade(value, threshold)
+        ? [gradeCellStyle(r, 2 + idx, "negative")]
+        : isPositiveGrade(value, threshold)
+          ? [gradeCellStyle(r, 2 + idx, "positive")]
+          : [],
+    );
+  });
   return {
     name: t.exportFullPauta,
     rows,
-    colWidths: [4, 32, ...periodHeaders.map(() => 8), 7, 7, 8, 7],
+    cellStyles,
+    colWidths: [4, 32, ...periodHeaders.map(() => 8), ...(examClass ? [7, 7, 8, 7] : [7])],
     merges: [
       { s: { r: 0, c: 0 }, e: { r: 0, c: totalCols - 1 } },
       { s: { r: 1, c: 0 }, e: { r: 1, c: totalCols - 1 } },

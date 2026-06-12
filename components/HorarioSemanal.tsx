@@ -15,9 +15,9 @@ import * as Haptics from "expo-haptics";
 import Icon from "@/components/Icon";
 import Colors from "@/constants/colors";
 import { getAulas, saveAula, deleteAula, generateId, Aula } from "@/lib/storage";
+import { useLanguage } from "@/lib/i18n";
 
 const DIAS_SEMANA = ["Segunda", "Terça", "Quarta", "Quinta", "Sexta", "Sábado"];
-const DIAS_CURTO = ["Seg", "Ter", "Qua", "Qui", "Sex", "Sáb"];
 const HOUR_START = 7;
 const HOUR_END = 24;
 const HOUR_H = 64;
@@ -78,6 +78,7 @@ const EMPTY_FORM: FormState = {
 };
 
 export default function HorarioSemanal() {
+  const { lang, tr } = useLanguage();
   const [aulas, setAulas] = useState<Aula[]>([]);
   const [showModal, setShowModal] = useState(false);
   const [editingId, setEditingId] = useState<string | null>(null);
@@ -115,18 +116,18 @@ export default function HorarioSemanal() {
   const handleSave = async () => {
     const novosErros: string[] = [];
     const discFinal = form.disciplina === "custom" ? form.disciplinaCustom.trim() : form.disciplina.trim();
-    if (!discFinal) novosErros.push("Disciplina é obrigatória.");
-    if (!form.turma.trim()) novosErros.push("Turma é obrigatória.");
-    if (!form.horaInicio || !form.horaFim) novosErros.push("Horários são obrigatórios.");
+    if (!discFinal) novosErros.push(tr.scheduleDisciplineRequired);
+    if (!form.turma.trim()) novosErros.push(tr.scheduleClassRequired);
+    if (!form.horaInicio || !form.horaFim) novosErros.push(tr.scheduleTimeRequired);
     if (form.horaInicio && form.horaFim) {
       if (timeToMinutes(form.horaFim) <= timeToMinutes(form.horaInicio)) {
-        novosErros.push("A hora de fim deve ser depois da hora de início.");
+        novosErros.push(tr.scheduleEndAfterStart);
       }
     }
     if (novosErros.length === 0 && form.horaInicio && form.horaFim) {
       const conflito = hasConflict(aulas, form.dia, form.horaInicio, form.horaFim, editingId ?? undefined);
       if (conflito) {
-        novosErros.push(`Conflito com ${conflito.disciplina} (${conflito.horaInicio}–${conflito.horaFim}) na ${form.dia}.`);
+        novosErros.push(`${tr.scheduleConflictWith} ${conflito.disciplina} (${conflito.horaInicio}–${conflito.horaFim}) ${tr.scheduleOnDay} ${getDayLabel(form.dia)}.`);
       }
     }
     if (novosErros.length > 0) { setErros(novosErros); return; }
@@ -155,11 +156,11 @@ export default function HorarioSemanal() {
       setAulas((prev) => prev.filter((a) => a.id !== id));
     };
     if (Platform.OS === "web") {
-      if (window.confirm("Eliminar esta aula?")) doDelete();
+      if (window.confirm(tr.scheduleDeleteLessonWebConfirm)) doDelete();
     } else {
-      Alert.alert("Eliminar Aula", "Tem a certeza?", [
-        { text: "Cancelar", style: "cancel" },
-        { text: "Eliminar", style: "destructive", onPress: doDelete },
+      Alert.alert(tr.scheduleDeleteLesson, tr.scheduleDeleteLessonMsg, [
+        { text: tr.cancel, style: "cancel" },
+        { text: tr.delete, style: "destructive", onPress: doDelete },
       ]);
     }
   };
@@ -169,7 +170,62 @@ export default function HorarioSemanal() {
 
   const getDiaAulas = (dia: string) => aulas.filter((a) => a.dia === dia);
 
-  const discFinalDisplay = form.disciplina === "custom" ? form.disciplinaCustom : form.disciplina;
+  const diasCurto = [
+    tr.scheduleDayMonShort,
+    tr.scheduleDayTueShort,
+    tr.scheduleDayWedShort,
+    tr.scheduleDayThuShort,
+    tr.scheduleDayFriShort,
+    tr.scheduleDaySatShort,
+  ];
+
+  const getDayLabel = (dia: string) => {
+    const index = DIAS_SEMANA.indexOf(dia);
+    const en = ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"];
+    const fr = ["Lundi", "Mardi", "Mercredi", "Jeudi", "Vendredi", "Samedi"];
+    if (index < 0) return dia;
+    if (lang === "en") return en[index];
+    if (lang === "fr") return fr[index];
+    return dia;
+  };
+
+  const getDisciplineLabel = (disciplina: string) => {
+    const en: Record<string, string> = {
+      "Matemática": "Mathematics",
+      "Português": "Portuguese",
+      "História": "History",
+      "Geografia": "Geography",
+      "Ciências": "Science",
+      "Física": "Physics",
+      "Química": "Chemistry",
+      "Biologia": "Biology",
+      "Inglês": "English",
+      "Educação Física": "Physical Education",
+      "Arte": "Art",
+      "Filosofia": "Philosophy",
+      "Sociologia": "Sociology",
+      "Informática": "Computer Science",
+    };
+    const fr: Record<string, string> = {
+      "Matemática": "Mathématiques",
+      "Português": "Portugais",
+      "História": "Histoire",
+      "Geografia": "Géographie",
+      "Ciências": "Sciences",
+      "Física": "Physique",
+      "Química": "Chimie",
+      "Biologia": "Biologie",
+      "Inglês": "Anglais",
+      "Educação Física": "Éducation physique",
+      "Arte": "Art",
+      "Filosofia": "Philosophie",
+      "Sociologia": "Sociologie",
+      "Informática": "Informatique",
+    };
+    if (lang === "en") return en[disciplina] || disciplina;
+    if (lang === "fr") return fr[disciplina] || disciplina;
+    return disciplina;
+  };
 
   return (
     <View style={styles.container}>
@@ -177,33 +233,17 @@ export default function HorarioSemanal() {
       <View style={styles.statsRow}>
         <View style={styles.statCard}>
           <Text style={styles.statValue}>{aulas.length}</Text>
-          <Text style={styles.statLabel}>Aulas</Text>
+          <Text style={styles.statLabel}>{tr.scheduleLessonsLabel}</Text>
         </View>
         <View style={styles.statCard}>
           <Text style={styles.statValue}>{totalDisciplinas}</Text>
-          <Text style={styles.statLabel}>Disciplinas</Text>
+          <Text style={styles.statLabel}>{tr.scheduleSubjectsLabel}</Text>
         </View>
         <View style={styles.statCard}>
           <Text style={styles.statValue}>{totalTurmas}</Text>
-          <Text style={styles.statLabel}>Turmas</Text>
+          <Text style={styles.statLabel}>{tr.scheduleClassesLabel}</Text>
         </View>
       </View>
-
-      {/* Turma colour legend */}
-      {aulas.length > 0 && (
-        <ScrollView
-          horizontal
-          showsHorizontalScrollIndicator={false}
-          contentContainerStyle={styles.legendRow}
-        >
-          {Array.from(new Set(aulas.map((a) => a.turma))).map((turma) => (
-            <View key={turma} style={[styles.legendChip, { borderLeftColor: getTurmaColor(turma) }]}>
-              <View style={[styles.legendDot, { backgroundColor: getTurmaColor(turma) }]} />
-              <Text style={styles.legendText} numberOfLines={1}>{turma}</Text>
-            </View>
-          ))}
-        </ScrollView>
-      )}
 
       {/* Grid */}
       <ScrollView
@@ -222,7 +262,7 @@ export default function HorarioSemanal() {
               <View style={{ width: TIME_COL_W }} />
               {DIAS_SEMANA.map((dia, i) => (
                 <View key={dia} style={styles.dayHeader}>
-                  <Text style={styles.dayHeaderText}>{DIAS_CURTO[i]}</Text>
+                  <Text style={styles.dayHeaderText}>{diasCurto[i]}</Text>
                   <Text style={styles.dayHeaderCount}>{getDiaAulas(dia).length > 0 ? `${getDiaAulas(dia).length}` : ""}</Text>
                 </View>
               ))}
@@ -299,9 +339,9 @@ export default function HorarioSemanal() {
         {aulas.length === 0 && (
           <View style={styles.emptyContainer}>
             <Icon name="calendar" size={44} color={Colors.textMuted} />
-            <Text style={styles.emptyTitle}>Horário vazio</Text>
+            <Text style={styles.emptyTitle}>{tr.scheduleEmptyTitle}</Text>
             <Text style={styles.emptySubtitle}>
-              Toque no "+" para adicionar a sua primeira aula
+              {tr.scheduleEmptySubtitle}
             </Text>
           </View>
         )}
@@ -322,7 +362,7 @@ export default function HorarioSemanal() {
           <Pressable style={styles.modalContent} onPress={() => {}}>
             <ScrollView showsVerticalScrollIndicator={false} keyboardShouldPersistTaps="handled">
               <View style={styles.modalHeader}>
-                <Text style={styles.modalTitle}>{editingId ? "Editar Aula" : "Nova Aula"}</Text>
+                <Text style={styles.modalTitle}>{editingId ? tr.scheduleEditLesson : tr.scheduleNewLesson}</Text>
                 <Pressable onPress={() => setShowModal(false)} style={styles.modalClose}>
                   <Icon name="close" size={20} color={Colors.textMuted} />
                 </Pressable>
@@ -337,7 +377,7 @@ export default function HorarioSemanal() {
               )}
 
               {/* Disciplina */}
-              <Text style={styles.fieldLabel}>Disciplina</Text>
+              <Text style={styles.fieldLabel}>{tr.scheduleDiscipline}</Text>
               <View style={styles.suggRow}>
                 {DISCIPLINAS_SUGERIDAS.map((d) => (
                   <Pressable
@@ -346,7 +386,7 @@ export default function HorarioSemanal() {
                     style={[styles.suggChip, form.disciplina === d && styles.suggChipActive]}
                   >
                     <Text style={[styles.suggChipText, form.disciplina === d && styles.suggChipTextActive]}>
-                      {d}
+                      {getDisciplineLabel(d)}
                     </Text>
                   </Pressable>
                 ))}
@@ -355,14 +395,14 @@ export default function HorarioSemanal() {
                   style={[styles.suggChip, form.disciplina === "custom" && styles.suggChipActive]}
                 >
                   <Text style={[styles.suggChipText, form.disciplina === "custom" && styles.suggChipTextActive]}>
-                    Outra…
+                    {tr.scheduleOther}
                   </Text>
                 </Pressable>
               </View>
               {form.disciplina === "custom" && (
                 <TextInput
                   style={[styles.input, { marginTop: 8 }]}
-                  placeholder="Nome da disciplina"
+                  placeholder={tr.scheduleCustomDisciplinePlaceholder}
                   placeholderTextColor={Colors.textMuted}
                   value={form.disciplinaCustom}
                   onChangeText={(v) => setForm((f) => ({ ...f, disciplinaCustom: v }))}
@@ -370,17 +410,17 @@ export default function HorarioSemanal() {
               )}
 
               {/* Turma */}
-              <Text style={[styles.fieldLabel, { marginTop: 14 }]}>Turma</Text>
+              <Text style={[styles.fieldLabel, { marginTop: 14 }]}>{tr.scheduleClass}</Text>
               <TextInput
                 style={styles.input}
-                placeholder="Ex: 7.ª A, Turma 3, 9.º Ano"
+                placeholder={tr.scheduleClassPlaceholder}
                 placeholderTextColor={Colors.textMuted}
                 value={form.turma}
                 onChangeText={(v) => setForm((f) => ({ ...f, turma: v }))}
               />
 
               {/* Dia */}
-              <Text style={[styles.fieldLabel, { marginTop: 14 }]}>Dia da Semana</Text>
+              <Text style={[styles.fieldLabel, { marginTop: 14 }]}>{tr.scheduleWeekday}</Text>
               <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.diaPicker}>
                 {DIAS_SEMANA.map((d, i) => (
                   <Pressable
@@ -389,17 +429,17 @@ export default function HorarioSemanal() {
                     style={[styles.diaChip, form.dia === d && styles.diaChipActive]}
                   >
                     <Text style={[styles.diaChipText, form.dia === d && styles.diaChipTextActive]}>
-                      {DIAS_CURTO[i]}
+                      {diasCurto[i]}
                     </Text>
                   </Pressable>
                 ))}
               </ScrollView>
 
               {/* Horários */}
-              <Text style={[styles.fieldLabel, { marginTop: 14 }]}>Horário</Text>
+              <Text style={[styles.fieldLabel, { marginTop: 14 }]}>{tr.scheduleTime}</Text>
               <View style={styles.timeRow}>
                 <View style={{ flex: 1 }}>
-                  <Text style={styles.timeSubLabel}>Início</Text>
+                  <Text style={styles.timeSubLabel}>{tr.scheduleStart}</Text>
                   <TextInput
                     style={styles.input}
                     placeholder="HH:MM"
@@ -412,7 +452,7 @@ export default function HorarioSemanal() {
                 </View>
                 <Icon name="arrow-right" size={18} color={Colors.textMuted} style={{ marginTop: 22 }} />
                 <View style={{ flex: 1 }}>
-                  <Text style={styles.timeSubLabel}>Fim</Text>
+                  <Text style={styles.timeSubLabel}>{tr.scheduleEnd}</Text>
                   <TextInput
                     style={styles.input}
                     placeholder="HH:MM"
@@ -432,14 +472,14 @@ export default function HorarioSemanal() {
                     style={({ pressed }) => [styles.deleteBtn, { opacity: pressed ? 0.8 : 1 }]}
                   >
                     <Icon name="trash-2" size={16} color={Colors.error} />
-                    <Text style={styles.deleteBtnText}>Eliminar</Text>
+                    <Text style={styles.deleteBtnText}>{tr.delete}</Text>
                   </Pressable>
                 )}
                 <Pressable
                   onPress={handleSave}
                   style={({ pressed }) => [styles.saveBtn, { opacity: pressed ? 0.9 : 1, flex: 1 }]}
                 >
-                  <Text style={styles.saveBtnText}>{editingId ? "Actualizar" : "Adicionar"}</Text>
+                  <Text style={styles.saveBtnText}>{editingId ? tr.scheduleUpdate : tr.scheduleAdd}</Text>
                 </Pressable>
               </View>
             </ScrollView>
@@ -462,15 +502,6 @@ const styles = StyleSheet.create({
   },
   statValue: { fontFamily: "Inter_700Bold", fontSize: 20, color: Colors.primary },
   statLabel: { fontFamily: "Inter_400Regular", fontSize: 11, color: Colors.textMuted, marginTop: 2 },
-
-  legendRow: { paddingHorizontal: 16, paddingVertical: 8, gap: 8, flexDirection: "row" },
-  legendChip: {
-    flexDirection: "row", alignItems: "center", gap: 6,
-    backgroundColor: "rgba(255,255,255,0.06)", borderRadius: 8,
-    paddingHorizontal: 10, paddingVertical: 4, borderLeftWidth: 3,
-  },
-  legendDot: { width: 6, height: 6, borderRadius: 3 },
-  legendText: { fontFamily: "Inter_400Regular", fontSize: 11, color: Colors.textSecondary },
 
   gridScroll: { flex: 1 },
   gridHeaderRow: {

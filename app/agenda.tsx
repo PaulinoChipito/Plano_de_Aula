@@ -283,7 +283,7 @@ export default function AgendaScreen() {
               <View style={styles.dateTimeRow}>
                 <TextInput
                   style={[styles.modalInput, { flex: 1 }]}
-                  placeholder={`${tr.eventDateLabel} (AAAA-MM-DD)`}
+                  placeholder={`${tr.eventDateLabel} (YYYY-MM-DD)`}
                   placeholderTextColor={Colors.textMuted}
                   value={data}
                   onChangeText={setData}

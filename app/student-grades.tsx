@@ -27,7 +27,7 @@ import {
   StudentGrade,
   GradeEntry,
 } from "@/lib/storage";
-import { getMacAverage, getNotaFinal, MAC_PESO, NPT_PESO } from "@/lib/gradeUtils";
+import { getMacAverage, getNotaFinal } from "@/lib/gradeUtils";
 import { usePeriod } from "@/lib/periodContext";
 import { useYear } from "@/lib/yearContext";
 import { useLanguage } from "@/lib/i18n";
@@ -153,9 +153,9 @@ export default function StudentGradesScreen() {
       }
     } catch (e) {
       if (Platform.OS === "web") {
-        window.alert("Erro ao guardar a nota. Tente novamente.");
+        window.alert(tr.gradeSaveErrorMessage);
       } else {
-        Alert.alert("Erro", "Não foi possível guardar a nota.");
+        Alert.alert(tr.gradeSaveErrorTitle, tr.gradeSaveErrorMessage);
       }
     }
   };
@@ -186,8 +186,8 @@ export default function StudentGradesScreen() {
     if (!selectedStudent || !macPopupEntry) return;
     const nota = parseFloat(macPopupEditValue.replace(",", "."));
     if (isNaN(nota) || nota < 0 || nota > maxNota) {
-      if (Platform.OS === "web") window.alert(`Nota inválida. Deve estar entre 0 e ${maxNota}.`);
-      else Alert.alert("Nota inválida", `A nota deve estar entre 0 e ${maxNota}.`);
+      if (Platform.OS === "web") window.alert(`${tr.gradeInvalid}. ${tr.gradeInvalidRange} ${maxNota}.`);
+      else Alert.alert(tr.gradeInvalid, `${tr.gradeInvalidRange} ${maxNota}.`);
       return;
     }
     const existing = getStudentGrade(selectedStudent.id);
@@ -205,8 +205,8 @@ export default function StudentGradesScreen() {
       closeMacPopup();
       if (Platform.OS !== "web") Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
     } catch {
-      if (Platform.OS === "web") window.alert("Erro ao guardar. Tente novamente.");
-      else Alert.alert("Erro", "Não foi possível guardar a nota.");
+      if (Platform.OS === "web") window.alert(tr.gradeSaveErrorMessage);
+      else Alert.alert(tr.gradeSaveErrorTitle, tr.gradeSaveErrorMessage);
     }
   };
 
@@ -230,9 +230,9 @@ export default function StudentGradesScreen() {
 
     if (npt !== null && (isNaN(npt) || npt < 0 || npt > maxNota)) {
       if (Platform.OS === "web") {
-        window.alert(`NPT inválida. A nota deve estar entre 0 e ${maxNota}.`);
+        window.alert(`${tr.nptInvalidTitle}. ${tr.nptInvalidRange} ${maxNota}.`);
       } else {
-        Alert.alert("NPT inválida", `A nota da prova trimestral deve estar entre 0 e ${maxNota}.`);
+        Alert.alert(tr.nptInvalidTitle, `${tr.nptInvalidRange} ${maxNota}.`);
       }
       return;
     }
@@ -255,8 +255,8 @@ export default function StudentGradesScreen() {
         Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
       }
     } catch (e) {
-      if (Platform.OS === "web") window.alert("Erro ao guardar. Tente novamente.");
-      else Alert.alert("Erro", "Não foi possível guardar.");
+      if (Platform.OS === "web") window.alert(tr.genericSaveErrorMessage);
+      else Alert.alert(tr.gradeSaveErrorTitle, tr.genericSaveErrorMessage);
     }
   };
 
@@ -305,7 +305,7 @@ export default function StudentGradesScreen() {
           )}
           {notaFinal !== null && grade && (grade.mac.length > 0 || grade.npt !== null) && (
             <View style={[styles.gradeBadge, nfNeg ? styles.gradeBadgeNeg : styles.nfBadge]}>
-              <Text style={[styles.gradeLabel, nfNeg ? styles.gradeLabelNeg : { color: Colors.success }]}>NF</Text>
+              <Text style={[styles.gradeLabel, nfNeg ? styles.gradeLabelNeg : { color: Colors.success }]}>MT</Text>
               <Text style={[styles.gradeValue, nfNeg ? styles.gradeValueNeg : { color: Colors.success }]}>{notaFinal}</Text>
             </View>
           )}
@@ -346,7 +346,7 @@ export default function StudentGradesScreen() {
           <View style={styles.formulaNote}>
             <Icon name="info" size={13} color={Colors.textMuted} />
             <Text style={styles.formulaNoteText}>
-              Nota Final = MAC × {MAC_PESO * 100}% + NPT × {NPT_PESO * 100}% (INIDE)
+              MT = (MAC + NPT) / 2
             </Text>
           </View>
         }
@@ -357,68 +357,6 @@ export default function StudentGradesScreen() {
           </View>
         }
       />
-
-      {/* MAC entry detail popup */}
-      <Modal visible={!!macPopupEntry} transparent animationType="fade" onRequestClose={closeMacPopup}>
-        <Pressable style={styles.modalOverlay} onPress={closeMacPopup}>
-          <Pressable style={[styles.modalContent, { maxHeight: "auto" as any, paddingBottom: 20 }]} onPress={() => {}}>
-            <Text style={[styles.modalTitle, { marginBottom: 8 }]}>
-              AC{(macPopupEntry?.index ?? 0) + 1}
-            </Text>
-            {macPopupEditing ? (
-              <>
-                <TextInput
-                  style={[styles.modalInput, { marginTop: 4, marginBottom: 8 }]}
-                  value={macPopupEditValue}
-                  onChangeText={setMacPopupEditValue}
-                  keyboardType="numeric"
-                  autoFocus
-                  selectTextOnFocus
-                  placeholder={`${tr.notaFinalDisplay} (0–${maxNota})`}
-                  placeholderTextColor={Colors.textMuted}
-                />
-                <Pressable
-                  onPress={handleSaveMacEdit}
-                  style={({ pressed }) => [styles.macPopupActionBtn, { backgroundColor: Colors.primary, opacity: pressed ? 0.85 : 1 }]}
-                >
-                  <Icon name="checkmark" size={16} color="#fff" />
-                  <Text style={styles.macPopupActionBtnText}>{tr.save}</Text>
-                </Pressable>
-                <Pressable
-                  onPress={() => setMacPopupEditing(false)}
-                  style={({ pressed }) => [styles.macPopupSecondaryBtn, { opacity: pressed ? 0.75 : 1 }]}
-                >
-                  <Text style={styles.macPopupSecondaryBtnText}>{tr.cancel}</Text>
-                </Pressable>
-              </>
-            ) : (
-              <>
-                <Text style={styles.macPopupValue}>{macPopupEntry?.entry.nota}</Text>
-                <Pressable
-                  onPress={() => {
-                    setMacPopupEditValue(String(macPopupEntry?.entry.nota ?? ""));
-                    setMacPopupEditing(true);
-                  }}
-                  style={({ pressed }) => [styles.macPopupActionBtn, { backgroundColor: Colors.primary + "18", opacity: pressed ? 0.85 : 1 }]}
-                >
-                  <Icon name="edit-2" size={16} color={Colors.primary} />
-                  <Text style={[styles.macPopupActionBtnText, { color: Colors.primary }]}>{tr.edit}</Text>
-                </Pressable>
-                <Pressable
-                  onPress={handleDeleteMacFromPopup}
-                  style={({ pressed }) => [styles.macPopupActionBtn, { backgroundColor: Colors.error + "15", opacity: pressed ? 0.85 : 1, marginTop: 8 }]}
-                >
-                  <Icon name="trash-2" size={16} color={Colors.error} />
-                  <Text style={[styles.macPopupActionBtnText, { color: Colors.error }]}>{tr.delete}</Text>
-                </Pressable>
-                <Text style={[styles.macPopupDate, { marginTop: 14, textAlign: "center" }]}>
-                  {tr.recordedOn} {macPopupEntry ? formatMacDate(macPopupEntry.entry.data) : ""}
-                </Text>
-              </>
-            )}
-          </Pressable>
-        </Pressable>
-      </Modal>
 
       <Modal visible={showModal} transparent animationType="fade" onRequestClose={() => setShowModal(false)}>
         <Pressable style={styles.modalOverlay} onPress={() => setShowModal(false)}>
@@ -462,7 +400,7 @@ export default function StudentGradesScreen() {
                 <View style={styles.addMacRow}>
                   <TextInput
                     style={[styles.modalInput, { flex: 1 }]}
-                    placeholder={`Nova nota (0–${maxNota})`}
+                    placeholder={`${tr.newGradePlaceholder} (0–${maxNota})`}
                     placeholderTextColor={Colors.textMuted}
                     value={newMacNota}
                     onChangeText={setNewMacNota}
@@ -478,7 +416,7 @@ export default function StudentGradesScreen() {
                 <Text style={styles.modalSectionTitle}>{tr.nptTitle}</Text>
                 <TextInput
                   style={styles.modalInput}
-                  placeholder={`Nota NPT (0–${maxNota})`}
+                  placeholder={`${tr.nptGradePlaceholder} (0–${maxNota})`}
                   placeholderTextColor={Colors.textMuted}
                   value={nptValue}
                   onChangeText={setNptValue}
@@ -489,7 +427,7 @@ export default function StudentGradesScreen() {
               {selectedNotaFinal !== null && (
                 <View style={styles.notaFinalBox}>
                   <Text style={styles.notaFinalLabel}>
-                    Nota Final (MAC×{MAC_PESO * 100}% + NPT×{NPT_PESO * 100}%)
+                    {tr.notaFinalDisplay} (MT)
                   </Text>
                   <Text style={styles.notaFinalValue}>{selectedNotaFinal}</Text>
                 </View>
@@ -511,6 +449,68 @@ export default function StudentGradesScreen() {
                 <Text style={styles.saveBtnText}>{tr.save}</Text>
               </Pressable>
             </ScrollView>
+          </Pressable>
+        </Pressable>
+      </Modal>
+
+      {/* MAC entry detail popup. Keep it after the grade modal so it stays on top. */}
+      <Modal visible={!!macPopupEntry} transparent animationType="fade" onRequestClose={closeMacPopup}>
+        <Pressable style={[styles.modalOverlay, styles.macPopupOverlay]} onPress={closeMacPopup}>
+          <Pressable style={[styles.modalContent, styles.macPopupContent]} onPress={() => {}}>
+            <Text style={[styles.modalTitle, { marginBottom: 8 }]}>
+              AC{(macPopupEntry?.index ?? 0) + 1}
+            </Text>
+            {macPopupEditing ? (
+              <>
+                <TextInput
+                  style={[styles.modalInput, { marginTop: 4, marginBottom: 8 }]}
+                  value={macPopupEditValue}
+                  onChangeText={setMacPopupEditValue}
+                  keyboardType="numeric"
+                  autoFocus
+                  selectTextOnFocus
+                  placeholder={`${tr.newGradePlaceholder} (0–${maxNota})`}
+                  placeholderTextColor={Colors.textMuted}
+                />
+                <Pressable
+                  onPress={handleSaveMacEdit}
+                  style={({ pressed }) => [styles.macPopupActionBtn, { backgroundColor: Colors.primary, opacity: pressed ? 0.85 : 1 }]}
+                >
+                  <Icon name="checkmark" size={16} color="#fff" />
+                  <Text style={styles.macPopupActionBtnText}>{tr.save}</Text>
+                </Pressable>
+                <Pressable
+                  onPress={() => setMacPopupEditing(false)}
+                  style={({ pressed }) => [styles.macPopupSecondaryBtn, { opacity: pressed ? 0.75 : 1 }]}
+                >
+                  <Text style={styles.macPopupSecondaryBtnText}>{tr.cancel}</Text>
+                </Pressable>
+              </>
+            ) : (
+              <>
+                <Text style={styles.macPopupValue}>{macPopupEntry?.entry.nota}</Text>
+                <Pressable
+                  onPress={() => {
+                    setMacPopupEditValue(String(macPopupEntry?.entry.nota ?? ""));
+                    setMacPopupEditing(true);
+                  }}
+                  style={({ pressed }) => [styles.macPopupActionBtn, { backgroundColor: Colors.primary + "18", opacity: pressed ? 0.85 : 1 }]}
+                >
+                  <Icon name="edit-2" size={16} color={Colors.primary} />
+                  <Text style={[styles.macPopupActionBtnText, { color: Colors.primary }]}>{tr.edit}</Text>
+                </Pressable>
+                <Pressable
+                  onPress={handleDeleteMacFromPopup}
+                  style={({ pressed }) => [styles.macPopupActionBtn, { backgroundColor: Colors.error + "15", opacity: pressed ? 0.85 : 1, marginTop: 8 }]}
+                >
+                  <Icon name="trash-2" size={16} color={Colors.error} />
+                  <Text style={[styles.macPopupActionBtnText, { color: Colors.error }]}>{tr.delete}</Text>
+                </Pressable>
+                <Text style={[styles.macPopupDate, { marginTop: 14, textAlign: "center" }]}>
+                  {tr.recordedOn} {macPopupEntry ? formatMacDate(macPopupEntry.entry.data) : ""}
+                </Text>
+              </>
+            )}
           </Pressable>
         </Pressable>
       </Modal>
@@ -558,6 +558,8 @@ const styles = StyleSheet.create({
   emptyTitle: { fontFamily: "Inter_600SemiBold", fontSize: 18, color: Colors.text, marginTop: 8 },
   modalOverlay: { flex: 1, backgroundColor: "rgba(0,0,0,0.7)", justifyContent: "center", paddingHorizontal: 24 },
   modalContent: { backgroundColor: Colors.modalBg, borderRadius: 20, padding: 24, maxHeight: "80%", borderWidth: 1, borderColor: Colors.border },
+  macPopupOverlay: { zIndex: 20, elevation: 20 },
+  macPopupContent: { maxHeight: "auto" as any, paddingBottom: 20, zIndex: 21, elevation: 21 },
   modalTitle: { fontFamily: "Inter_700Bold", fontSize: 20, color: Colors.text, marginBottom: 16 },
   modalSection: { marginBottom: 16 },
   modalSectionTitle: { fontFamily: "Inter_600SemiBold", fontSize: 14, color: Colors.text, marginBottom: 8 },

@@ -2,6 +2,7 @@ import React from "react";
 import { View, Text, StyleSheet, Pressable, Modal } from "react-native";
 import Icon from "@/components/Icon";
 import Colors from "@/constants/colors";
+import { useLanguage } from "@/lib/i18n";
 
 interface ExportMenuProps {
   visible: boolean;
@@ -20,6 +21,8 @@ export default function ExportMenu({
   onPdf,
   onExcel,
 }: ExportMenuProps) {
+  const { tr } = useLanguage();
+
   return (
     <Modal visible={visible} transparent animationType="fade" onRequestClose={onClose}>
       <Pressable style={styles.overlay} onPress={onClose}>
@@ -39,8 +42,8 @@ export default function ExportMenu({
               <Icon name="file-text" size={22} color="#EF4444" />
             </View>
             <View style={{ flex: 1 }}>
-              <Text style={styles.optionTitle}>Descarregar PDF</Text>
-              <Text style={styles.optionDesc}>Pronto a imprimir ou partilhar</Text>
+              <Text style={styles.optionTitle}>{tr.exportDownloadPdf}</Text>
+              <Text style={styles.optionDesc}>{tr.exportPdfDescription}</Text>
             </View>
             <Icon name="download" size={18} color={Colors.textMuted} />
           </Pressable>
@@ -56,14 +59,14 @@ export default function ExportMenu({
               <Icon name="file-text" size={22} color="#10B981" />
             </View>
             <View style={{ flex: 1 }}>
-              <Text style={styles.optionTitle}>Descarregar Excel</Text>
-              <Text style={styles.optionDesc}>Editável em Excel/LibreOffice</Text>
+              <Text style={styles.optionTitle}>{tr.exportDownloadExcel}</Text>
+              <Text style={styles.optionDesc}>{tr.exportExcelDescription}</Text>
             </View>
             <Icon name="download" size={18} color={Colors.textMuted} />
           </Pressable>
 
           <Pressable onPress={onClose} style={({ pressed }) => [styles.cancel, { opacity: pressed ? 0.7 : 1 }]}>
-            <Text style={styles.cancelText}>Cancelar</Text>
+            <Text style={styles.cancelText}>{tr.cancel}</Text>
           </Pressable>
         </Pressable>
       </Pressable>

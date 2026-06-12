@@ -18,6 +18,7 @@ import Colors from "@/constants/colors";
 import { generateId, saveLessonPlan, LessonPlan } from "@/lib/storage";
 import { usePeriod } from "@/lib/periodContext";
 import { useYear } from "@/lib/yearContext";
+import { useLanguage } from "@/lib/i18n";
 
 export default function CreatePlanScreen() {
   const insets = useSafeAreaInsets();
@@ -40,6 +41,7 @@ export default function CreatePlanScreen() {
 
   const { currentPeriod } = usePeriod();
   const { currentYear } = useYear();
+  const { tr } = useLanguage();
 
   const canSave = classe.trim() && disciplina.trim() && tema.trim() && duracao.trim() && sumario.trim();
 
@@ -135,7 +137,7 @@ export default function CreatePlanScreen() {
       ))}
       <Pressable onPress={() => addListItem(list, setter)} style={styles.addItemBtn}>
         <Icon name="add" size={16} color={Colors.primary} />
-        <Text style={styles.addItemText}>Adicionar</Text>
+        <Text style={styles.addItemText}>{tr.lessonPlanAdd}</Text>
       </Pressable>
     </View>
   );
@@ -155,7 +157,7 @@ export default function CreatePlanScreen() {
         >
           <Icon name="chevron-back" size={24} color="#fff" />
         </Pressable>
-        <Text style={styles.headerTitle}>Novo Plano de Aula</Text>
+        <Text style={styles.headerTitle}>{tr.newPlanTitle}</Text>
         <View style={{ width: 40 }} />
       </View>
 
@@ -171,67 +173,67 @@ export default function CreatePlanScreen() {
           {/* Secção 1 — Dados Identificativos */}
           <View style={styles.sectionHeader}>
             <View style={styles.sectionNum}><Text style={styles.sectionNumText}>1</Text></View>
-            <Text style={styles.sectionTitle}>Dados Identificativos</Text>
+            <Text style={styles.sectionTitle}>{tr.lessonPlanSectionIdentification}</Text>
           </View>
 
           <View style={styles.inputGroup}>
-            <Text style={styles.label}>Classe / Turma *</Text>
-            <TextInput style={styles.input} value={classe} onChangeText={setClasse} placeholder="Ex: 10.ª Classe, Turma A" placeholderTextColor={Colors.textMuted} />
+            <Text style={styles.label}>{tr.lessonPlanClassGroup} *</Text>
+            <TextInput style={styles.input} value={classe} onChangeText={setClasse} placeholder={tr.lessonPlanClassGroupPlaceholder} placeholderTextColor={Colors.textMuted} />
           </View>
           <View style={styles.inputGroup}>
-            <Text style={styles.label}>Disciplina *</Text>
-            <TextInput style={styles.input} value={disciplina} onChangeText={setDisciplina} placeholder="Ex: Matemática" placeholderTextColor={Colors.textMuted} />
+            <Text style={styles.label}>{tr.lessonPlanSubject} *</Text>
+            <TextInput style={styles.input} value={disciplina} onChangeText={setDisciplina} placeholder={tr.lessonPlanSubjectPlaceholder} placeholderTextColor={Colors.textMuted} />
           </View>
           <View style={styles.inputGroup}>
-            <Text style={styles.label}>Tema *</Text>
-            <TextInput style={styles.input} value={tema} onChangeText={setTema} placeholder="Ex: Equações do 2.º Grau" placeholderTextColor={Colors.textMuted} />
+            <Text style={styles.label}>{tr.lessonPlanTheme} *</Text>
+            <TextInput style={styles.input} value={tema} onChangeText={setTema} placeholder={tr.lessonPlanThemePlaceholder} placeholderTextColor={Colors.textMuted} />
           </View>
           <View style={styles.row}>
             <View style={[styles.inputGroup, { flex: 1 }]}>
-              <Text style={styles.label}>Duração (min) *</Text>
-              <TextInput style={styles.input} value={duracao} onChangeText={setDuracao} placeholder="Ex: 45" placeholderTextColor={Colors.textMuted} keyboardType="numeric" />
+              <Text style={styles.label}>{tr.lessonPlanDuration} *</Text>
+              <TextInput style={styles.input} value={duracao} onChangeText={setDuracao} placeholder={tr.lessonPlanDurationPlaceholder} placeholderTextColor={Colors.textMuted} keyboardType="numeric" />
             </View>
           </View>
 
           {/* Secção 2 — Objectivos */}
           <View style={styles.sectionHeader}>
             <View style={styles.sectionNum}><Text style={styles.sectionNumText}>2</Text></View>
-            <Text style={styles.sectionTitle}>Objectivos da Aula</Text>
+            <Text style={styles.sectionTitle}>{tr.lessonPlanSectionObjectives}</Text>
           </View>
 
           <View style={styles.inputGroup}>
-            <Text style={styles.label}>Sumário *</Text>
-            <TextInput style={[styles.input, styles.textArea]} value={sumario} onChangeText={setSumario} multiline placeholder="Resumo breve do que vai ser ensinado..." placeholderTextColor={Colors.textMuted} />
+            <Text style={styles.label}>{tr.lessonPlanSummary} *</Text>
+            <TextInput style={[styles.input, styles.textArea]} value={sumario} onChangeText={setSumario} multiline placeholder={tr.lessonPlanSummaryPlaceholder} placeholderTextColor={Colors.textMuted} />
           </View>
           <View style={styles.inputGroup}>
-            <Text style={styles.label}>Objectivo Geral</Text>
-            <TextInput style={[styles.input, styles.textArea]} value={objetivoGeral} onChangeText={setObjetivoGeral} multiline placeholder="Objectivo geral da aula..." placeholderTextColor={Colors.textMuted} />
+            <Text style={styles.label}>{tr.lessonPlanGeneralObjective}</Text>
+            <TextInput style={[styles.input, styles.textArea]} value={objetivoGeral} onChangeText={setObjetivoGeral} multiline placeholder={tr.lessonPlanGeneralObjectivePlaceholder} placeholderTextColor={Colors.textMuted} />
           </View>
-          {renderDynamicList("Objectivos Específicos", objetivosEspecificos, setObjetivosEspecificos, "Objectivo")}
+          {renderDynamicList(tr.lessonPlanSpecificObjectives, objetivosEspecificos, setObjetivosEspecificos, tr.lessonPlanSpecificObjectivePlaceholder)}
 
           {/* Secção 3 — Conteúdos e Métodos */}
           <View style={styles.sectionHeader}>
             <View style={styles.sectionNum}><Text style={styles.sectionNumText}>3</Text></View>
-            <Text style={styles.sectionTitle}>Métodos e Meios</Text>
+            <Text style={styles.sectionTitle}>{tr.lessonPlanSectionMethods}</Text>
           </View>
 
           <View style={styles.inputGroup}>
-            <Text style={styles.label}>Métodos de Ensino</Text>
-            <TextInput style={[styles.input, styles.textArea]} value={metodos} onChangeText={setMetodos} multiline placeholder="Ex: Expositivo, elaboração conjunta, trabalho em grupo..." placeholderTextColor={Colors.textMuted} />
+            <Text style={styles.label}>{tr.lessonPlanTeachingMethods}</Text>
+            <TextInput style={[styles.input, styles.textArea]} value={metodos} onChangeText={setMetodos} multiline placeholder={tr.lessonPlanTeachingMethodsPlaceholder} placeholderTextColor={Colors.textMuted} />
           </View>
           <View style={styles.inputGroup}>
-            <Text style={styles.label}>Meios de Ensino</Text>
-            <TextInput style={[styles.input, styles.textArea]} value={meios} onChangeText={setMeios} multiline placeholder="Ex: Quadro, giz, livro didático, fichas..." placeholderTextColor={Colors.textMuted} />
+            <Text style={styles.label}>{tr.lessonPlanTeachingResources}</Text>
+            <TextInput style={[styles.input, styles.textArea]} value={meios} onChangeText={setMeios} multiline placeholder={tr.lessonPlanTeachingResourcesPlaceholder} placeholderTextColor={Colors.textMuted} />
           </View>
 
           {/* Secção 4 — Desenvolvimento */}
           <View style={styles.sectionHeader}>
             <View style={styles.sectionNum}><Text style={styles.sectionNumText}>4</Text></View>
-            <Text style={styles.sectionTitle}>Desenvolvimento da Aula</Text>
+            <Text style={styles.sectionTitle}>{tr.lessonPlanSectionDevelopment}</Text>
           </View>
 
           <View style={styles.inputGroup}>
-            <Text style={styles.label}>Sequência de Actividades</Text>
+            <Text style={styles.label}>{tr.lessonPlanActivitySequence}</Text>
             {atividades.map((at, i) => (
               <View key={i} style={styles.atividadeInputRow}>
                 <View style={styles.atividadeInputs}>
@@ -239,14 +241,14 @@ export default function CreatePlanScreen() {
                     style={[styles.input, { flex: 1 }]}
                     value={at.descricao}
                     onChangeText={(v) => updateAtividade(i, "descricao", v)}
-                    placeholder={`Actividade ${i + 1} (ex: Motivação / Introdução)`}
+                    placeholder={tr.lessonPlanActivityExamplePlaceholder.replace("{n}", String(i + 1))}
                     placeholderTextColor={Colors.textMuted}
                   />
                   <TextInput
                     style={[styles.input, { width: 80 }]}
                     value={at.tempo}
                     onChangeText={(v) => updateAtividade(i, "tempo", v)}
-                    placeholder="Tempo"
+                    placeholder={tr.lessonPlanTimePlaceholder}
                     placeholderTextColor={Colors.textMuted}
                   />
                 </View>
@@ -259,19 +261,19 @@ export default function CreatePlanScreen() {
             ))}
             <Pressable onPress={addAtividade} style={styles.addItemBtn}>
               <Icon name="add" size={16} color={Colors.primary} />
-              <Text style={styles.addItemText}>Adicionar actividade</Text>
+              <Text style={styles.addItemText}>{tr.lessonPlanAddActivity}</Text>
             </Pressable>
           </View>
 
           {/* Secção 5 — Avaliação */}
           <View style={styles.sectionHeader}>
             <View style={styles.sectionNum}><Text style={styles.sectionNumText}>5</Text></View>
-            <Text style={styles.sectionTitle}>Avaliação e TPC</Text>
+            <Text style={styles.sectionTitle}>{tr.lessonPlanSectionAssessmentHomework}</Text>
           </View>
 
-          {renderDynamicList("Perguntas de Controlo", perguntasControlo, setPerguntasControlo, "Pergunta")}
-          {renderDynamicList("Actividades Práticas (exercícios de sala)", tarefasPraticas, setTarefasPraticas, "Actividade")}
-          {renderDynamicList("Tarefa de Casa (TPC)", perguntasTarefa, setPerguntasTarefa, "TPC")}
+          {renderDynamicList(tr.lessonPlanControlQuestions, perguntasControlo, setPerguntasControlo, tr.lessonPlanQuestionPlaceholder)}
+          {renderDynamicList(tr.lessonPlanPracticalActivities, tarefasPraticas, setTarefasPraticas, tr.lessonPlanActivityPlaceholder)}
+          {renderDynamicList(tr.lessonPlanHomework, perguntasTarefa, setPerguntasTarefa, tr.lessonPlanHomeworkQuestionPlaceholder)}
 
           <Pressable
             onPress={handleSave}
@@ -283,7 +285,7 @@ export default function CreatePlanScreen() {
             ]}
           >
             <Icon name="check" size={20} color="#fff" />
-            <Text style={styles.saveBtnText}>Guardar Plano</Text>
+            <Text style={styles.saveBtnText}>{tr.lessonPlanSave}</Text>
           </Pressable>
         </ScrollView>
       </KeyboardAvoidingView>

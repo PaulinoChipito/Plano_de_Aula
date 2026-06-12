@@ -54,6 +54,7 @@ export default function AssessmentsScreen() {
     await exportExcel(sheet.rows, `Mini_Pauta_${exportTarget.designacao}_${currentPeriodLabel}`, sheet.name, {
       merges: sheet.merges,
       colWidths: sheet.colWidths,
+      cellStyles: sheet.cellStyles,
     });
   };
 

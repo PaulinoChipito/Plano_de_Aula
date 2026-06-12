@@ -166,6 +166,8 @@ export default function AttendanceMarkScreen() {
   const pastRecords = allRecords
     .filter((r) => r.data !== today)
     .sort((a, b) => b.data.localeCompare(a.data));
+  const absenceWord = (count: number) =>
+    count === 1 ? tr.attendanceAbsenceSingular : tr.attendanceAbsencePlural;
 
   const renderStudent = ({ item, index }: { item: Student; index: number }) => {
     const isPresent = attendance.get(item.id) ?? true;
@@ -198,8 +200,8 @@ export default function AttendanceMarkScreen() {
           )}
           {stats.total > 0 && (
             <Text style={styles.studentStats}>
-              {stats.pct}% freq. · {stats.faltas} falta{stats.faltas !== 1 ? "s" : ""}
-              {faltasLimite !== null ? ` / lim. ${faltasLimite}` : ""}
+              {stats.pct}% {tr.attendanceFrequencyShort} · {stats.faltas} {absenceWord(stats.faltas)}
+              {faltasLimite !== null ? ` / ${tr.attendanceLimitShort} ${faltasLimite}` : ""}
             </Text>
           )}
           {stats.reprovado && (
@@ -284,7 +286,7 @@ export default function AttendanceMarkScreen() {
                   {unjustRegistos.length > 0 && (
                     <>
                       <Text style={styles.historyGroupTitle}>
-                        Faltas ({unjustRegistos.length})
+                        {tr.attendanceAbsences} ({unjustRegistos.length})
                       </Text>
                       {unjustRegistos.map((r) => (
                         <View key={r.alunoId} style={styles.historyRow}>
@@ -297,7 +299,7 @@ export default function AttendanceMarkScreen() {
                   {justRegistos.length > 0 && (
                     <>
                       <Text style={[styles.historyGroupTitle, { color: "#F59E0B", marginTop: unjustRegistos.length > 0 ? 8 : 0 }]}>
-                        Faltas Justificadas ({justRegistos.length})
+                        {tr.attendanceJustifiedAbsences} ({justRegistos.length})
                       </Text>
                       {justRegistos.map((r) => (
                         <View key={r.alunoId} style={styles.historyRow}>
@@ -314,7 +316,7 @@ export default function AttendanceMarkScreen() {
             {presentRegistos.length > 0 && (
               <View style={styles.historyGroup}>
                 <Text style={styles.historyGroupTitle}>
-                  <Icon name="checkmark" size={12} color={Colors.success} /> Presentes ({presentRegistos.length})
+                  <Icon name="checkmark" size={12} color={Colors.success} /> {tr.attendancePresentPlural} ({presentRegistos.length})
                 </Text>
                 {presentRegistos.map((r) => (
                   <View key={r.alunoId} style={styles.historyRow}>
@@ -350,7 +352,7 @@ export default function AttendanceMarkScreen() {
           {faltasLimite !== null && (
             <View style={styles.limitBadgeHeader}>
               <Icon name="warning" size={10} color="#FBBF24" />
-              <Text style={styles.limitBadgeHeaderText}>Lim. {faltasLimite} faltas</Text>
+              <Text style={styles.limitBadgeHeaderText}>{tr.attendanceLimitShort} {faltasLimite} {tr.attendanceAbsencePlural}</Text>
             </View>
           )}
         </View>
@@ -396,7 +398,7 @@ export default function AttendanceMarkScreen() {
           <View style={styles.limitModalContent}>
             <Text style={styles.limitModalTitle}>{tr.attendanceLimitTitle}</Text>
             <Text style={styles.limitModalSubtitle}>
-              Alunos que ultrapassem este número de faltas serão marcados como reprovados por faltas.
+              {tr.attendanceLimitDescription}
             </Text>
             <TextInput
               style={styles.limitModalInput}
@@ -419,7 +421,7 @@ export default function AttendanceMarkScreen() {
                 style={({ pressed }) => [styles.limitRemoveBtn, { opacity: pressed ? 0.7 : 1 }]}
               >
                 <Icon name="trash-2" size={14} color={Colors.error} />
-                <Text style={styles.limitRemoveBtnText}>Remover limite</Text>
+                <Text style={styles.limitRemoveBtnText}>{tr.attendanceRemoveLimit}</Text>
               </Pressable>
             )}
             <View style={styles.limitModalBtnRow}>
@@ -447,12 +449,12 @@ export default function AttendanceMarkScreen() {
           <View style={styles.statsBar}>
             <View style={styles.statItem}>
               <View style={[styles.statDot, { backgroundColor: Colors.success }]} />
-              <Text style={styles.statItemText}>Presentes: {presentCount}</Text>
+              <Text style={styles.statItemText}>{tr.attendancePresentPlural}: {presentCount}</Text>
             </View>
             <Text style={styles.statSep}>·</Text>
             <View style={styles.statItem}>
               <View style={[styles.statDot, { backgroundColor: Colors.error }]} />
-              <Text style={styles.statItemText}>Ausentes: {absentCount}</Text>
+              <Text style={styles.statItemText}>{tr.attendanceAbsentPlural}: {absentCount}</Text>
             </View>
             <Text style={styles.statSep}>·</Text>
             <Text style={styles.statDate}>{today}</Text>
@@ -477,7 +479,7 @@ export default function AttendanceMarkScreen() {
               <Icon name="time" size={44} color={Colors.textMuted} />
               <Text style={styles.emptyHistoryTitle}>{tr.noHistory}</Text>
               <Text style={styles.emptyHistorySubtitle}>
-                As chamadas registadas aparecerão aqui por data
+                {tr.attendanceHistoryEmptySubtitle}
               </Text>
             </View>
           }
@@ -485,7 +487,7 @@ export default function AttendanceMarkScreen() {
             pastRecords.length > 0 ? (
               <View style={styles.historyHeader2}>
                 <Text style={styles.historyHeader2Text}>
-                  {pastRecords.length} chamada{pastRecords.length !== 1 ? "s" : ""} registada{pastRecords.length !== 1 ? "s" : ""}
+                  {pastRecords.length} {pastRecords.length === 1 ? tr.attendanceCallSingular : tr.attendanceCallPlural} {pastRecords.length === 1 ? tr.attendanceRegisteredSingular : tr.attendanceRegisteredPlural}
                 </Text>
               </View>
             ) : null

@@ -93,6 +93,13 @@ export interface ExcelSheetSpec {
   rows: (string | number | null)[][];
   merges?: { s: { r: number; c: number }; e: { r: number; c: number } }[];
   colWidths?: number[];
+  cellStyles?: {
+    r: number;
+    c: number;
+    fontColor?: string;
+    bold?: boolean;
+    numFmt?: string;
+  }[];
 }
 
 export async function exportExcelMultiSheet(
@@ -108,6 +115,20 @@ export async function exportExcelMultiSheet(
       const ws = XLSX.utils.aoa_to_sheet(s.rows);
       if (s.merges && s.merges.length) (ws as any)["!merges"] = s.merges;
       if (s.colWidths) (ws as any)["!cols"] = s.colWidths.map((w) => ({ wch: w }));
+      for (const style of s.cellStyles ?? []) {
+        const ref = XLSX.utils.encode_cell({ r: style.r, c: style.c });
+        const cell = (ws as any)[ref];
+        if (!cell) continue;
+        cell.s = {
+          ...(cell.s ?? {}),
+          font: {
+            ...((cell.s as any)?.font ?? {}),
+            ...(style.fontColor ? { color: { rgb: style.fontColor } } : {}),
+            ...(style.bold !== undefined ? { bold: style.bold } : {}),
+          },
+        };
+        if (style.numFmt) cell.z = style.numFmt;
+      }
       XLSX.utils.book_append_sheet(wb, ws, s.name.slice(0, 31) || "Folha1");
     }
 
@@ -151,10 +172,10 @@ export async function exportExcel(
   rows: (string | number | null)[][],
   baseName: string,
   sheetName: string = "Folha1",
-  opts?: { merges?: ExcelSheetSpec["merges"]; colWidths?: number[]; folder?: EcoFolder },
+  opts?: { merges?: ExcelSheetSpec["merges"]; colWidths?: number[]; cellStyles?: ExcelSheetSpec["cellStyles"]; folder?: EcoFolder },
 ): Promise<void> {
   await exportExcelMultiSheet(
-    [{ name: sheetName, rows, merges: opts?.merges, colWidths: opts?.colWidths }],
+    [{ name: sheetName, rows, merges: opts?.merges, colWidths: opts?.colWidths, cellStyles: opts?.cellStyles }],
     baseName,
     opts?.folder,
   );

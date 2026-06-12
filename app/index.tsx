@@ -147,6 +147,17 @@ export default function Dashboard() {
     { ...GRID_ITEMS[5], label: tr.homeStatistics },
   ];
 
+  const getAttentionTitle = (count: number) =>
+    `${count} ${count === 1 ? tr.homeNeedsAttentionSingular : tr.homeNeedsAttentionPlural}`;
+
+  const getAllAttentionTitle = (count: number) =>
+    `${count} ${count === 1 ? tr.homeAllNeedAttentionSingular : tr.homeAllNeedAttentionPlural}`;
+
+  const getAlertReason = (motivo: AlertStudent["motivo"], withAction = false) => {
+    if (motivo === "reprovado_faltas") return tr.homeFailedAbsences;
+    return withAction ? tr.homeNoGradesTap : tr.homeNoGrades;
+  };
+
   const cardWidth = (screenWidth - CARD_PADDING * 2 - CARD_GAP) / 2;
   const iconContainerSize = Math.min(64, Math.max(44, Math.round(cardWidth * 0.36)));
   const iconSize = Math.min(28, Math.max(20, Math.round(iconContainerSize * 0.44)));
@@ -310,7 +321,7 @@ export default function Dashboard() {
               <Icon name="school" size={22} color="rgba(255,255,255,0.9)" />
               <View style={styles.headerTitleBlock}>
                 <Text style={styles.headerTitle}>EcoEducacional</Text>
-                <Text style={styles.headerSubtitle}>Gestão Pedagógica</Text>
+                <Text style={styles.headerSubtitle}>{tr.homeSubtitle}</Text>
               </View>
             </View>
             <Pressable
@@ -351,7 +362,7 @@ export default function Dashboard() {
           </ScrollView>
           <View style={styles.periodBadge}>
             <Icon name="time" size={11} color="rgba(255,255,255,0.45)" />
-            <Text style={styles.periodBadgeText}>{currentPeriodLabel} activo</Text>
+            <Text style={styles.periodBadgeText}>{currentPeriodLabel} {tr.homePeriodActive}</Text>
           </View>
         </View>
 
@@ -416,7 +427,7 @@ export default function Dashboard() {
                 <View style={styles.alertTickerInfo}>
                   <Text style={styles.alertTickerName} numberOfLines={1}>{a.nome}</Text>
                   <Text style={styles.alertTickerMeta} numberOfLines={1}>
-                    {a.turma} · {a.motivo === "reprovado_faltas" ? "Reprovado por faltas" : "Sem avaliações — toque para avaliar"}
+                    {a.turma} · {getAlertReason(a.motivo, true)}
                   </Text>
                 </View>
                 <Icon name="chevron-forward" size={14} color="rgba(255,255,255,0.4)" />
@@ -430,7 +441,7 @@ export default function Dashboard() {
                       <Icon name="warning" size={13} color="#FBBF24" />
                     </View>
                     <Text style={styles.alertBannerTitle}>
-                      {atencaoAlunos.length} aluno{atencaoAlunos.length !== 1 ? "s" : ""} precisam de atenção
+                      {getAttentionTitle(atencaoAlunos.length)}
                     </Text>
                   </View>
                   <Text style={styles.alertBannerPeriod}>{currentPeriodLabel}</Text>
@@ -447,7 +458,7 @@ export default function Dashboard() {
                     style={({ pressed }) => [styles.verTodosBtn, { opacity: pressed ? 0.75 : 1 }]}
                   >
                     <Icon name="users" size={13} color="#FBBF24" />
-                    <Text style={styles.verTodosText}>Ver todos ({atencaoAlunos.length})</Text>
+                    <Text style={styles.verTodosText}>{tr.homeSeeAll} ({atencaoAlunos.length})</Text>
                     <Icon name="chevron-forward" size={13} color="rgba(253,230,138,0.6)" />
                   </Pressable>
                 )}
@@ -462,7 +473,7 @@ export default function Dashboard() {
                 <View style={styles.allAlertsHandle} />
                 <View style={styles.allAlertsHeader}>
                   <Icon name="warning" size={16} color="#FBBF24" />
-                  <Text style={styles.allAlertsTitle}>{atencaoAlunos.length} alunos a precisar de atenção</Text>
+                  <Text style={styles.allAlertsTitle}>{getAllAttentionTitle(atencaoAlunos.length)}</Text>
                 </View>
                 <ScrollView showsVerticalScrollIndicator={false} style={{ maxHeight: 420 }}>
                   {atencaoAlunos.map((a) => (
@@ -481,7 +492,7 @@ export default function Dashboard() {
                       <View style={{ flex: 1 }}>
                         <Text style={styles.allAlertsRowName}>{a.nome}</Text>
                         <Text style={styles.allAlertsRowMeta}>
-                          {a.turma} · {a.motivo === "reprovado_faltas" ? "Reprovado por faltas" : "Sem avaliações"}
+                          {a.turma} · {getAlertReason(a.motivo)}
                         </Text>
                       </View>
                       <Icon name="chevron-forward" size={16} color={Colors.textMuted} />
@@ -489,7 +500,7 @@ export default function Dashboard() {
                   ))}
                 </ScrollView>
                 <Pressable onPress={() => setShowAllAlerts(false)} style={styles.allAlertsCancelBtn}>
-                  <Text style={styles.allAlertsCancelText}>Fechar</Text>
+                  <Text style={styles.allAlertsCancelText}>{tr.close}</Text>
                 </Pressable>
               </Pressable>
             </Pressable>
@@ -498,7 +509,7 @@ export default function Dashboard() {
           <View style={styles.footer}>
             <View style={styles.footerBadge}>
               <View style={styles.statusDot} />
-              <Text style={styles.footerText}>Sistema Activo · INIDE Angola</Text>
+              <Text style={styles.footerText}>{tr.homeSystemActive} · INIDE Angola</Text>
             </View>
           </View>
         </View>

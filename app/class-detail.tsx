@@ -20,6 +20,7 @@ import * as ImagePicker from "expo-image-picker";
 import * as Haptics from "expo-haptics";
 import Colors from "@/constants/colors";
 import { getClasses, saveClass, generateId, ClassGroup, Student } from "@/lib/storage";
+import { useLanguage } from "@/lib/i18n";
 
 function parseCSV(text: string): { nome: string; idade: string; telefone: string }[] {
   const lines = text.split(/\r?\n/).map((l) => l.trim()).filter((l) => l.length > 0);
@@ -42,6 +43,7 @@ export default function ClassDetailScreen() {
   const insets = useSafeAreaInsets();
   const topPadding = Platform.OS === "web" ? 67 : insets.top;
   const bottomPadding = Platform.OS === "web" ? 34 : insets.bottom;
+  const { tr } = useLanguage();
 
   const [classGroup, setClassGroup] = useState<ClassGroup | null>(null);
   const [showAddModal, setShowAddModal] = useState(false);
@@ -156,13 +158,13 @@ export default function ClassDetailScreen() {
       return;
     }
     if (Platform.OS === "web") {
-      if ((globalThis as any).confirm?.("Remover este aluno da turma?")) {
+      if ((globalThis as any).confirm?.(tr.removeStudentWebConfirm)) {
         doDeleteStudent(studentId);
       }
     } else {
-      Alert.alert("Remover Aluno", "Tem a certeza?", [
-        { text: "Cancelar", style: "cancel" },
-        { text: "Remover", style: "destructive", onPress: () => doDeleteStudent(studentId) },
+      Alert.alert(tr.removeStudentTitle, tr.removeStudentConfirm, [
+        { text: tr.cancel, style: "cancel" },
+        { text: tr.removeStudentAction, style: "destructive", onPress: () => doDeleteStudent(studentId) },
       ]);
     }
   };
@@ -188,7 +190,7 @@ export default function ClassDetailScreen() {
     setCsvPreview([]);
     setShowCsvModal(false);
     if (Platform.OS !== "web") Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
-    Alert.alert("Importação concluída", `${newStudents.length} aluno(s) adicionado(s) com sucesso.`);
+    Alert.alert(tr.importDoneTitle, `${newStudents.length} ${tr.importDoneMessage}`);
   };
 
   const renderStudent = ({ item, index }: { item: Student; index: number }) => (
@@ -209,7 +211,7 @@ export default function ClassDetailScreen() {
       )}
       <View style={styles.studentInfo}>
         <Text style={styles.studentName}>{item.nome}</Text>
-        {item.idade ? <Text style={styles.studentAge}>{item.idade} anos</Text> : null}
+        {item.idade ? <Text style={styles.studentAge}>{item.idade} {tr.studentAgeSuffix}</Text> : null}
       </View>
       <Icon name="chevron-forward" size={16} color={Colors.textMuted} />
     </Pressable>
@@ -218,7 +220,7 @@ export default function ClassDetailScreen() {
   if (!classGroup) {
     return (
       <View style={[styles.container, { paddingTop: topPadding + 60 }]}>
-        <Text style={{ textAlign: "center", color: Colors.textSecondary }}>Turma não encontrada</Text>
+        <Text style={{ textAlign: "center", color: Colors.textSecondary }}>{tr.classNotFound}</Text>
       </View>
     );
   }
@@ -264,14 +266,14 @@ export default function ClassDetailScreen() {
         ListEmptyComponent={
           <View style={styles.emptyContainer}>
             <Icon name="people-outline" size={48} color={Colors.textMuted} />
-            <Text style={styles.emptyTitle}>Sem alunos</Text>
-            <Text style={styles.emptySubtitle}>Adicione manualmente ou importe via CSV</Text>
+            <Text style={styles.emptyTitle}>{tr.noStudentsEmpty}</Text>
+            <Text style={styles.emptySubtitle}>{tr.emptyStudentsCta}</Text>
             <Pressable
               onPress={() => setShowCsvModal(true)}
               style={({ pressed }) => [styles.emptyImportBtn, { opacity: pressed ? 0.8 : 1 }]}
             >
               <Icon name="upload" size={16} color={Colors.primary} />
-              <Text style={styles.emptyImportBtnText}>Importar lista CSV</Text>
+              <Text style={styles.emptyImportBtnText}>{tr.importCsvList}</Text>
             </Pressable>
           </View>
         }
@@ -281,7 +283,7 @@ export default function ClassDetailScreen() {
       <Modal visible={showAddModal} transparent animationType="fade" onRequestClose={() => setShowAddModal(false)}>
         <Pressable style={styles.modalOverlay} onPress={() => setShowAddModal(false)}>
           <Pressable style={styles.modalContent} onPress={() => {}}>
-            <Text style={styles.modalTitle}>Novo Aluno</Text>
+            <Text style={styles.modalTitle}>{tr.newStudent}</Text>
 
             <Pressable onPress={pickPhoto} style={styles.photoPickerBtn}>
               {fotoUri ? (
@@ -289,21 +291,21 @@ export default function ClassDetailScreen() {
               ) : (
                 <View style={styles.photoPicker}>
                   <Icon name="camera" size={24} color={Colors.textMuted} />
-                  <Text style={styles.photoPickerLabel}>Foto</Text>
+                  <Text style={styles.photoPickerLabel}>{tr.photo}</Text>
                 </View>
               )}
             </Pressable>
 
-            <TextInput style={styles.modalInput} placeholder="Nome completo *" placeholderTextColor={Colors.textMuted} value={nome} onChangeText={setNome} autoCapitalize="words" />
-            <TextInput style={styles.modalInput} placeholder="Idade" placeholderTextColor={Colors.textMuted} value={idade} onChangeText={setIdade} keyboardType="numeric" />
-            <TextInput style={styles.modalInput} placeholder="Telefone do encarregado" placeholderTextColor={Colors.textMuted} value={telefone} onChangeText={setTelefone} keyboardType="phone-pad" />
+            <TextInput style={styles.modalInput} placeholder={tr.fullNameRequired} placeholderTextColor={Colors.textMuted} value={nome} onChangeText={setNome} autoCapitalize="words" />
+            <TextInput style={styles.modalInput} placeholder={tr.age} placeholderTextColor={Colors.textMuted} value={idade} onChangeText={setIdade} keyboardType="numeric" />
+            <TextInput style={styles.modalInput} placeholder={tr.guardianPhone} placeholderTextColor={Colors.textMuted} value={telefone} onChangeText={setTelefone} keyboardType="phone-pad" />
 
             <View style={styles.modalBtnRow}>
               <Pressable
                 onPress={() => setShowAddModal(false)}
                 style={({ pressed }) => [styles.modalCancelBtn, { opacity: pressed ? 0.8 : 1 }]}
               >
-                <Text style={styles.modalCancelBtnText}>Cancelar</Text>
+                <Text style={styles.modalCancelBtnText}>{tr.cancel}</Text>
               </Pressable>
               <Pressable
                 onPress={handleAddStudent}
@@ -311,7 +313,7 @@ export default function ClassDetailScreen() {
                 style={({ pressed }) => [styles.modalBtn, !nome.trim() && styles.modalBtnDisabled, { opacity: pressed ? 0.9 : 1 }]}
               >
                 <Icon name="user-plus" size={16} color="#fff" />
-                <Text style={styles.modalBtnText}>Adicionar</Text>
+                <Text style={styles.modalBtnText}>{tr.addStudent}</Text>
               </Pressable>
             </View>
           </Pressable>
@@ -324,8 +326,8 @@ export default function ClassDetailScreen() {
           <Pressable style={[styles.modalContent, styles.csvModal]} onPress={() => {}}>
             <View style={styles.csvHeader}>
               <View>
-                <Text style={styles.modalTitle}>Importar lista CSV</Text>
-                <Text style={styles.csvSubtitle}>Cole o conteúdo do ficheiro abaixo</Text>
+                <Text style={styles.modalTitle}>{tr.importCsvList}</Text>
+                <Text style={styles.csvSubtitle}>{tr.csvPasteBelow}</Text>
               </View>
               <Pressable onPress={() => setShowCsvModal(false)} style={styles.csvCloseBtn}>
                 <Icon name="x" size={20} color={Colors.textSecondary} />
@@ -335,7 +337,7 @@ export default function ClassDetailScreen() {
             <View style={styles.csvFormatBox}>
               <Icon name="info" size={13} color={Colors.primary} />
               <Text style={styles.csvFormatText}>
-                Formato: <Text style={styles.csvFormatCode}>Nome, Idade, Telefone</Text>{"\n"}(uma linha por aluno, vírgula ou ponto e vírgula)
+                {tr.csvFormatLabel}: <Text style={styles.csvFormatCode}>{tr.csvFormatExample}</Text>{"\n"}({tr.csvFormatHint})
               </Text>
             </View>
 
@@ -355,7 +357,7 @@ export default function ClassDetailScreen() {
             {csvPreview.length > 0 && (
               <View style={styles.csvPreview}>
                 <Text style={styles.csvPreviewTitle}>
-                  Pré-visualização: {csvPreview.length} aluno(s)
+                  {tr.csvPreview}: {csvPreview.length} {tr.studentsCount}
                 </Text>
                 <ScrollView style={{ maxHeight: 140 }} nestedScrollEnabled>
                   {csvPreview.map((row, i) => (
@@ -364,7 +366,7 @@ export default function ClassDetailScreen() {
                         <Text style={styles.csvPreviewNumText}>{i + 1}</Text>
                       </View>
                       <Text style={styles.csvPreviewName} numberOfLines={1}>{row.nome}</Text>
-                      {row.idade ? <Text style={styles.csvPreviewMeta}>{row.idade}a</Text> : null}
+                      {row.idade ? <Text style={styles.csvPreviewMeta}>{row.idade} {tr.studentAgeSuffix}</Text> : null}
                     </View>
                   ))}
                 </ScrollView>
@@ -376,7 +378,7 @@ export default function ClassDetailScreen() {
                 onPress={() => { setShowCsvModal(false); setCsvText(""); setCsvPreview([]); }}
                 style={({ pressed }) => [styles.modalCancelBtn, { opacity: pressed ? 0.8 : 1 }]}
               >
-                <Text style={styles.modalCancelBtnText}>Cancelar</Text>
+                <Text style={styles.modalCancelBtnText}>{tr.cancel}</Text>
               </Pressable>
               <Pressable
                 onPress={handleImportCsv}
@@ -385,7 +387,7 @@ export default function ClassDetailScreen() {
               >
                 <Icon name="upload" size={16} color="#fff" />
                 <Text style={styles.modalBtnText}>
-                  Importar {csvPreview.length > 0 ? `(${csvPreview.length})` : ""}
+                  {tr.importAction} {csvPreview.length > 0 ? `(${csvPreview.length})` : ""}
                 </Text>
               </Pressable>
             </View>
@@ -400,7 +402,7 @@ export default function ClassDetailScreen() {
             {showStudentModal && (
               <>
                 <View style={styles.editModalHeader}>
-                  <Text style={styles.modalTitle}>Editar Aluno</Text>
+                  <Text style={styles.modalTitle}>{tr.editStudent}</Text>
                   <Pressable
                     onPress={() => {
                       const sid = showStudentModal!.id;
@@ -419,14 +421,14 @@ export default function ClassDetailScreen() {
                   ) : (
                     <View style={styles.photoPicker}>
                       <Icon name="camera" size={24} color={Colors.textMuted} />
-                      <Text style={styles.photoPickerLabel}>Adicionar foto</Text>
+                      <Text style={styles.photoPickerLabel}>{tr.addPhoto}</Text>
                     </View>
                   )}
                 </Pressable>
 
                 <TextInput
                   style={styles.modalInput}
-                  placeholder="Nome completo *"
+                  placeholder={tr.fullNameRequired}
                   placeholderTextColor={Colors.textMuted}
                   value={editNome}
                   onChangeText={setEditNome}
@@ -434,7 +436,7 @@ export default function ClassDetailScreen() {
                 />
                 <TextInput
                   style={styles.modalInput}
-                  placeholder="Idade"
+                  placeholder={tr.age}
                   placeholderTextColor={Colors.textMuted}
                   value={editIdade}
                   onChangeText={setEditIdade}
@@ -442,7 +444,7 @@ export default function ClassDetailScreen() {
                 />
                 <TextInput
                   style={styles.modalInput}
-                  placeholder="Telefone do encarregado"
+                  placeholder={tr.guardianPhone}
                   placeholderTextColor={Colors.textMuted}
                   value={editTelefone}
                   onChangeText={setEditTelefone}
@@ -454,7 +456,7 @@ export default function ClassDetailScreen() {
                     onPress={() => setShowStudentModal(null)}
                     style={({ pressed }) => [styles.modalCancelBtn, { opacity: pressed ? 0.8 : 1 }]}
                   >
-                    <Text style={styles.modalCancelBtnText}>Cancelar</Text>
+                    <Text style={styles.modalCancelBtnText}>{tr.cancel}</Text>
                   </Pressable>
                   <Pressable
                     onPress={handleUpdateStudent}
@@ -462,7 +464,7 @@ export default function ClassDetailScreen() {
                     style={({ pressed }) => [styles.modalBtn, !editNome.trim() && styles.modalBtnDisabled, { opacity: pressed ? 0.9 : 1 }]}
                   >
                     <Icon name="check" size={16} color="#fff" />
-                    <Text style={styles.modalBtnText}>Guardar</Text>
+                    <Text style={styles.modalBtnText}>{tr.save}</Text>
                   </Pressable>
                 </View>
               </>

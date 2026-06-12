@@ -25,6 +25,7 @@ import {
   LessonPlan,
   TeacherProfile,
 } from "@/lib/storage";
+import { useLanguage } from "@/lib/i18n";
 
 export default function ViewPlanScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
@@ -35,6 +36,8 @@ export default function ViewPlanScreen() {
   const [editing, setEditing] = useState(false);
   const [generating, setGenerating] = useState(false);
   const [profile, setProfile] = useState<TeacherProfile>({ nome: "", instituicao: "", disciplina: "" });
+  const { lang, tr } = useLanguage();
+  const dateLocale = ({ pt: "pt-PT", en: "en-GB", fr: "fr-FR" } as const)[lang] ?? "pt-PT";
 
   const [editClasse, setEditClasse] = useState("");
   const [editDisciplina, setEditDisciplina] = useState("");

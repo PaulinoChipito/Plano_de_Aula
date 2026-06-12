@@ -8,17 +8,25 @@ import React, {
 } from "react";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { getTeacherProfile } from "@/lib/storage";
+import { Language, translations, useLanguage } from "@/lib/i18n";
 
 const PERIOD_KEY = "current_period_v1";
 
-export function getPeriodLabels(nivelEnsino: string): string[] {
-  if (nivelEnsino === "Universidade") return ["I Sem", "II Sem"];
-  return ["I Tri", "II Tri", "III Tri", "IV Tri"];
+export function getPeriodLabels(nivelEnsino: string, lang: Language = "pt"): string[] {
+  const tr = translations[lang] ?? translations.pt;
+  if (nivelEnsino === "Universidade") {
+    return [tr.periodFirstSemester, tr.periodSecondSemester];
+  }
+  return [
+    tr.periodFirstTrimester,
+    tr.periodSecondTrimester,
+    tr.periodThirdTrimester,
+  ];
 }
 
 export function getPeriodKeys(nivelEnsino: string): string[] {
   if (nivelEnsino === "Universidade") return ["I", "II"];
-  return ["I", "II", "III", "IV"];
+  return ["I", "II", "III"];
 }
 
 interface PeriodContextType {
@@ -34,16 +42,17 @@ interface PeriodContextType {
 const PeriodContext = createContext<PeriodContextType>({
   currentPeriod: "I",
   setPeriod: () => {},
-  periodLabels: ["I Tri", "II Tri", "III Tri", "IV Tri"],
-  periodKeys: ["I", "II", "III", "IV"],
+  periodLabels: ["I Trimestre", "II Trimestre", "III Trimestre"],
+  periodKeys: ["I", "II", "III"],
   isHigherEd: false,
-  currentPeriodLabel: "I Tri",
+  currentPeriodLabel: "I Trimestre",
   refreshProfile: async () => {},
 });
 
 export function PeriodProvider({ children }: { children: ReactNode }) {
   const [currentPeriod, setCurrentPeriodState] = useState("I");
   const [nivelEnsino, setNivelEnsino] = useState("");
+  const { lang } = useLanguage();
 
   const refreshProfile = useCallback(async () => {
     const profile = await getTeacherProfile();
@@ -70,7 +79,7 @@ export function PeriodProvider({ children }: { children: ReactNode }) {
   }, []);
 
   const isHigherEd = nivelEnsino === "Universidade";
-  const periodLabels = getPeriodLabels(nivelEnsino);
+  const periodLabels = getPeriodLabels(nivelEnsino, lang);
   const periodKeys = getPeriodKeys(nivelEnsino);
   const currentIdx = periodKeys.indexOf(currentPeriod);
   const currentPeriodLabel =
