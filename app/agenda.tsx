@@ -20,12 +20,13 @@ import { getEvents, saveEvent, deleteEvent, generateId, AgendaEvent } from "@/li
 import { usePeriod } from "@/lib/periodContext";
 import { useYear } from "@/lib/yearContext";
 import HorarioSemanal from "@/components/HorarioSemanal";
+import { useLanguage } from "@/lib/i18n";
 
-const EVENT_TYPES = [
-  { value: "aula" as const, label: "Aula", icon: "book-open", color: Colors.primary },
-  { value: "prova" as const, label: "Prova", icon: "file-text", color: Colors.error },
-  { value: "reuniao" as const, label: "Reuniao", icon: "users", color: "#6366F1" },
-  { value: "lembrete" as const, label: "Lembrete", icon: "bell", color: Colors.accent },
+const EVENT_TYPE_CONFIGS = [
+  { value: "aula" as const, icon: "book-open", color: Colors.primary },
+  { value: "prova" as const, icon: "file-text", color: Colors.error },
+  { value: "reuniao" as const, icon: "users", color: "#6366F1" },
+  { value: "lembrete" as const, icon: "bell", color: Colors.accent },
 ];
 
 type Tab = "agenda" | "horario";
@@ -46,6 +47,14 @@ export default function AgendaScreen() {
   const { currentPeriod, currentPeriodLabel } = usePeriod();
   const { currentYear, years } = useYear();
   const defaultYear = years[0] ?? "";
+  const { lang, tr } = useLanguage();
+
+  const EVENT_TYPES = [
+    { ...EVENT_TYPE_CONFIGS[0], label: tr.eventTypeAula },
+    { ...EVENT_TYPE_CONFIGS[1], label: tr.eventTypeProva },
+    { ...EVENT_TYPE_CONFIGS[2], label: tr.eventTypeReuniao },
+    { ...EVENT_TYPE_CONFIGS[3], label: tr.eventTypeLembrete },
+  ];
 
   useFocusEffect(
     useCallback(() => {
@@ -82,10 +91,10 @@ export default function AgendaScreen() {
   };
 
   const handleDelete = (id: string) => {
-    Alert.alert("Eliminar Evento", "Tem a certeza?", [
-      { text: "Cancelar", style: "cancel" },
+    Alert.alert(tr.deleteEvent, tr.deleteEventMsg, [
+      { text: tr.cancel, style: "cancel" },
       {
-        text: "Eliminar",
+        text: tr.delete,
         style: "destructive",
         onPress: async () => {
           await deleteEvent(id);
@@ -109,15 +118,18 @@ export default function AgendaScreen() {
     }
   });
 
+  const localeMap: Record<string, string> = { pt: "pt-PT", en: "en-GB", fr: "fr-FR" };
+  const dateLocale = localeMap[lang] ?? "pt-PT";
+
   const formatDate = (dateStr: string) => {
     const d = new Date(dateStr + "T00:00:00");
     const today = new Date();
     today.setHours(0, 0, 0, 0);
     const tomorrow = new Date(today);
     tomorrow.setDate(tomorrow.getDate() + 1);
-    if (d.getTime() === today.getTime()) return "Hoje";
-    if (d.getTime() === tomorrow.getTime()) return "Amanha";
-    return d.toLocaleDateString("pt-PT", { weekday: "long", day: "numeric", month: "short" });
+    if (d.getTime() === today.getTime()) return tr.todayLabel;
+    if (d.getTime() === tomorrow.getTime()) return tr.tomorrowLabel;
+    return d.toLocaleDateString(dateLocale, { weekday: "long", day: "numeric", month: "short" });
   };
 
   return (
@@ -136,7 +148,7 @@ export default function AgendaScreen() {
         </Pressable>
         <View style={styles.headerCenter}>
           <Text style={styles.headerTitle}>
-            {activeTab === "agenda" ? "Agenda" : "Horário"}
+            {activeTab === "agenda" ? tr.agendaTitle : tr.horarioTitle}
           </Text>
         </View>
         {activeTab === "agenda" ? (
@@ -160,7 +172,7 @@ export default function AgendaScreen() {
             color={activeTab === "agenda" ? Colors.primary : Colors.textMuted}
           />
           <Text style={[styles.tabBtnText, activeTab === "agenda" && styles.tabBtnTextActive]}>
-            Agenda
+            {tr.agendaTitle}
           </Text>
         </Pressable>
         <Pressable
@@ -173,7 +185,7 @@ export default function AgendaScreen() {
             color={activeTab === "horario" ? Colors.primary : Colors.textMuted}
           />
           <Text style={[styles.tabBtnText, activeTab === "horario" && styles.tabBtnTextActive]}>
-            Horário do Professor
+            {tr.horarioTitle}
           </Text>
         </Pressable>
       </View>
@@ -226,8 +238,8 @@ export default function AgendaScreen() {
           ListEmptyComponent={
             <View style={styles.emptyContainer}>
               <Icon name="calendar-outline" size={48} color={Colors.textMuted} />
-              <Text style={styles.emptyTitle}>Agenda vazia</Text>
-              <Text style={styles.emptySubtitle}>Adicione eventos ao seu calendario</Text>
+              <Text style={styles.emptyTitle}>{tr.noEvents}</Text>
+              <Text style={styles.emptySubtitle}>{tr.noEventsCta}</Text>
             </View>
           }
         />
@@ -240,11 +252,11 @@ export default function AgendaScreen() {
         <Modal visible={showModal} transparent animationType="fade" onRequestClose={() => setShowModal(false)}>
           <Pressable style={styles.modalOverlay} onPress={() => setShowModal(false)}>
             <Pressable style={styles.modalContent} onPress={() => {}}>
-              <Text style={styles.modalTitle}>Novo Evento</Text>
+              <Text style={styles.modalTitle}>{tr.addEvent}</Text>
 
               <TextInput
                 style={styles.modalInput}
-                placeholder="Titulo"
+                placeholder={tr.eventTitleLabel}
                 placeholderTextColor={Colors.textMuted}
                 value={titulo}
                 onChangeText={setTitulo}
@@ -271,7 +283,7 @@ export default function AgendaScreen() {
               <View style={styles.dateTimeRow}>
                 <TextInput
                   style={[styles.modalInput, { flex: 1 }]}
-                  placeholder="Data (AAAA-MM-DD)"
+                  placeholder={`${tr.eventDateLabel} (AAAA-MM-DD)`}
                   placeholderTextColor={Colors.textMuted}
                   value={data}
                   onChangeText={setData}
@@ -287,7 +299,7 @@ export default function AgendaScreen() {
 
               <TextInput
                 style={[styles.modalInput, { minHeight: 60, textAlignVertical: "top" }]}
-                placeholder="Descricao (opcional)"
+                placeholder={tr.eventDescLabel}
                 placeholderTextColor={Colors.textMuted}
                 value={descricao}
                 onChangeText={setDescricao}
@@ -295,7 +307,7 @@ export default function AgendaScreen() {
               />
 
               <Pressable onPress={handleCreate} style={({ pressed }) => [styles.modalBtn, { opacity: pressed ? 0.9 : 1 }]}>
-                <Text style={styles.modalBtnText}>Criar Evento</Text>
+                <Text style={styles.modalBtnText}>{tr.createEvent}</Text>
               </Pressable>
             </Pressable>
           </Pressable>

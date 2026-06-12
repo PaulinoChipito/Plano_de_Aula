@@ -27,15 +27,14 @@ import {
 } from "@/lib/storage";
 import { usePeriod } from "@/lib/periodContext";
 import { useYear } from "@/lib/yearContext";
+import { useLanguage } from "@/lib/i18n";
 
 type Tab = "hoje" | "historico";
 
-function formatDateLabel(isoDate: string): string {
+function formatDateLabel(isoDate: string, locale = "pt-PT"): string {
   const d = new Date(isoDate);
   if (isNaN(d.getTime())) return isoDate;
-  const days = ["Domingo", "Segunda", "Terça", "Quarta", "Quinta", "Sexta", "Sábado"];
-  const months = ["Jan", "Fev", "Mar", "Abr", "Mai", "Jun", "Jul", "Ago", "Set", "Out", "Nov", "Dez"];
-  return `${days[d.getDay()]}, ${d.getDate()} ${months[d.getMonth()]} ${d.getFullYear()}`;
+  return d.toLocaleDateString(locale, { weekday: "long", day: "numeric", month: "short", year: "numeric" });
 }
 
 export default function AttendanceMarkScreen() {
@@ -57,6 +56,9 @@ export default function AttendanceMarkScreen() {
   const { currentPeriod, currentPeriodLabel } = usePeriod();
   const { currentYear, years } = useYear();
   const defaultYear = years[0] ?? "";
+  const { lang, tr } = useLanguage();
+  const localeMap: Record<string, string> = { pt: "pt-PT", en: "en-GB", fr: "fr-FR" };
+  const dateLocale = localeMap[lang] ?? "pt-PT";
 
   const load = useCallback(() => {
     Promise.all([getClasses(), getAttendance()]).then(([classes, records]) => {
@@ -191,7 +193,7 @@ export default function AttendanceMarkScreen() {
           </Text>
           {!isPresent && isJustificada && (
             <View style={styles.justificadaBadge}>
-              <Text style={styles.justificadaBadgeText}>Falta Justificada</Text>
+              <Text style={styles.justificadaBadgeText}>{tr.justifiedAbsence}</Text>
             </View>
           )}
           {stats.total > 0 && (
@@ -203,7 +205,7 @@ export default function AttendanceMarkScreen() {
           {stats.reprovado && (
             <View style={styles.reprovadoBadge}>
               <Icon name="warning" size={10} color="#fff" />
-              <Text style={styles.reprovadoBadgeText}>Reprovado por faltas</Text>
+              <Text style={styles.reprovadoBadgeText}>{tr.failedDueToAbsences}</Text>
             </View>
           )}
         </View>
@@ -235,7 +237,7 @@ export default function AttendanceMarkScreen() {
               <Icon name="calendar" size={14} color={Colors.primary} />
             </View>
             <View style={styles.historyDateInfo}>
-              <Text style={styles.historyDateLabel}>{formatDateLabel(record.data)}</Text>
+              <Text style={styles.historyDateLabel}>{formatDateLabel(record.data, dateLocale)}</Text>
               <Text style={styles.historyDateSub}>{record.data}</Text>
             </View>
           </View>
@@ -373,7 +375,7 @@ export default function AttendanceMarkScreen() {
         >
           <Icon name="checkmark-circle" size={15} color={activeTab === "hoje" ? Colors.primary : Colors.textMuted} />
           <Text style={[styles.tabText, activeTab === "hoje" && styles.tabTextActive]}>
-            Hoje
+            {tr.todayTab}
           </Text>
         </Pressable>
         <Pressable
@@ -382,7 +384,7 @@ export default function AttendanceMarkScreen() {
         >
           <Icon name="time" size={15} color={activeTab === "historico" ? Colors.primary : Colors.textMuted} />
           <Text style={[styles.tabText, activeTab === "historico" && styles.tabTextActive]}>
-            Histórico {pastRecords.length > 0 ? `(${pastRecords.length})` : ""}
+            {tr.historyTab}{pastRecords.length > 0 ? ` (${pastRecords.length})` : ""}
           </Text>
         </Pressable>
       </View>
@@ -392,7 +394,7 @@ export default function AttendanceMarkScreen() {
         <KeyboardAvoidingView behavior={Platform.OS === "ios" ? "padding" : undefined} style={styles.limitModalOverlay}>
           <Pressable style={StyleSheet.absoluteFillObject} onPress={() => setShowLimitModal(false)} />
           <View style={styles.limitModalContent}>
-            <Text style={styles.limitModalTitle}>Limite de Faltas</Text>
+            <Text style={styles.limitModalTitle}>{tr.attendanceLimitTitle}</Text>
             <Text style={styles.limitModalSubtitle}>
               Alunos que ultrapassem este número de faltas serão marcados como reprovados por faltas.
             </Text>
@@ -425,7 +427,7 @@ export default function AttendanceMarkScreen() {
                 onPress={() => setShowLimitModal(false)}
                 style={({ pressed }) => [styles.limitCancelBtn, { opacity: pressed ? 0.8 : 1 }]}
               >
-                <Text style={styles.limitCancelBtnText}>Cancelar</Text>
+                <Text style={styles.limitCancelBtnText}>{tr.cancel}</Text>
               </Pressable>
               <Pressable
                 onPress={handleSaveLimit}
@@ -433,7 +435,7 @@ export default function AttendanceMarkScreen() {
                 style={({ pressed }) => [styles.limitSaveBtn, !limitInput.trim() && styles.limitSaveBtnDisabled, { opacity: pressed ? 0.9 : 1 }]}
               >
                 <Icon name="check" size={16} color="#fff" />
-                <Text style={styles.limitSaveBtnText}>Guardar</Text>
+                <Text style={styles.limitSaveBtnText}>{tr.save}</Text>
               </Pressable>
             </View>
           </View>
@@ -473,7 +475,7 @@ export default function AttendanceMarkScreen() {
           ListEmptyComponent={
             <View style={styles.emptyHistory}>
               <Icon name="time" size={44} color={Colors.textMuted} />
-              <Text style={styles.emptyHistoryTitle}>Sem histórico</Text>
+              <Text style={styles.emptyHistoryTitle}>{tr.noHistory}</Text>
               <Text style={styles.emptyHistorySubtitle}>
                 As chamadas registadas aparecerão aqui por data
               </Text>

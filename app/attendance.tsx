@@ -31,7 +31,7 @@ export default function AttendanceScreen() {
   const { currentPeriod, currentPeriodLabel } = usePeriod();
   const { currentYear, years } = useYear();
   const defaultYear = years[0] ?? "";
-  const { lang } = useLanguage();
+  const { lang, tr } = useLanguage();
 
   useFocusEffect(
     useCallback(() => {
@@ -59,7 +59,7 @@ export default function AttendanceScreen() {
     if (!exportTarget) return;
     const [profile, header] = await Promise.all([getTeacherProfile(), getExportHeader()]);
     const html = attendanceMapHtml(exportTarget, attendance, profile, currentPeriodLabel, header, lang);
-    await exportPdfFromHtml(html, `Mapa_Presencas_${exportTarget.designacao}_${currentPeriodLabel}`);
+    await exportPdfFromHtml(html, `Mapa_Presencas_${exportTarget.designacao}_${currentPeriodLabel}`, "faltas");
   };
 
   const handleExportExcel = async () => {
@@ -69,6 +69,7 @@ export default function AttendanceScreen() {
     await exportExcel(sheet.rows, `Mapa_Presencas_${exportTarget.designacao}_${currentPeriodLabel}`, sheet.name, {
       merges: sheet.merges,
       colWidths: sheet.colWidths,
+      folder: "faltas",
     });
   };
 
@@ -84,12 +85,12 @@ export default function AttendanceScreen() {
         </View>
         <View style={styles.cardContent}>
           <Text style={styles.cardTitle}>{item.designacao}</Text>
-          <Text style={styles.cardSubtitle}>{item.disciplina} - {item.alunos.length} alunos</Text>
+          <Text style={styles.cardSubtitle}>{item.disciplina} - {item.alunos.length} {tr.studentsCount}</Text>
         </View>
         {stats && (
           <View style={styles.statBadge}>
             <Text style={styles.statText}>{stats.pct}%</Text>
-            <Text style={styles.statLabel}>{stats.totalSessions} aulas</Text>
+            <Text style={styles.statLabel}>{stats.totalSessions} {tr.lessonsCount}</Text>
           </View>
         )}
         <Pressable
@@ -97,7 +98,7 @@ export default function AttendanceScreen() {
             e.stopPropagation?.();
             const has = attendance.some((r) => r.turmaId === item.id);
             if (!has) {
-              Alert.alert("Sem registos", "Marque presenças antes de exportar o mapa.");
+              Alert.alert(tr.noRecordsExport, tr.noAttendanceExportMsg);
               return;
             }
             setExportTarget(item);
@@ -124,7 +125,7 @@ export default function AttendanceScreen() {
         <Pressable onPress={() => router.back()} style={({ pressed }) => [styles.backBtn, { opacity: pressed ? 0.6 : 1 }]}>
           <Icon name="chevron-back" size={24} color="#fff" />
         </Pressable>
-        <Text style={styles.headerTitle}>Controlo de Presenca</Text>
+        <Text style={styles.headerTitle}>{tr.attendanceTitle}</Text>
         <View style={{ width: 40 }} />
       </View>
 
@@ -137,15 +138,15 @@ export default function AttendanceScreen() {
         ListEmptyComponent={
           <View style={styles.emptyContainer}>
             <Icon name="account-check-outline" size={48} color={Colors.textMuted} />
-            <Text style={styles.emptyTitle}>Sem turmas</Text>
-            <Text style={styles.emptySubtitle}>Crie turmas para marcar presenca</Text>
+            <Text style={styles.emptyTitle}>{tr.noClassesYet}</Text>
+            <Text style={styles.emptySubtitle}>{tr.createClassFirst}</Text>
           </View>
         }
       />
 
       <ExportMenu
         visible={!!exportTarget}
-        title="Exportar mapa de presenças"
+        title={tr.exportMapaFaltas}
         subtitle={exportTarget ? `${exportTarget.designacao} · ${exportTarget.disciplina}` : undefined}
         onClose={() => setExportTarget(null)}
         onPdf={handleExportPdf}

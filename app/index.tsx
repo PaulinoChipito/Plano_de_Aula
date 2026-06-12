@@ -20,6 +20,7 @@ import { usePeriod } from "@/lib/periodContext";
 import { useYear } from "@/lib/yearContext";
 import { getClasses, getGrades, getAttendance } from "@/lib/storage";
 import Colors from "@/constants/colors";
+import { useLanguage } from "@/lib/i18n";
 
 interface AlertStudent {
   nome: string;
@@ -135,6 +136,16 @@ export default function Dashboard() {
   const { currentPeriod, setPeriod, periodLabels, periodKeys, currentPeriodLabel, refreshProfile } = usePeriod();
   const { currentYear, years } = useYear();
   const defaultYear = years[0] ?? "";
+  const { tr } = useLanguage();
+
+  const gridItems = [
+    { ...GRID_ITEMS[0], label: tr.homeLessonPlans },
+    { ...GRID_ITEMS[1], label: tr.homeClasses },
+    { ...GRID_ITEMS[2], label: tr.homeAssessments },
+    { ...GRID_ITEMS[3], label: tr.homeAgenda },
+    { ...GRID_ITEMS[4], label: tr.homeAttendance },
+    { ...GRID_ITEMS[5], label: tr.homeStatistics },
+  ];
 
   const cardWidth = (screenWidth - CARD_PADDING * 2 - CARD_GAP) / 2;
   const iconContainerSize = Math.min(64, Math.max(44, Math.round(cardWidth * 0.36)));
@@ -346,7 +357,7 @@ export default function Dashboard() {
 
         <View style={[styles.gridContainer, { padding: CARD_PADDING, paddingTop: 20 }]}>
           <View style={styles.grid}>
-            {GRID_ITEMS.map((item, index) => (
+            {gridItems.map((item, index) => (
               <Animated.View
                 key={index}
                 style={[

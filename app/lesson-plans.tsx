@@ -17,6 +17,7 @@ import Colors from "@/constants/colors";
 import { getLessonPlans, deleteLessonPlan, LessonPlan } from "@/lib/storage";
 import { usePeriod } from "@/lib/periodContext";
 import { useYear } from "@/lib/yearContext";
+import { useLanguage } from "@/lib/i18n";
 
 export default function LessonPlansScreen() {
   const insets = useSafeAreaInsets();
@@ -26,6 +27,7 @@ export default function LessonPlansScreen() {
   const { currentPeriod, currentPeriodLabel } = usePeriod();
   const { currentYear, years } = useYear();
   const defaultYear = years[0] ?? "";
+  const { tr } = useLanguage();
 
   useFocusEffect(
     useCallback(() => {
@@ -36,10 +38,10 @@ export default function LessonPlansScreen() {
   );
 
   const handleDelete = (id: string) => {
-    Alert.alert("Eliminar Plano", "Tem a certeza?", [
-      { text: "Cancelar", style: "cancel" },
+    Alert.alert(tr.deletePlan, tr.deletePlanConfirm, [
+      { text: tr.cancel, style: "cancel" },
       {
-        text: "Eliminar",
+        text: tr.delete,
         style: "destructive",
         onPress: async () => {
           await deleteLessonPlan(id);
@@ -113,7 +115,7 @@ export default function LessonPlansScreen() {
         >
           <Icon name="chevron-back" size={24} color="#fff" />
         </Pressable>
-        <Text style={styles.headerTitle}>Planos · {currentPeriodLabel}</Text>
+        <Text style={styles.headerTitle}>{tr.lessonPlansTitle} · {currentPeriodLabel}</Text>
         <Pressable
           onPress={() => {
             if (Platform.OS !== "web")
@@ -138,10 +140,8 @@ export default function LessonPlansScreen() {
         ListEmptyComponent={
           <View style={styles.emptyContainer}>
             <Icon name="file-text" size={48} color={Colors.textMuted} />
-            <Text style={styles.emptyTitle}>Sem planos de aula</Text>
-            <Text style={styles.emptySubtitle}>
-              Crie o primeiro plano do {currentPeriodLabel}
-            </Text>
+            <Text style={styles.emptyTitle}>{tr.noPlans}</Text>
+            <Text style={styles.emptySubtitle}>{tr.noPlansCta}</Text>
           </View>
         }
       />

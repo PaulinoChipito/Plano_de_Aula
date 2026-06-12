@@ -17,6 +17,7 @@ import { AuthGate } from "@/components/AuthGate";
 import { PeriodProvider } from "@/lib/periodContext";
 import { YearProvider } from "@/lib/yearContext";
 import { LanguageProvider } from "@/lib/LanguageProvider";
+import { ensureEcoFolders } from "@/lib/fileSystem";
 
 SplashScreen.preventAutoHideAsync();
 
@@ -27,6 +28,7 @@ function RootLayoutNav() {
         router.replace("/onboarding");
       }
     });
+    ensureEcoFolders().catch(() => {});
   }, []);
 
   return (

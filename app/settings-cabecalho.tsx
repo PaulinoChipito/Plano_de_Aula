@@ -29,6 +29,14 @@ export default function SettingsCabecalhoScreen() {
   const [logoBase64, setLogoBase64] = useState<string | null>(null);
   const [linhas, setLinhas] = useState<string[]>([""]);
   const [saved, setSaved] = useState(false);
+  const [cropAspect, setCropAspect] = useState<[number, number] | undefined>([4, 2]);
+
+  const CROP_OPTIONS: { labelKey: keyof typeof tr; value: [number, number] | undefined }[] = [
+    { labelKey: "cropFree", value: undefined },
+    { labelKey: "crop1x1", value: [1, 1] },
+    { labelKey: "crop2x1", value: [4, 2] },
+    { labelKey: "crop4x1", value: [4, 1] },
+  ];
 
   useEffect(() => {
     getExportHeader().then((h) => {
@@ -42,7 +50,7 @@ export default function SettingsCabecalhoScreen() {
       const result = await ImagePicker.launchImageLibraryAsync({
         mediaTypes: ["images"],
         allowsEditing: true,
-        aspect: [4, 2],
+        aspect: cropAspect,
         quality: 0.6,
         base64: true,
       });
@@ -126,6 +134,35 @@ export default function SettingsCabecalhoScreen() {
             <Text style={styles.sectionLabel}>{tr.headerLogo}</Text>
           </View>
           <Text style={styles.hint}>{tr.headerLogoHint}</Text>
+
+          {/* Crop aspect ratio selector */}
+          <View style={{ marginBottom: 4 }}>
+            <Text style={[styles.hint, { marginBottom: 6 }]}>{tr.cropAspectRatio}</Text>
+            <View style={{ flexDirection: "row", flexWrap: "wrap", gap: 6 }}>
+              {CROP_OPTIONS.map((opt) => {
+                const isSelected =
+                  cropAspect === undefined
+                    ? opt.value === undefined
+                    : opt.value !== undefined &&
+                      cropAspect[0] === opt.value[0] &&
+                      cropAspect[1] === opt.value[1];
+                return (
+                  <Pressable
+                    key={opt.labelKey}
+                    onPress={() => setCropAspect(opt.value)}
+                    style={[
+                      styles.cropChip,
+                      isSelected && styles.cropChipSelected,
+                    ]}
+                  >
+                    <Text style={[styles.cropChipText, isSelected && styles.cropChipTextSelected]}>
+                      {tr[opt.labelKey] as string}
+                    </Text>
+                  </Pressable>
+                );
+              })}
+            </View>
+          </View>
 
           {logoBase64 ? (
             <View style={styles.logoPreviewBox}>
@@ -258,6 +295,16 @@ const styles = StyleSheet.create({
     borderColor: "#10b98140", borderStyle: "dashed" as any, backgroundColor: "#10b98108",
   },
   addLogoBtnText: { fontFamily: "Inter_500Medium", fontSize: 14, color: "#10b981" },
+  cropChip: {
+    paddingHorizontal: 10, paddingVertical: 6, borderRadius: 8,
+    borderWidth: 1, borderColor: Colors.border,
+    backgroundColor: "rgba(255,255,255,0.05)",
+  },
+  cropChipSelected: {
+    borderColor: "#10b981", backgroundColor: "#10b98120",
+  },
+  cropChipText: { fontFamily: "Inter_400Regular", fontSize: 12, color: Colors.textSecondary },
+  cropChipTextSelected: { fontFamily: "Inter_600SemiBold", color: "#10b981" },
   linesList: { gap: 8 },
   lineRow: { flexDirection: "row", alignItems: "center", gap: 8 },
   lineInput: {

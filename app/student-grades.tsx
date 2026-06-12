@@ -30,6 +30,7 @@ import {
 import { getMacAverage, getNotaFinal, MAC_PESO, NPT_PESO } from "@/lib/gradeUtils";
 import { usePeriod } from "@/lib/periodContext";
 import { useYear } from "@/lib/yearContext";
+import { useLanguage } from "@/lib/i18n";
 
 export default function StudentGradesScreen() {
   const { turmaId, alunoId: autoAlunoId } = useLocalSearchParams<{ turmaId: string; alunoId?: string }>();
@@ -51,6 +52,7 @@ export default function StudentGradesScreen() {
   const { currentPeriod } = usePeriod();
   const { currentYear, years } = useYear();
   const defaultYear = years[0] ?? "";
+  const { lang, tr } = useLanguage();
 
   useEffect(() => {
     Promise.all([getClasses(), getGrades()]).then(([classes, allGrades]) => {
@@ -118,9 +120,9 @@ export default function StudentGradesScreen() {
     const nota = parseFloat(notaStr);
     if (isNaN(nota) || nota < 0 || nota > maxNota) {
       if (Platform.OS === "web") {
-        window.alert(`Nota inválida. Deve estar entre 0 e ${maxNota}.`);
+        window.alert(`${tr.gradeInvalid}. ${tr.gradeInvalidRange} ${maxNota}.`);
       } else {
-        Alert.alert("Nota inválida", `A nota deve estar entre 0 e ${maxNota}.`);
+        Alert.alert(tr.gradeInvalid, `${tr.gradeInvalidRange} ${maxNota}.`);
       }
       return;
     }
@@ -162,7 +164,11 @@ export default function StudentGradesScreen() {
     if (!data) return "—";
     const d = new Date(data);
     if (isNaN(d.getTime())) return data;
-    return d.toLocaleDateString("pt-PT", { day: "2-digit", month: "long", year: "numeric" });
+    const localeMap: Record<string, string> = { pt: "pt-PT", en: "en-GB", fr: "fr-FR" };
+    const locale = localeMap[lang] ?? "pt-PT";
+    const dayName = d.toLocaleDateString(locale, { weekday: "long" });
+    const fullDate = d.toLocaleDateString(locale, { day: "2-digit", month: "long", year: "numeric" });
+    return `${dayName.charAt(0).toUpperCase() + dayName.slice(1)}, ${fullDate}`;
   };
 
   const openMacPopup = (entry: GradeEntry, index: number) => {
@@ -325,7 +331,7 @@ export default function StudentGradesScreen() {
         </Pressable>
         <View style={styles.headerCenter}>
           <Text style={styles.headerTitle}>{classGroup.designacao}</Text>
-          <Text style={styles.headerSubtitle}>Avaliações</Text>
+          <Text style={styles.headerSubtitle}>{tr.gradesSubtitle}</Text>
         </View>
         <View style={{ width: 40 }} />
       </View>
@@ -347,7 +353,7 @@ export default function StudentGradesScreen() {
         ListEmptyComponent={
           <View style={styles.emptyContainer}>
             <Icon name="users" size={48} color={Colors.textMuted} />
-            <Text style={styles.emptyTitle}>Sem alunos</Text>
+            <Text style={styles.emptyTitle}>{tr.noStudentsEmpty}</Text>
           </View>
         }
       />
@@ -356,22 +362,19 @@ export default function StudentGradesScreen() {
       <Modal visible={!!macPopupEntry} transparent animationType="fade" onRequestClose={closeMacPopup}>
         <Pressable style={styles.modalOverlay} onPress={closeMacPopup}>
           <Pressable style={[styles.modalContent, { maxHeight: "auto" as any, paddingBottom: 20 }]} onPress={() => {}}>
-            <Text style={[styles.modalTitle, { marginBottom: 4 }]}>
+            <Text style={[styles.modalTitle, { marginBottom: 8 }]}>
               AC{(macPopupEntry?.index ?? 0) + 1}
-            </Text>
-            <Text style={styles.macPopupDate}>
-              Registada em: {macPopupEntry ? formatMacDate(macPopupEntry.entry.data) : ""}
             </Text>
             {macPopupEditing ? (
               <>
                 <TextInput
-                  style={[styles.modalInput, { marginTop: 12, marginBottom: 8 }]}
+                  style={[styles.modalInput, { marginTop: 4, marginBottom: 8 }]}
                   value={macPopupEditValue}
                   onChangeText={setMacPopupEditValue}
                   keyboardType="numeric"
                   autoFocus
                   selectTextOnFocus
-                  placeholder={`Nota (0–${maxNota})`}
+                  placeholder={`${tr.notaFinalDisplay} (0–${maxNota})`}
                   placeholderTextColor={Colors.textMuted}
                 />
                 <Pressable
@@ -379,13 +382,13 @@ export default function StudentGradesScreen() {
                   style={({ pressed }) => [styles.macPopupActionBtn, { backgroundColor: Colors.primary, opacity: pressed ? 0.85 : 1 }]}
                 >
                   <Icon name="checkmark" size={16} color="#fff" />
-                  <Text style={styles.macPopupActionBtnText}>Guardar</Text>
+                  <Text style={styles.macPopupActionBtnText}>{tr.save}</Text>
                 </Pressable>
                 <Pressable
                   onPress={() => setMacPopupEditing(false)}
                   style={({ pressed }) => [styles.macPopupSecondaryBtn, { opacity: pressed ? 0.75 : 1 }]}
                 >
-                  <Text style={styles.macPopupSecondaryBtnText}>Cancelar</Text>
+                  <Text style={styles.macPopupSecondaryBtnText}>{tr.cancel}</Text>
                 </Pressable>
               </>
             ) : (
@@ -399,15 +402,18 @@ export default function StudentGradesScreen() {
                   style={({ pressed }) => [styles.macPopupActionBtn, { backgroundColor: Colors.primary + "18", opacity: pressed ? 0.85 : 1 }]}
                 >
                   <Icon name="edit-2" size={16} color={Colors.primary} />
-                  <Text style={[styles.macPopupActionBtnText, { color: Colors.primary }]}>Editar</Text>
+                  <Text style={[styles.macPopupActionBtnText, { color: Colors.primary }]}>{tr.edit}</Text>
                 </Pressable>
                 <Pressable
                   onPress={handleDeleteMacFromPopup}
                   style={({ pressed }) => [styles.macPopupActionBtn, { backgroundColor: Colors.error + "15", opacity: pressed ? 0.85 : 1, marginTop: 8 }]}
                 >
                   <Icon name="trash-2" size={16} color={Colors.error} />
-                  <Text style={[styles.macPopupActionBtnText, { color: Colors.error }]}>Eliminar</Text>
+                  <Text style={[styles.macPopupActionBtnText, { color: Colors.error }]}>{tr.delete}</Text>
                 </Pressable>
+                <Text style={[styles.macPopupDate, { marginTop: 14, textAlign: "center" }]}>
+                  {tr.recordedOn} {macPopupEntry ? formatMacDate(macPopupEntry.entry.data) : ""}
+                </Text>
               </>
             )}
           </Pressable>
@@ -421,7 +427,7 @@ export default function StudentGradesScreen() {
               <Text style={styles.modalTitle}>{selectedStudent?.nome}</Text>
 
               <View style={styles.modalSection}>
-                <Text style={styles.modalSectionTitle}>MAC — Médias de Avaliação Contínua</Text>
+                <Text style={styles.modalSectionTitle}>{tr.macTitle}</Text>
                 {selectedGrade && selectedGrade.mac.length > 0 && (
                   <View style={styles.macHistory}>
                     {selectedGrade.mac.map((entry, i) => {
@@ -443,7 +449,7 @@ export default function StudentGradesScreen() {
                       );
                     })}
                     <View style={[styles.macEntry, styles.macAvgEntry]}>
-                      <Text style={[styles.macEntryNum, { color: Colors.primary }]}>Média</Text>
+                      <Text style={[styles.macEntryNum, { color: Colors.primary }]}>{tr.macAvgLabel}</Text>
                       <Text style={[styles.macEntryValue, { color: Colors.primary, fontFamily: "Inter_700Bold" as const }]}>
                         {getMacAverage(selectedGrade.mac)}
                       </Text>
@@ -451,7 +457,7 @@ export default function StudentGradesScreen() {
                   </View>
                 )}
                 {selectedGrade && selectedGrade.mac.length > 0 && (
-                  <Text style={styles.macHint}>Toque numa nota para ver detalhes ou editar</Text>
+                  <Text style={styles.macHint}>{tr.macHintText}</Text>
                 )}
                 <View style={styles.addMacRow}>
                   <TextInput
@@ -469,7 +475,7 @@ export default function StudentGradesScreen() {
               </View>
 
               <View style={styles.modalSection}>
-                <Text style={styles.modalSectionTitle}>NPT — Nota da Prova Trimestral</Text>
+                <Text style={styles.modalSectionTitle}>{tr.nptTitle}</Text>
                 <TextInput
                   style={styles.modalInput}
                   placeholder={`Nota NPT (0–${maxNota})`}
@@ -490,10 +496,10 @@ export default function StudentGradesScreen() {
               )}
 
               <View style={styles.modalSection}>
-                <Text style={styles.modalSectionTitle}>Observação</Text>
+                <Text style={styles.modalSectionTitle}>{tr.observationTitle}</Text>
                 <TextInput
                   style={[styles.modalInput, { minHeight: 60, textAlignVertical: "top" }]}
-                  placeholder="Notas sobre o aluno..."
+                  placeholder={tr.gradeObsPlaceholder}
                   placeholderTextColor={Colors.textMuted}
                   value={observacao}
                   onChangeText={setObservacao}
@@ -502,7 +508,7 @@ export default function StudentGradesScreen() {
               </View>
 
               <Pressable onPress={handleSaveNptObs} style={({ pressed }) => [styles.saveBtn, { opacity: pressed ? 0.9 : 1 }]}>
-                <Text style={styles.saveBtnText}>Guardar</Text>
+                <Text style={styles.saveBtnText}>{tr.save}</Text>
               </Pressable>
             </ScrollView>
           </Pressable>

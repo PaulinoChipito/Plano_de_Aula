@@ -1,4 +1,5 @@
 import { Platform, Alert } from "react-native";
+import { ensureEcoFolders, getEcoFolderPath, getExportFileName, EcoFolder } from "./fileSystem";
 
 function sanitizeFileName(name: string): string {
   return name
@@ -20,8 +21,12 @@ function downloadBlobWeb(blob: Blob, filename: string): void {
   setTimeout(() => URL.revokeObjectURL(url), 1000);
 }
 
-export async function exportPdfFromHtml(html: string, baseName: string): Promise<void> {
-  const filename = `${sanitizeFileName(baseName)}.pdf`;
+export async function exportPdfFromHtml(
+  html: string,
+  baseName: string,
+  folder: EcoFolder = "planos",
+): Promise<void> {
+  const filename = getExportFileName(baseName, "pdf");
 
   if (Platform.OS === "web") {
     try {
@@ -51,15 +56,32 @@ export async function exportPdfFromHtml(html: string, baseName: string): Promise
   try {
     const Print = await import("expo-print");
     const Sharing = await import("expo-sharing");
-    const { uri } = await Print.printToFileAsync({ html, base64: false });
+    const FS = await import("expo-file-system");
+
+    const { uri: tempUri } = await Print.printToFileAsync({ html, base64: false });
+
+    await ensureEcoFolders();
+    const folderPath = await getEcoFolderPath(folder);
+    let finalUri = tempUri;
+
+    if (folderPath) {
+      const destUri = `${folderPath}${filename}`;
+      try {
+        await (FS as any).copyAsync({ from: tempUri, to: destUri });
+        finalUri = destUri;
+      } catch {
+        finalUri = tempUri;
+      }
+    }
+
     if (await Sharing.isAvailableAsync()) {
-      await Sharing.shareAsync(uri, {
+      await Sharing.shareAsync(finalUri, {
         UTI: "com.adobe.pdf",
         mimeType: "application/pdf",
         dialogTitle: filename,
       });
     } else {
-      Alert.alert("PDF gerado", `Ficheiro: ${uri}`);
+      Alert.alert("PDF guardado", `Ficheiro: ${finalUri}`);
     }
   } catch (e: any) {
     Alert.alert("Erro", e.message || "Não foi possível gerar o PDF.");
@@ -76,8 +98,9 @@ export interface ExcelSheetSpec {
 export async function exportExcelMultiSheet(
   sheets: ExcelSheetSpec[],
   baseName: string,
+  folder: EcoFolder = "pautas",
 ): Promise<void> {
-  const filename = `${sanitizeFileName(baseName)}.xlsx`;
+  const filename = getExportFileName(baseName, "xlsx");
   try {
     const XLSX = await import("xlsx");
     const wb = XLSX.utils.book_new();
@@ -100,11 +123,16 @@ export async function exportExcelMultiSheet(
     const FS = await import("expo-file-system");
     const Sharing = await import("expo-sharing");
     const b64 = XLSX.write(wb, { bookType: "xlsx", type: "base64" }) as string;
-    const dir = (FS as any).cacheDirectory ?? (FS as any).documentDirectory ?? "";
+
+    await ensureEcoFolders();
+    const folderPath = await getEcoFolderPath(folder);
+    const dir = folderPath || (FS as any).documentDirectory || (FS as any).cacheDirectory || "";
     const fileUri = `${dir}${filename}`;
+
     await (FS as any).writeAsStringAsync(fileUri, b64, {
       encoding: (FS as any).EncodingType?.Base64 ?? "base64",
     });
+
     if (await Sharing.isAvailableAsync()) {
       await Sharing.shareAsync(fileUri, {
         mimeType: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
@@ -112,7 +140,7 @@ export async function exportExcelMultiSheet(
         UTI: "org.openxmlformats.spreadsheetml.sheet",
       });
     } else {
-      Alert.alert("Excel gerado", `Ficheiro: ${fileUri}`);
+      Alert.alert("Excel guardado", `Ficheiro: ${fileUri}`);
     }
   } catch (e: any) {
     Alert.alert("Erro", e.message || "Não foi possível gerar o Excel.");
@@ -123,10 +151,11 @@ export async function exportExcel(
   rows: (string | number | null)[][],
   baseName: string,
   sheetName: string = "Folha1",
-  opts?: { merges?: ExcelSheetSpec["merges"]; colWidths?: number[] },
+  opts?: { merges?: ExcelSheetSpec["merges"]; colWidths?: number[]; folder?: EcoFolder },
 ): Promise<void> {
   await exportExcelMultiSheet(
     [{ name: sheetName, rows, merges: opts?.merges, colWidths: opts?.colWidths }],
     baseName,
+    opts?.folder,
   );
 }

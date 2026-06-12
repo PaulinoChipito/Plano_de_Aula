@@ -30,7 +30,7 @@ export default function AssessmentsScreen() {
   const { currentPeriod, currentPeriodLabel } = usePeriod();
   const { currentYear, years } = useYear();
   const defaultYear = years[0] ?? "";
-  const { lang } = useLanguage();
+  const { lang, tr } = useLanguage();
 
   useFocusEffect(
     useCallback(() => {
@@ -67,13 +67,13 @@ export default function AssessmentsScreen() {
       </View>
       <View style={styles.cardContent}>
         <Text style={styles.cardTitle}>{item.designacao}</Text>
-        <Text style={styles.cardSubtitle}>{item.disciplina} - {item.alunos.length} alunos</Text>
+        <Text style={styles.cardSubtitle}>{item.disciplina} - {item.alunos.length} {tr.studentsCount}</Text>
       </View>
       <Pressable
         onPress={(e) => {
           e.stopPropagation?.();
           if (item.alunos.length === 0) {
-            Alert.alert("Sem alunos", "Adicione alunos antes de exportar a mini-pauta.");
+            Alert.alert(tr.noStudentsEmpty, tr.noStudentsExportMsg);
             return;
           }
           setExportTarget(item);
@@ -100,7 +100,7 @@ export default function AssessmentsScreen() {
           <Icon name="chevron-back" size={24} color="#fff" />
         </Pressable>
         <View style={styles.headerCenter}>
-          <Text style={styles.headerTitle}>Avaliações</Text>
+          <Text style={styles.headerTitle}>{tr.assessmentsTitle}</Text>
           <Text style={styles.headerPeriod}>{currentPeriodLabel}</Text>
         </View>
         <View style={{ width: 40 }} />
@@ -115,15 +115,15 @@ export default function AssessmentsScreen() {
         ListEmptyComponent={
           <View style={styles.emptyContainer}>
             <Icon name="clipboard-text-outline" size={48} color={Colors.textMuted} />
-            <Text style={styles.emptyTitle}>Sem turmas</Text>
-            <Text style={styles.emptySubtitle}>Crie turmas primeiro para avaliar alunos</Text>
+            <Text style={styles.emptyTitle}>{tr.noClassesYet}</Text>
+            <Text style={styles.emptySubtitle}>{tr.createClassesFirst}</Text>
           </View>
         }
       />
 
       <ExportMenu
         visible={!!exportTarget}
-        title={`Mini-Pauta · ${currentPeriodLabel}`}
+        title={`${tr.exportMiniPauta} · ${currentPeriodLabel}`}
         subtitle={exportTarget ? `${exportTarget.designacao} · ${exportTarget.disciplina}` : undefined}
         onClose={() => setExportTarget(null)}
         onPdf={handleExportPdf}

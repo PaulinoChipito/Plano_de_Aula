@@ -132,6 +132,7 @@ function renderDocHeader(
     <div class="doc-header">
       ${logoHtml}
       ${linesHtml}
+      ${escola ? `<div class="school">${escape(escola.toUpperCase())}</div>` : ""}
       <div class="doc">${escape(docTitle)}</div>
     </div>`;
 }

@@ -47,7 +47,7 @@ export default function StatisticsScreen() {
   const { currentPeriod, currentPeriodLabel, periodKeys, periodLabels } = usePeriod();
   const { currentYear, years } = useYear();
   const defaultYear = years[0] ?? "";
-  const { lang } = useLanguage();
+  const { lang, tr } = useLanguage();
 
   useFocusEffect(
     useCallback(() => {
@@ -71,7 +71,7 @@ export default function StatisticsScreen() {
     if (!exportTarget) return;
     const [profile, header] = await Promise.all([getTeacherProfile(), getExportHeader()]);
     const html = pautaCompletaHtml(exportTarget.turma, allGrades, profile, periodKeys, periodLabels, header, lang);
-    await exportPdfFromHtml(html, `Pauta_Completa_${exportTarget.turma.designacao}`);
+    await exportPdfFromHtml(html, `Pauta_Completa_${exportTarget.turma.designacao}`, "pautas");
   };
 
   const handleExportPautaExcel = async () => {
@@ -81,6 +81,7 @@ export default function StatisticsScreen() {
     await exportExcel(sheet.rows, `Pauta_Completa_${exportTarget.turma.designacao}`, sheet.name, {
       merges: sheet.merges,
       colWidths: sheet.colWidths,
+      folder: "pautas",
     });
   };
 
@@ -88,7 +89,7 @@ export default function StatisticsScreen() {
     if (!exportTarget) return;
     const [profile, header] = await Promise.all([getTeacherProfile(), getExportHeader()]);
     const html = attendanceMapHtml(exportTarget.turma, allAttendance, profile, "Todos os Períodos", header, lang);
-    await exportPdfFromHtml(html, `Mapa_Presencas_${exportTarget.turma.designacao}`);
+    await exportPdfFromHtml(html, `Mapa_Presencas_${exportTarget.turma.designacao}`, "faltas");
   };
 
   const handleExportAttendanceExcel = async () => {
@@ -98,6 +99,7 @@ export default function StatisticsScreen() {
     await exportExcel(sheet.rows, `Mapa_Presencas_${exportTarget.turma.designacao}`, sheet.name, {
       merges: sheet.merges,
       colWidths: sheet.colWidths,
+      folder: "faltas",
     });
   };
 
@@ -252,7 +254,7 @@ export default function StatisticsScreen() {
           <Icon name="chevron-back" size={24} color="#fff" />
         </Pressable>
         <View style={styles.headerCenter}>
-          <Text style={styles.headerTitle}>Estatísticas</Text>
+          <Text style={styles.headerTitle}>{tr.statisticsTitle}</Text>
           <View style={styles.periodTag}>
             <Icon name="time" size={11} color="#34D399" />
             <Text style={styles.periodTagText}>{currentPeriodLabel}</Text>
@@ -271,10 +273,8 @@ export default function StatisticsScreen() {
         {isEmpty && (
           <View style={styles.emptyBox}>
             <Icon name="bar-chart-2" size={48} color={Colors.textMuted} />
-            <Text style={styles.emptyTitle}>Sem dados no {currentPeriodLabel}</Text>
-            <Text style={styles.emptySubtitle}>
-              Registe turmas, notas e presenças para ver a análise aqui.
-            </Text>
+            <Text style={styles.emptyTitle}>{tr.noStatsData}</Text>
+            <Text style={styles.emptySubtitle}>{tr.noStatsDataSub}</Text>
           </View>
         )}
 

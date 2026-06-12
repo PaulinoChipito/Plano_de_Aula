@@ -6,3 +6,5 @@
 - [Ano Lectivo multi-year system](ano-lectivo.md) — lib/yearContext.tsx mirrors periodContext; data filtered by anoLectivo?? years[0]; all 9 screens + storage models updated; managed via Settings > Ano Lectivo section.
 - [i18n split: ts vs tsx](i18n-split.md) — lib/i18n.ts is pure TS (no JSX); lib/LanguageProvider.tsx holds the React component; import LanguageProvider from LanguageProvider.tsx, not i18n.ts.
 - [MT grade formula](mt-formula.md) — MT = MAC×0.6 + NPT×0.4 (INIDE 60/40). Fixed in exportTemplates.ts calcTrimestre. gradeUtils.ts already used this formula.
+- [Export folders & filenames](export-folders.md) — lib/fileSystem.ts creates EcoEducacional/{planos,pautas,faltas}; exports go there with dated filenames; folder param: planos=lesson PDFs, pautas=student lists/pautas, faltas=attendance maps.
+- [i18n coverage](i18n-coverage.md) — All 13 screens fully translated PT/EN/FR via useLanguage()+tr; EVENT_TYPE_CONFIGS at module level, EVENT_TYPES computed inside component with tr labels; agenda formatDate uses localeMap[lang].

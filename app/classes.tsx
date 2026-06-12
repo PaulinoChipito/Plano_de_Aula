@@ -35,7 +35,7 @@ export default function ClassesScreen() {
   const [exportTarget, setExportTarget] = useState<ClassGroup | null>(null);
   const { currentYear, years } = useYear();
   const defaultYear = years[0] ?? "";
-  const { lang } = useLanguage();
+  const { lang, tr } = useLanguage();
 
   useFocusEffect(
     useCallback(() => {
@@ -64,10 +64,10 @@ export default function ClassesScreen() {
   };
 
   const handleDelete = (id: string) => {
-    Alert.alert("Eliminar Turma", "Todos os alunos serao removidos. Continuar?", [
-      { text: "Cancelar", style: "cancel" },
+    Alert.alert(tr.deleteClass, tr.deleteClassMsg, [
+      { text: tr.cancel, style: "cancel" },
       {
-        text: "Eliminar",
+        text: tr.delete,
         style: "destructive",
         onPress: async () => {
           await deleteClass(id);
@@ -81,7 +81,7 @@ export default function ClassesScreen() {
     if (!exportTarget) return;
     const [profile, header] = await Promise.all([getTeacherProfile(), getExportHeader()]);
     const html = studentsListHtml(exportTarget, profile, header, lang);
-    await exportPdfFromHtml(html, `Lista_Alunos_${exportTarget.designacao}`);
+    await exportPdfFromHtml(html, `Lista_Alunos_${exportTarget.designacao}`, "pautas");
   };
 
   const handleExportExcel = async () => {
@@ -91,6 +91,7 @@ export default function ClassesScreen() {
     await exportExcel(sheet.rows, `Lista_Alunos_${exportTarget.designacao}`, sheet.name, {
       merges: sheet.merges,
       colWidths: sheet.colWidths,
+      folder: "pautas",
     });
   };
 
@@ -119,7 +120,7 @@ export default function ClassesScreen() {
         onPress={(e) => {
           e.stopPropagation?.();
           if (item.alunos.length === 0) {
-            Alert.alert("Sem alunos", "Adicione alunos antes de exportar.");
+            Alert.alert(tr.noStudentsEmpty, tr.noStudentsExportMsg);
             return;
           }
           setExportTarget(item);
@@ -146,7 +147,7 @@ export default function ClassesScreen() {
         <Pressable onPress={() => router.back()} style={({ pressed }) => [styles.backBtn, { opacity: pressed ? 0.6 : 1 }]}>
           <Icon name="chevron-back" size={24} color="#fff" />
         </Pressable>
-        <Text style={styles.headerTitle}>Turmas</Text>
+        <Text style={styles.headerTitle}>{tr.classesTitle}</Text>
         <Pressable
           onPress={() => setShowModal(true)}
           style={({ pressed }) => [styles.addBtn, { opacity: pressed ? 0.7 : 1 }]}
@@ -164,15 +165,15 @@ export default function ClassesScreen() {
         ListEmptyComponent={
           <View style={styles.emptyContainer}>
             <Icon name="people-outline" size={48} color={Colors.textMuted} />
-            <Text style={styles.emptyTitle}>Sem turmas</Text>
-            <Text style={styles.emptySubtitle}>Crie a sua primeira turma</Text>
+            <Text style={styles.emptyTitle}>{tr.noClassesYet}</Text>
+            <Text style={styles.emptySubtitle}>{tr.noClassesCta}</Text>
           </View>
         }
       />
 
       <ExportMenu
         visible={!!exportTarget}
-        title="Exportar lista de alunos"
+        title={tr.exportStudentList}
         subtitle={exportTarget ? `${exportTarget.designacao} · ${exportTarget.alunos.length} alunos` : undefined}
         onClose={() => setExportTarget(null)}
         onPdf={handleExportPdf}
@@ -182,7 +183,7 @@ export default function ClassesScreen() {
       <Modal visible={showModal} transparent animationType="fade" onRequestClose={() => setShowModal(false)}>
         <Pressable style={styles.modalOverlay} onPress={() => setShowModal(false)}>
           <Pressable style={styles.modalContent} onPress={() => {}}>
-            <Text style={styles.modalTitle}>Nova Turma</Text>
+            <Text style={styles.modalTitle}>{tr.createClass}</Text>
             <TextInput
               style={styles.modalInput}
               placeholder="Designacao (Ex: 10a A)"
