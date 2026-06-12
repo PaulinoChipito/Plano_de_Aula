@@ -38,7 +38,7 @@ args = "Start App"
 
 [[workflows.workflow.tasks]]
 task = "workflow.run"
-args = "Start Frontend"
+args = "Start application"
 
 [[workflows.workflow]]
 name = "Start App"
@@ -54,14 +54,13 @@ task = "workflow.run"
 args = "Start Frontend"
 
 [[workflows.workflow]]
-name = "Start Frontend"
+name = "Start application"
 author = "agent"
-mode = "sequential"
-
-[workflows.workflow.metadata]
-outputType = "webview"
 
 [[workflows.workflow.tasks]]
 task = "shell.exec"
 args = "npm install && node node_modules/expo/bin/cli start --web --port 5000 --host localhost"
 waitForPort = 5000
+
+[workflows.workflow.metadata]
+outputType = "webview"
