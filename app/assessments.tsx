@@ -43,7 +43,7 @@ export default function AssessmentsScreen() {
     const [allGrades, profile, header] = await Promise.all([getGrades(), getTeacherProfile(), getExportHeader()]);
     const grades = allGrades.filter((g) => (g.anoLectivo ?? defaultYear) === currentYear && (g.periodo ?? "I") === currentPeriod && g.turmaId === exportTarget.id);
     const html = miniPautaHtml(exportTarget, grades, profile, currentPeriodLabel, header, lang);
-    await exportPdfFromHtml(html, `Mini_Pauta_${exportTarget.designacao}_${currentPeriodLabel}`);
+    await exportPdfFromHtml(html, `Mini_Pauta_${currentPeriodLabel}`);
   };
 
   const handleExportExcel = async () => {
@@ -51,7 +51,7 @@ export default function AssessmentsScreen() {
     const [allGrades, profile, header] = await Promise.all([getGrades(), getTeacherProfile(), getExportHeader()]);
     const grades = allGrades.filter((g) => (g.anoLectivo ?? defaultYear) === currentYear && (g.periodo ?? "I") === currentPeriod && g.turmaId === exportTarget.id);
     const sheet = miniPautaExcel(exportTarget, grades, profile, currentPeriodLabel, header, lang);
-    await exportExcel(sheet.rows, `Mini_Pauta_${exportTarget.designacao}_${currentPeriodLabel}`, sheet.name, {
+    await exportExcel(sheet.rows, `Mini_Pauta_${currentPeriodLabel}`, sheet.name, {
       merges: sheet.merges,
       colWidths: sheet.colWidths,
       cellStyles: sheet.cellStyles,

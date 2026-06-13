@@ -506,12 +506,6 @@ export default function Dashboard() {
             </Pressable>
           </Modal>
 
-          <View style={styles.footer}>
-            <View style={styles.footerBadge}>
-              <View style={styles.statusDot} />
-              <Text style={styles.footerText}>{tr.homeSystemActive} · INIDE Angola</Text>
-            </View>
-          </View>
         </View>
       </ScrollView>
     </View>
@@ -679,15 +673,4 @@ const styles = StyleSheet.create({
   allAlertsCancelBtn: { alignSelf: "center", marginTop: 16, paddingVertical: 8, paddingHorizontal: 20 },
   allAlertsCancelText: { fontFamily: "Inter_500Medium", fontSize: 14, color: Colors.textSecondary },
 
-  footer: { marginTop: 32, alignItems: "center" },
-  footerBadge: {
-    flexDirection: "row", alignItems: "center", gap: 8,
-    paddingHorizontal: 16, paddingVertical: 8, borderRadius: 999,
-    backgroundColor: "rgba(255,255,255,0.1)",
-    borderWidth: 1, borderColor: "rgba(255,255,255,0.15)",
-  },
-  statusDot: { width: 8, height: 8, borderRadius: 4, backgroundColor: "#34D399" },
-  footerText: {
-    fontFamily: "Inter_400Regular", fontSize: 13, color: "rgba(255,255,255,0.7)",
-  },
 });

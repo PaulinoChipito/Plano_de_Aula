@@ -15,17 +15,21 @@ import { useSafeAreaInsets } from "react-native-safe-area-context";
 import Icon from "@/components/Icon";
 import { LinearGradient } from "expo-linear-gradient";
 import * as Haptics from "expo-haptics";
-import * as Print from "expo-print";
-import * as Sharing from "expo-sharing";
 import Colors from "@/constants/colors";
 import {
   getLessonPlans,
   saveLessonPlan,
   getTeacherProfile,
+  getExportHeader,
   LessonPlan,
   TeacherProfile,
+  ExportHeader,
 } from "@/lib/storage";
 import { useLanguage } from "@/lib/i18n";
+import { exportPdfFromHtml } from "@/lib/exports";
+import { usePeriod } from "@/lib/periodContext";
+
+const SYSTEM_FOOTER = "Processado pelo Sistema EcoEducacional · Gestão Pedagógica";
 
 export default function ViewPlanScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
@@ -35,8 +39,16 @@ export default function ViewPlanScreen() {
   const [plan, setPlan] = useState<LessonPlan | null>(null);
   const [editing, setEditing] = useState(false);
   const [generating, setGenerating] = useState(false);
-  const [profile, setProfile] = useState<TeacherProfile>({ nome: "", instituicao: "", disciplina: "" });
+  const [profile, setProfile] = useState<TeacherProfile>({
+    nome: "",
+    email: "",
+    instituicao: "",
+    nivelEnsino: "",
+    disciplinas: "",
+  });
+  const [exportHeader, setExportHeader] = useState<ExportHeader>({ logoBase64: null, linhas: [] });
   const { lang, tr } = useLanguage();
+  const { periodKeys, periodLabels } = usePeriod();
   const dateLocale = ({ pt: "pt-PT", en: "en-GB", fr: "fr-FR" } as const)[lang] ?? "pt-PT";
 
   const [editClasse, setEditClasse] = useState("");
@@ -53,10 +65,11 @@ export default function ViewPlanScreen() {
   const [editPerguntasTarefa, setEditPerguntasTarefa] = useState<string[]>([]);
 
   useEffect(() => {
-    Promise.all([getLessonPlans(), getTeacherProfile()]).then(([plans, tp]) => {
+    Promise.all([getLessonPlans(), getTeacherProfile(), getExportHeader()]).then(([plans, tp, header]) => {
       const found = plans.find((p) => p.id === id);
       if (found) setPlan(found);
       setProfile(tp);
+      setExportHeader(header);
     });
   }, [id]);
 
@@ -116,15 +129,26 @@ export default function ViewPlanScreen() {
   };
 
   const generatePdfHtml = (p: LessonPlan): string => {
-    const dataFormatada = new Date(p.createdAt).toLocaleDateString("pt-PT", {
+    const dataFormatada = new Date(p.createdAt).toLocaleDateString(dateLocale, {
       day: "2-digit",
       month: "long",
       year: "numeric",
     });
 
-    const li = (text: string) => `<li style="margin-bottom:3px;">${text}</li>`;
-    const dash = (label: string, value: string) =>
-      `<p style="margin-bottom:4px;"><strong>${label}:</strong> ${value}</p>`;
+    const escapeHtml = (value: string | number | undefined | null) =>
+      String(value ?? "")
+        .replace(/&/g, "&amp;")
+        .replace(/</g, "&lt;")
+        .replace(/>/g, "&gt;")
+        .replace(/"/g, "&quot;")
+        .replace(/'/g, "&#39;");
+
+    const paragraph = (value: string | undefined | null) =>
+      escapeHtml(value || "—").replace(/\n/g, "<br>");
+
+    const li = (text: string) => `<li>${paragraph(text)}</li>`;
+    const field = (label: string, value: string | number | undefined | null) =>
+      `<p class="field-line"><strong>${label}:</strong> ${paragraph(String(value || "—"))}</p>`;
 
     const objEspItems = p.objetivosEspecificos.length > 0
       ? p.objetivosEspecificos.map(li).join("")
@@ -132,17 +156,19 @@ export default function ViewPlanScreen() {
     const conteudosItems = (p.conteudos || []).length > 0
       ? (p.conteudos || []).map(li).join("")
       : li("—");
-    const pergControloItems = p.perguntasControlo.length > 0
+    const perguntasControloItems = p.perguntasControlo.length > 0
       ? p.perguntasControlo.map(li).join("")
       : li("—");
 
-    const tpcItems = p.tarefaDeCasa && p.tarefaDeCasa.length > 0
+    const tarefas = p.tarefaDeCasa && p.tarefaDeCasa.length > 0
       ? p.tarefaDeCasa.map((t) =>
-          li(`${t.descricao}${t.referencia ? ` (${t.referencia})` : ""}${t.tempoEstimado ? ` — Tempo estimado: ${t.tempoEstimado}` : ""}`)
-        ).join("")
-      : (p.tarefasPraticas || p.perguntasTarefa || []).length > 0
-        ? (p.tarefasPraticas || p.perguntasTarefa || []).map(li).join("")
-        : li("—");
+          `${t.descricao}${t.referencia ? ` (${t.referencia})` : ""}${t.tempoEstimado ? ` — Tempo estimado: ${t.tempoEstimado}` : ""}`
+        )
+      : (p.perguntasTarefa && p.perguntasTarefa.length > 0
+          ? p.perguntasTarefa
+          : (p.tarefasPraticas || []));
+
+    const tpcItems = tarefas.length > 0 ? tarefas.map(li).join("") : li("—");
 
     const normalizedDesenv =
       p.desenvolvimentoAula && p.desenvolvimentoAula.length > 0
@@ -155,63 +181,197 @@ export default function ViewPlanScreen() {
           }));
 
     const desenvolvimentoBlocks = normalizedDesenv.length > 0
-      ? normalizedDesenv.map((e, i) => {
+      ? normalizedDesenv.map((e) => {
           const hasStudents = e.actividadesAlunos && e.actividadesAlunos !== "—" && e.actividadesAlunos.trim();
           return `
-            <div style="margin-bottom:10px;padding-left:8px;border-left:3px solid #ccc;">
-              <p style="font-weight:700;margin-bottom:4px;">${e.etapa}${e.duracao ? ` (${e.duracao})` : ""}</p>
-              ${e.actividadesProfessor ? `<p style="margin-bottom:3px;"><strong>Actividade do Professor:</strong> ${e.actividadesProfessor}</p>` : ""}
-              ${hasStudents ? `<p style="margin-bottom:3px;"><strong>Actividades dos Alunos:</strong> ${e.actividadesAlunos}</p>` : ""}
+            <div class="stage-block">
+              <p class="stage-title">${paragraph(e.etapa || "—")}${e.duracao ? ` <span>(${paragraph(e.duracao)})</span>` : ""}</p>
+              ${e.actividadesProfessor ? `<p><strong>Actividade do Professor:</strong> ${paragraph(e.actividadesProfessor)}</p>` : ""}
+              ${hasStudents ? `<p><strong>Actividades dos Alunos:</strong> ${paragraph(e.actividadesAlunos)}</p>` : ""}
             </div>`;
         }).join("")
       : `<p>—</p>`;
 
     const metodologiaText = [
-      p.metodosPrincipais ? `<strong>Abordagem principal:</strong> ${p.metodosPrincipais}` : "",
-      p.metodos ? `<strong>Métodos e Técnicas:</strong> ${p.metodos}` : "",
-      p.meios ? `<strong>Meios de Ensino:</strong> ${p.meios}` : "",
-    ].filter(Boolean).join("<br>");
+      p.metodosPrincipais ? field("Abordagem principal", p.metodosPrincipais) : "",
+      p.metodos ? field("Métodos e Técnicas", p.metodos) : "",
+      p.meios ? field("Meios de Ensino", p.meios) : "",
+    ].filter(Boolean).join("");
+
+    const instituicao = profile.instituicao || "EcoEducacional";
+    const assinatura = profile.nome || "________________________";
+    const periodIndex = periodKeys.indexOf(p.periodo ?? "I");
+    const periodoLabel = periodIndex >= 0 ? periodLabels[periodIndex] : (p.periodo || "I Trimestre");
+    const headerLines = exportHeader.linhas.map((line) => line.trim()).filter(Boolean);
+    const headerLogo = exportHeader.logoBase64;
+    const headerHtml = headerLogo || headerLines.length > 0
+      ? `
+        <div class="doc-header">
+          ${headerLogo ? `<img src="${headerLogo}" alt="Logotipo" />` : ""}
+          ${headerLines.map((line) => `<div class="header-line">${escapeHtml(line)}</div>`).join("")}
+          <div class="school">${escapeHtml(instituicao.toUpperCase())}</div>
+          <div class="doc">Plano de Aula</div>
+        </div>`
+      : `
+        <div class="doc-header">
+          <div class="school">${escapeHtml(instituicao.toUpperCase())}</div>
+          <div class="doc">Plano de Aula</div>
+        </div>`;
 
     return `<!DOCTYPE html>
 <html>
 <head>
 <meta charset="utf-8">
+<title>Plano de Aula - ${escapeHtml(p.tema)}</title>
 <style>
-  @page { size: A4; margin: 25mm 20mm; }
+  @page {
+    size: A4;
+    margin: 1cm 2cm 2cm 2.5cm;
+    @bottom-right {
+      content: counter(page) " de " counter(pages);
+      color: #555555;
+      font-size: 8pt;
+    }
+  }
   * { margin: 0; padding: 0; box-sizing: border-box; }
-  body { font-family: 'Times New Roman', Times, serif; font-size: 11pt; color: #000; line-height: 1.6; }
-  .doc-title { text-align: center; font-size: 16pt; font-weight: 700; text-transform: uppercase; letter-spacing: 1px; margin-bottom: 6px; }
-  .doc-escola { text-align: center; font-size: 11pt; margin-bottom: 16px; color: #333; }
-  .meta-block { margin-bottom: 16px; border-top: 2px solid #000; border-bottom: 1px solid #000; padding: 8px 0; }
-  .meta-block p { margin-bottom: 3px; font-size: 11pt; }
-  hr.section-divider { border: none; border-top: 1px solid #000; margin: 14px 0; }
-  .sec-heading { font-size: 11pt; font-weight: 700; text-transform: uppercase; margin-bottom: 8px; }
-  .subsec-heading { font-size: 11pt; font-weight: 700; margin-bottom: 4px; margin-top: 8px; }
-  .sec-block { margin-bottom: 16px; }
-  p { margin-bottom: 4px; font-size: 11pt; }
-  ul { padding-left: 20px; margin-bottom: 4px; }
-  ul li { margin-bottom: 3px; font-size: 11pt; }
-  .footer { margin-top: 24px; border-top: 1px solid #000; padding-top: 6px; font-size: 9pt; color: #555; display: flex; justify-content: space-between; }
+  body {
+    font-family: "Times New Roman", Times, serif;
+    font-size: 11pt;
+    color: #111111;
+    line-height: 1.55;
+    background: #ffffff;
+  }
+  .doc-header {
+    text-align: center;
+    margin-bottom: 14px;
+  }
+  .doc-header img {
+    max-height: 65px;
+    max-width: 220px;
+    display: block;
+    margin: 0 auto 5px;
+    object-fit: contain;
+  }
+  .doc-header .header-line {
+    text-align: center;
+    font-size: 10.5pt;
+    font-weight: 600;
+    margin: 1px 0;
+  }
+  .doc-header .school {
+    text-align: center;
+    font-size: 13pt;
+    font-weight: 700;
+    letter-spacing: 0.3px;
+    margin: 1px 0;
+    text-transform: uppercase;
+  }
+  .doc-header .doc {
+    text-align: center;
+    font-size: 11pt;
+    font-weight: 700;
+    margin-top: 4px;
+    text-transform: uppercase;
+  }
+  .meta-block {
+    border-top: 2px solid #0d7377;
+    border-bottom: 1px solid #0d7377;
+    background: #f0fafa;
+    padding: 8px 10px;
+    margin-bottom: 15px;
+  }
+  .meta-block p,
+  .field-line,
+  .stage-block p,
+  .text-block {
+    font-size: 11pt;
+    margin-bottom: 4px;
+    text-align: justify;
+  }
+  .section-divider {
+    border: none;
+    border-top: 1px solid #0d7377;
+    margin: 13px 0;
+  }
+  .sec-block {
+    margin-bottom: 14px;
+    page-break-inside: avoid;
+  }
+  .sec-heading {
+    color: #0d7377;
+    font-size: 11.5pt;
+    font-weight: 700;
+    text-transform: uppercase;
+    margin-bottom: 8px;
+  }
+  .subsec-heading {
+    font-size: 11pt;
+    font-weight: 700;
+    margin: 7px 0 4px;
+  }
+  ul {
+    padding-left: 22px;
+    margin-bottom: 4px;
+  }
+  li {
+    margin-bottom: 3px;
+    text-align: justify;
+  }
+  .stage-block {
+    border-left: 3px solid #0d7377;
+    background: #f9f9f9;
+    padding: 7px 9px;
+    margin-bottom: 8px;
+    page-break-inside: avoid;
+  }
+  .stage-title {
+    color: #0d7377;
+    font-weight: 700;
+    margin-bottom: 4px;
+  }
+  .stage-title span {
+    color: #555555;
+    font-weight: 400;
+  }
+  .footer {
+    border-top: 1px solid #0d7377;
+    color: #555555;
+    display: flex;
+    justify-content: space-between;
+    gap: 12px;
+    margin-top: 22px;
+    padding-top: 6px;
+    font-size: 9pt;
+  }
+  .system {
+    border-top: 1px solid #cccccc;
+    color: #555555;
+    font-size: 8pt;
+    margin-top: 24px;
+    padding-top: 4px;
+    text-align: center;
+  }
 </style>
 </head>
 <body>
 
-  <div class="doc-title">Plano de Aula</div>
-  <div class="doc-escola">${profile.instituicao || "Instituição de Ensino"}</div>
+  ${headerHtml}
 
   <div class="meta-block">
-    <p><strong>Disciplina:</strong> ${p.disciplina} &nbsp;&nbsp;&nbsp; <strong>Turma/Classe:</strong> ${p.classe}</p>
-    <p><strong>Tema:</strong> ${p.tema}</p>
-    <p><strong>Sumário:</strong> ${p.sumario}</p>
-    <p><strong>Duração:</strong> ${p.duracao} minutos${p.numAlunos ? ` &nbsp;&nbsp;&nbsp; <strong>N.º de Alunos:</strong> ${p.numAlunos}` : ""}</p>
-    ${profile.nivelEnsino ? `<p><strong>Contexto:</strong> ${profile.nivelEnsino}</p>` : ""}
+    <p><strong>Disciplina:</strong> ${paragraph(p.disciplina)} &nbsp;&nbsp;&nbsp; <strong>Turma/Classe:</strong> ${paragraph(p.classe)}</p>
+    <p><strong>Tema:</strong> ${paragraph(p.tema)}</p>
+    <p><strong>Sumário:</strong> ${paragraph(p.sumario)}</p>
+    <p><strong>Duração:</strong> ${paragraph(String(p.duracao))} minutos${p.numAlunos ? ` &nbsp;&nbsp;&nbsp; <strong>N.º de Alunos:</strong> ${paragraph(String(p.numAlunos))}` : ""}</p>
+    <p><strong>Período:</strong> ${paragraph(periodoLabel)}</p>
+    ${profile.nivelEnsino ? `<p><strong>Contexto:</strong> ${paragraph(profile.nivelEnsino)}</p>` : ""}
+    ${p.faixaEtaria ? `<p><strong>Faixa etária:</strong> ${paragraph(p.faixaEtaria)}</p>` : ""}
   </div>
 
   <div class="sec-block">
     <div class="sec-heading">1. Dados Identificativos</div>
-    ${dash("Professor(a)", profile.nome || "_______________________________")}
-    ${dash("Data", dataFormatada)}
-    ${dash("Objectivo Geral da Unidade / Aula", p.objetivoGeral || "—")}
+    ${field("Professor(a)", assinatura)}
+    ${field("Data", dataFormatada)}
+    ${field("Objectivo Geral da Unidade / Aula", p.objetivoGeral || "—")}
   </div>
 
   <hr class="section-divider">
@@ -219,7 +379,7 @@ export default function ViewPlanScreen() {
   <div class="sec-block">
     <div class="sec-heading">2. Objectivos da Aula</div>
     <div class="subsec-heading">Objectivo Geral:</div>
-    <p>${p.objetivoGeral || "—"}</p>
+    <p class="text-block">${paragraph(p.objetivoGeral || "—")}</p>
     <div class="subsec-heading">Objectivos Específicos:</div>
     <ul>${objEspItems}</ul>
   </div>
@@ -235,7 +395,7 @@ export default function ViewPlanScreen() {
 
   <div class="sec-block">
     <div class="sec-heading">4. Estratégias Metodológicas</div>
-    ${metodologiaText ? `<p>${metodologiaText}</p>` : "<p>—</p>"}
+    ${metodologiaText || "<p>—</p>"}
   </div>
 
   <hr class="section-divider">
@@ -249,10 +409,10 @@ export default function ViewPlanScreen() {
 
   <div class="sec-block">
     <div class="sec-heading">6. Avaliação</div>
-    ${p.avaliacao ? `<p>${p.avaliacao}</p>` : ""}
+    ${p.avaliacao ? `<p class="text-block">${paragraph(p.avaliacao)}</p>` : ""}
     ${p.perguntasControlo.length > 0 ? `
       <div class="subsec-heading">Perguntas de Controlo:</div>
-      <ul>${pergControloItems}</ul>` : ""}
+      <ul>${perguntasControloItems}</ul>` : ""}
     ${!p.avaliacao && p.perguntasControlo.length === 0 ? "<p>—</p>" : ""}
   </div>
 
@@ -268,16 +428,17 @@ export default function ViewPlanScreen() {
   <div class="sec-block">
     <div class="sec-heading">8. Observações / Diferenciação Pedagógica</div>
     ${p.diferenciacaoPedagogica ? `
-      ${dash("Alunos com dificuldades", p.diferenciacaoPedagogica.dificuldades)}
-      ${dash("Alunos avançados", p.diferenciacaoPedagogica.avancados)}` : ""}
-    ${p.observacoes ? `<p>${p.observacoes}</p>` : ""}
+      ${field("Alunos com dificuldades", p.diferenciacaoPedagogica.dificuldades)}
+      ${field("Alunos avançados", p.diferenciacaoPedagogica.avancados)}` : ""}
+    ${p.observacoes ? `<p class="text-block">${paragraph(p.observacoes)}</p>` : ""}
     ${!p.diferenciacaoPedagogica && !p.observacoes ? "<p>—</p>" : ""}
   </div>
 
   <div class="footer">
-    <span>${profile.instituicao || "EcoEducacional"} &bull; ${dataFormatada}</span>
-    <span>Professor(a): ${profile.nome || "________________________"}</span>
+    <span>${escapeHtml(instituicao)} &bull; ${escapeHtml(dataFormatada)}</span>
+    <span>Professor(a): ${escapeHtml(assinatura)}</span>
   </div>
+  <div class="system">${SYSTEM_FOOTER}</div>
 
 </body>
 </html>`;
@@ -288,18 +449,7 @@ export default function ViewPlanScreen() {
     setGenerating(true);
     try {
       const html = generatePdfHtml(plan);
-      const { uri } = await Print.printToFileAsync({ html, width: 595, height: 842 });
-
-      if (Platform.OS === "web") {
-        await Print.printAsync({ html });
-      } else {
-        const isAvailable = await Sharing.isAvailableAsync();
-        if (isAvailable) {
-          await Sharing.shareAsync(uri, { mimeType: "application/pdf", UTI: "com.adobe.pdf" });
-        } else {
-          Alert.alert("PDF Gerado", "O ficheiro PDF foi salvo no dispositivo.");
-        }
-      }
+      await exportPdfFromHtml(html, `Plano_de_aula_${plan.sumario}`, "planos");
 
       if (Platform.OS !== "web") Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
     } catch (error: any) {

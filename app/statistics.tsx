@@ -71,14 +71,14 @@ export default function StatisticsScreen() {
     if (!exportTarget) return;
     const [profile, header] = await Promise.all([getTeacherProfile(), getExportHeader()]);
     const html = pautaCompletaHtml(exportTarget.turma, allGrades, profile, periodKeys, periodLabels, header, lang);
-    await exportPdfFromHtml(html, `Pauta_Completa_${exportTarget.turma.designacao}`, "pautas");
+    await exportPdfFromHtml(html, "Pauta_Final", "pautas");
   };
 
   const handleExportPautaExcel = async () => {
     if (!exportTarget) return;
     const [profile, header] = await Promise.all([getTeacherProfile(), getExportHeader()]);
     const sheet = pautaCompletaExcel(exportTarget.turma, allGrades, profile, periodKeys, periodLabels, header, lang);
-    await exportExcel(sheet.rows, `Pauta_Completa_${exportTarget.turma.designacao}`, sheet.name, {
+    await exportExcel(sheet.rows, "Pauta_Final", sheet.name, {
       merges: sheet.merges,
       colWidths: sheet.colWidths,
       cellStyles: sheet.cellStyles,
@@ -90,14 +90,14 @@ export default function StatisticsScreen() {
     if (!exportTarget) return;
     const [profile, header] = await Promise.all([getTeacherProfile(), getExportHeader()]);
     const html = attendanceMapHtml(exportTarget.turma, allAttendance, profile, tr.statsAllPeriods, header, lang);
-    await exportPdfFromHtml(html, `Mapa_Presencas_${exportTarget.turma.designacao}`, "faltas");
+    await exportPdfFromHtml(html, "Mapa_de_faltas", "faltas");
   };
 
   const handleExportAttendanceExcel = async () => {
     if (!exportTarget) return;
     const [profile, header] = await Promise.all([getTeacherProfile(), getExportHeader()]);
     const sheet = attendanceMapExcel(exportTarget.turma, allAttendance, profile, tr.statsAllPeriods, header, lang);
-    await exportExcel(sheet.rows, `Mapa_Presencas_${exportTarget.turma.designacao}`, sheet.name, {
+    await exportExcel(sheet.rows, "Mapa_de_faltas", sheet.name, {
       merges: sheet.merges,
       colWidths: sheet.colWidths,
       folder: "faltas",

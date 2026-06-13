@@ -61,13 +61,24 @@ jobs:
             -dname "CN=Plano de Aula, OU=EcoEducacional, O=EcoEducacional, L=Luanda, S=Luanda, C=AO"
 
           APKSIGNER="$(find "$ANDROID_HOME/build-tools" -name apksigner | sort -V | tail -n 1)"
+          INPUT_APK="$(find app/build/outputs/apk/release -type f -name '*unsigned*.apk' | head -n 1)"
+          if [ -z "$INPUT_APK" ]; then
+            INPUT_APK="$(find app/build/outputs/apk/release -type f -name '*.apk' ! -name 'plano-de-aula-release.apk' | head -n 1)"
+          fi
+          if [ -z "$INPUT_APK" ]; then
+            echo "No release APK found in app/build/outputs/apk/release"
+            find app/build/outputs -type f || true
+            exit 1
+          fi
+          echo "Signing APK: $INPUT_APK"
+
           "$APKSIGNER" sign \
             --ks plano-de-aula-release.keystore \
             --ks-key-alias plano-de-aula \
             --ks-pass pass:android \
             --key-pass pass:android \
             --out app/build/outputs/apk/release/plano-de-aula-release.apk \
-            app/build/outputs/apk/release/app-release-unsigned.apk
+            "$INPUT_APK"
 
           "$APKSIGNER" verify app/build/outputs/apk/release/plano-de-aula-release.apk
 

@@ -10,6 +10,8 @@ import {
 import { ExcelSheetSpec } from "@/lib/exports";
 import { Language, translations } from "@/lib/i18n";
 
+const SYSTEM_FOOTER = "Processado pelo Sistema EcoEducacional · Gestão Pedagógica";
+
 const NOW = () => {
   const d = new Date();
   const dd = String(d.getDate()).padStart(2, "0");
@@ -91,7 +93,15 @@ function escape(s: string): string {
 
 const baseStylePortrait = `
   <style>
-    @page { size: A4 portrait; margin: 14mm 12mm; }
+    @page {
+      size: A4 portrait;
+      margin: 1cm 2cm 2cm 2.5cm;
+      @bottom-right {
+        content: counter(page) " de " counter(pages);
+        color: #555;
+        font-size: 8pt;
+      }
+    }
     * { box-sizing: border-box; }
     body { font-family: 'Helvetica', 'Arial', sans-serif; color: #111; margin: 0; padding: 0; font-size: 10pt; }
     .doc-header { text-align: center; margin-bottom: 8px; }
@@ -118,7 +128,15 @@ const baseStylePortrait = `
 
 const baseStyleLandscape = `
   <style>
-    @page { size: A4 landscape; margin: 10mm 12mm; }
+    @page {
+      size: A4 landscape;
+      margin: 1cm 2cm 2cm 2.5cm;
+      @bottom-right {
+        content: counter(page) " de " counter(pages);
+        color: #555;
+        font-size: 8pt;
+      }
+    }
     * { box-sizing: border-box; }
     body { font-family: 'Helvetica', 'Arial', sans-serif; color: #111; margin: 0; padding: 0; font-size: 9.5pt; }
     .doc-header { text-align: center; margin-bottom: 8px; }
@@ -220,7 +238,7 @@ export function studentsListHtml(
       <div class="prof">${t.exportTeacher}: ${escape(profile.nome || "________________________")}</div>
       <div>${t.exportIssuedAt}: ${NOW()}</div>
     </div>
-    <div class="system">${t.exportSystem} · ${escape(profile.nome || "")}</div>
+    <div class="system">${SYSTEM_FOOTER}</div>
   `;
   return htmlDoc(`${t.exportStudentList} - ${turma.designacao}`, body);
 }
@@ -412,7 +430,7 @@ export function miniPautaHtml(
       <div class="prof">${t.exportTeacher}: ${escape(profile.nome || "________________________")}</div>
       <div>${t.exportIssuedAt}: ${NOW()}</div>
     </div>
-    <div class="system">${t.exportSystem} · ${escape(profile.nome || "")}</div>
+    <div class="system">${SYSTEM_FOOTER}</div>
   `;
   return htmlDoc(`${t.exportMiniPauta} - ${turma.designacao}${periodoStr}`, body, false);
 }
@@ -612,7 +630,7 @@ export function pautaCompletaHtml(
       <div class="prof">${t.exportTeacher}: ${escape(profile.nome || "________________________")}</div>
       <div>${t.exportIssuedAt}: ${NOW()}</div>
     </div>
-    <div class="system">${t.exportSystem} · ${escape(profile.nome || "")}</div>
+    <div class="system">${SYSTEM_FOOTER}</div>
   `;
   return htmlDoc(`${t.exportFullPauta} - ${turma.designacao}`, body, true);
 }
@@ -807,8 +825,8 @@ export function attendanceMapHtml(
       <div class="prof">${t.exportTeacher}: ${escape(profile.nome || "________________________")}</div>
       <div>${t.exportIssuedAt}: ${NOW()}</div>
     </div>
-    <div class="system">${t.exportSystem} · ${escape(profile.nome || "")}</div>
     <div style="margin-top:6px;font-size:8.5pt;color:#555">${t.exportP} = ${t.exportPresent} · ${t.exportF} = ${t.exportAbsent} · ${t.exportFJ} = ${t.exportJustified}</div>
+    <div class="system">${SYSTEM_FOOTER}</div>
   `;
   return htmlDoc(`${t.exportAttendanceMap} - ${turma.designacao}${periodoStr}`, body, true);
 }

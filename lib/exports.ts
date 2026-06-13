@@ -1,5 +1,11 @@
 import { Platform, Alert } from "react-native";
-import { ensureEcoFolders, getEcoFolderPath, getExportFileName, EcoFolder } from "./fileSystem";
+import {
+  createVisibleEcoFile,
+  ensureEcoFolders,
+  getEcoFolderPath,
+  getExportFileName,
+  EcoFolder,
+} from "./fileSystem";
 
 function sanitizeFileName(name: string): string {
   return name
@@ -61,10 +67,14 @@ export async function exportPdfFromHtml(
     const { uri: tempUri } = await Print.printToFileAsync({ html, base64: false });
 
     await ensureEcoFolders();
+    const pdfBase64 = await (FS as any).readAsStringAsync(tempUri, {
+      encoding: (FS as any).EncodingType?.Base64 ?? "base64",
+    });
+    const visibleUri = await createVisibleEcoFile(folder, filename, "application/pdf", pdfBase64);
     const folderPath = await getEcoFolderPath(folder);
-    let finalUri = tempUri;
+    let finalUri = visibleUri || tempUri;
 
-    if (folderPath) {
+    if (!visibleUri && folderPath) {
       const destUri = `${folderPath}${filename}`;
       try {
         await (FS as any).copyAsync({ from: tempUri, to: destUri });
@@ -74,8 +84,10 @@ export async function exportPdfFromHtml(
       }
     }
 
+    const shareUri = visibleUri ? tempUri : finalUri;
+
     if (await Sharing.isAvailableAsync()) {
-      await Sharing.shareAsync(finalUri, {
+      await Sharing.shareAsync(shareUri, {
         UTI: "com.adobe.pdf",
         mimeType: "application/pdf",
         dialogTitle: filename,
@@ -146,16 +158,24 @@ export async function exportExcelMultiSheet(
     const b64 = XLSX.write(wb, { bookType: "xlsx", type: "base64" }) as string;
 
     await ensureEcoFolders();
+    const visibleUri = await createVisibleEcoFile(
+      folder,
+      filename,
+      "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+      b64,
+    );
     const folderPath = await getEcoFolderPath(folder);
     const dir = folderPath || (FS as any).documentDirectory || (FS as any).cacheDirectory || "";
-    const fileUri = `${dir}${filename}`;
+    const shareDir = (FS as any).cacheDirectory || (FS as any).documentDirectory || dir;
+    const fileUri = visibleUri || `${dir}${filename}`;
+    const shareUri = visibleUri ? `${shareDir}${filename}` : fileUri;
 
-    await (FS as any).writeAsStringAsync(fileUri, b64, {
+    await (FS as any).writeAsStringAsync(shareUri, b64, {
       encoding: (FS as any).EncodingType?.Base64 ?? "base64",
     });
 
     if (await Sharing.isAvailableAsync()) {
-      await Sharing.shareAsync(fileUri, {
+      await Sharing.shareAsync(shareUri, {
         mimeType: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
         dialogTitle: filename,
         UTI: "org.openxmlformats.spreadsheetml.sheet",
