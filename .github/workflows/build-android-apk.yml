@@ -40,15 +40,40 @@ jobs:
       - name: Generate Android project
         run: npx expo prebuild --platform android --no-install
 
-      - name: Build debug APK
+      - name: Build release APK
         working-directory: android
         run: |
           chmod +x ./gradlew
-          ./gradlew assembleDebug
+          ./gradlew assembleRelease
+
+      - name: Sign release APK
+        working-directory: android
+        run: |
+          keytool -genkeypair -v \
+            -storetype PKCS12 \
+            -keystore plano-de-aula-release.keystore \
+            -alias plano-de-aula \
+            -keyalg RSA \
+            -keysize 2048 \
+            -validity 10000 \
+            -storepass android \
+            -keypass android \
+            -dname "CN=Plano de Aula, OU=EcoEducacional, O=EcoEducacional, L=Luanda, S=Luanda, C=AO"
+
+          APKSIGNER="$(find "$ANDROID_HOME/build-tools" -name apksigner | sort -V | tail -n 1)"
+          "$APKSIGNER" sign \
+            --ks plano-de-aula-release.keystore \
+            --ks-key-alias plano-de-aula \
+            --ks-pass pass:android \
+            --key-pass pass:android \
+            --out app/build/outputs/apk/release/plano-de-aula-release.apk \
+            app/build/outputs/apk/release/app-release-unsigned.apk
+
+          "$APKSIGNER" verify app/build/outputs/apk/release/plano-de-aula-release.apk
 
       - name: Upload APK artifact
         uses: actions/upload-artifact@v4
         with:
           name: plano-de-aula-apk
-          path: android/app/build/outputs/apk/debug/*.apk
+          path: android/app/build/outputs/apk/release/plano-de-aula-release.apk
           if-no-files-found: error

@@ -317,12 +317,6 @@ export default function ViewPlanScreen() {
     );
   }
 
-  const getScoreColor = (score: number) => {
-    if (score >= 80) return Colors.success;
-    if (score >= 60) return Colors.warning;
-    return Colors.error;
-  };
-
   const renderEditableList = (
     label: string,
     list: string[],
@@ -503,23 +497,7 @@ export default function ViewPlanScreen() {
                 <Icon name="clock" size={12} color={Colors.primary} />
                 <Text style={styles.metaChipText}>{plan.duracao} min</Text>
               </View>
-              {plan.score > 0 && (
-                <View style={[styles.metaChip, { backgroundColor: getScoreColor(plan.score) + "15" }]}>
-                  <Text style={[styles.metaChipText, { color: getScoreColor(plan.score) }]}>
-                    Score: {plan.score}
-                  </Text>
-                </View>
-              )}
             </View>
-
-            {plan.score === 0 && (
-              <View style={styles.aiOnlyNote}>
-                <Icon name="info" size={13} color={Colors.textMuted} />
-                <Text style={styles.aiOnlyNoteText}>
-                  Avaliação pedagógica disponível apenas para planos gerados com IA
-                </Text>
-              </View>
-            )}
 
             <View style={styles.section}>
               <Text style={styles.sectionTitle}>Sumario</Text>
@@ -674,18 +652,6 @@ export default function ViewPlanScreen() {
               </View>
             ) : null}
 
-            {plan.sugestoes.length > 0 && (
-              <View style={[styles.section, styles.sugestoesSection]}>
-                <Text style={styles.sectionTitle}>Sugestoes de Melhoria</Text>
-                {plan.sugestoes.map((s, i) => (
-                  <View key={i} style={styles.bulletItem}>
-                    <Icon name="zap" size={14} color={Colors.accent} />
-                    <Text style={styles.bulletText}>{s}</Text>
-                  </View>
-                ))}
-              </View>
-            )}
-
             <Pressable
               onPress={handleDownloadPdf}
               disabled={generating}
@@ -728,19 +694,12 @@ const styles = StyleSheet.create({
   content: { padding: 20, gap: 16 },
   emptyText: { fontFamily: "Inter_400Regular", fontSize: 16, color: Colors.textSecondary, textAlign: "center" },
   metaRow: { flexDirection: "row", flexWrap: "wrap", gap: 8 },
-  aiOnlyNote: {
-    flexDirection: "row", alignItems: "center", gap: 8,
-    backgroundColor: Colors.surface, borderRadius: 10, paddingHorizontal: 12, paddingVertical: 8,
-    borderWidth: 1, borderColor: Colors.border, marginBottom: 4,
-  },
-  aiOnlyNoteText: { fontFamily: "Inter_400Regular", fontSize: 12, color: Colors.textMuted, flex: 1 },
   metaChip: {
     flexDirection: "row", alignItems: "center", gap: 4,
     backgroundColor: Colors.primary + "12", paddingHorizontal: 10, paddingVertical: 6, borderRadius: 8,
   },
   metaChipText: { fontFamily: "Inter_500Medium", fontSize: 12, color: Colors.primary },
   section: { backgroundColor: Colors.surface, borderRadius: 14, padding: 16, gap: 8, borderWidth: 1, borderColor: Colors.border },
-  sugestoesSection: { backgroundColor: Colors.accent + "10" },
   sectionTitle: { fontFamily: "Inter_600SemiBold", fontSize: 15, color: Colors.text, marginBottom: 4 },
   sectionText: { fontFamily: "Inter_400Regular", fontSize: 14, color: Colors.textSecondary, lineHeight: 20 },
   bulletItem: { flexDirection: "row", alignItems: "flex-start", gap: 8, paddingVertical: 2 },

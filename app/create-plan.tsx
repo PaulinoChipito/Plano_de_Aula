@@ -61,8 +61,6 @@ export default function CreatePlanScreen() {
       perguntasControlo: perguntasControlo.filter((p) => p.trim()),
       tarefasPraticas: tarefasPraticas.filter((p) => p.trim()),
       perguntasTarefa: perguntasTarefa.filter((p) => p.trim()),
-      score: 0,
-      sugestoes: [],
       createdAt: new Date().toISOString(),
       periodo: currentPeriod,
       anoLectivo: currentYear,

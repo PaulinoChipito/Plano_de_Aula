@@ -51,12 +51,6 @@ export default function LessonPlansScreen() {
     ]);
   };
 
-  const getScoreColor = (score: number) => {
-    if (score >= 80) return Colors.success;
-    if (score >= 60) return Colors.warning;
-    return Colors.error;
-  };
-
   const renderPlan = ({ item }: { item: LessonPlan }) => (
     <Pressable
       onPress={() =>
@@ -75,18 +69,6 @@ export default function LessonPlansScreen() {
           </Text>
           <Text style={styles.planMeta}>
             {item.classe} - {item.disciplina}
-          </Text>
-        </View>
-        <View
-          style={[
-            styles.scoreBadge,
-            { backgroundColor: getScoreColor(item.score) + "25" },
-          ]}
-        >
-          <Text
-            style={[styles.scoreText, { color: getScoreColor(item.score) }]}
-          >
-            {item.score}
           </Text>
         </View>
       </View>
@@ -213,15 +195,6 @@ const styles = StyleSheet.create({
     fontSize: 13,
     color: Colors.textSecondary,
     marginTop: 4,
-  },
-  scoreBadge: {
-    paddingHorizontal: 10,
-    paddingVertical: 4,
-    borderRadius: 8,
-  },
-  scoreText: {
-    fontFamily: "Inter_700Bold",
-    fontSize: 14,
   },
   planFooter: {
     flexDirection: "row",

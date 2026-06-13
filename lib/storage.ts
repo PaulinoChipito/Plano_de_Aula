@@ -47,8 +47,6 @@ export interface LessonPlan {
   avaliacao?: string;
   diferenciacaoPedagogica?: DiferenciacaoPedagogica;
   observacoes?: string;
-  score: number;
-  sugestoes: string[];
   createdAt: string;
   periodo?: string;
   anoLectivo?: string;
@@ -144,7 +142,6 @@ const KEYS = {
   GRADES: "grades",
   ATTENDANCE: "attendance",
   EVENTS: "events",
-  API_KEY: "gemini_api_key",
   TEACHER_PROFILE: "teacher_profile",
   ONBOARDING_DONE: "onboarding_done",
   AULAS: "aulas_professor_v1",
@@ -162,14 +159,6 @@ async function getItem<T>(key: string, fallback: T): Promise<T> {
 
 async function setItem(key: string, value: unknown): Promise<void> {
   await AsyncStorage.setItem(key, JSON.stringify(value));
-}
-
-export async function getApiKey(): Promise<string> {
-  return (await AsyncStorage.getItem(KEYS.API_KEY)) || "";
-}
-
-export async function setApiKey(key: string): Promise<void> {
-  await AsyncStorage.setItem(KEYS.API_KEY, key);
 }
 
 export async function getLessonPlans(): Promise<LessonPlan[]> {

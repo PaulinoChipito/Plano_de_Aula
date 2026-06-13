@@ -5,13 +5,13 @@
 **Plano de Aula** is a mobile-first teacher productivity app built with Expo (React Native) that helps educators manage lesson plans, classes, student records, assessments, attendance, and scheduling. The app follows an **offline-first** architecture using AsyncStorage for local data persistence, with an Express backend server available for API services and optional cloud sync.
 
 Key features:
-- **Lesson Plan Creation** — Manual or AI-assisted generation with pedagogical scoring (0–100)
+- **Lesson Plan Creation** — Structured manual lesson plan creation
 - **Class/Student Management** — Create classes, add students with photos, phone contacts
 - **Assessments & Grades** — Track MAC (continuous assessment averages) and NPT (exam scores)
 - **Attendance Tracking** — Mark daily attendance per class with historical stats
 - **Agenda/Calendar** — Schedule events (classes, exams, meetings, reminders)
 - **Statistics Dashboard** — Cross-reference grades, attendance, and generate insights
-- **Settings** — Model status for AI features, teacher profile configuration
+- **Settings** — Teacher profile, language, header, school year and security configuration
 
 The app is designed for Portuguese-speaking educators (UI text is in Portuguese).
 
@@ -38,7 +38,7 @@ Preferred communication style: Simple, everyday language.
 |--------|---------|
 | `index.tsx` | Home dashboard with grid navigation |
 | `lesson-plans.tsx` | List all lesson plans |
-| `create-plan.tsx` | Create plan (manual or AI mode) |
+| `create-plan.tsx` | Create lesson plans manually |
 | `view-plan.tsx` | View plan details |
 | `classes.tsx` | Manage classes/turmas |
 | `class-detail.tsx` | View/edit class students |
@@ -48,7 +48,7 @@ Preferred communication style: Simple, everyday language.
 | `attendance-mark.tsx` | Mark daily attendance |
 | `statistics.tsx` | Analytics dashboard |
 | `agenda.tsx` | Event calendar |
-| `settings.tsx` | AI model status, teacher profile & security (PIN/biometria) |
+| `settings.tsx` | App settings, teacher profile & security (PIN/biometria) |
 
 ### Backend
 
@@ -64,7 +64,6 @@ The app is **100% offline** — there is no backend server. All data lives in As
   - *Desenvolvimento da Aula*: table with etapa, duracao, actividadesProfessor, actividadesAlunos
   - *Perguntas de Controlo*, *Tarefas Práticas*
   - *Avaliação*, *Observações*
-  - score (0-100), sugestoes, AI generation metadata
   - Backward-compatible: atividades and perguntasTarefa fields retained for older data
 - **ClassGroup** — Class with designation, subject, and embedded students array
 - **Student** — Name, age, guardian phone, photo URI
@@ -87,11 +86,8 @@ The app is **100% offline** — there is no backend server. All data lives in As
 
 ## External Dependencies
 
-### AI Integration
-- The app uses **offline-first AI** for lesson plan generation via `lib/localAI.ts`:
-  - **Web**: Runs the `Qwen2.5-0.5B-Instruct` model (ONNX quantized, ~300 MB) directly in the browser using `@huggingface/transformers` (WebAssembly). Downloaded once, cached in browser storage, fully offline afterwards. No API key required.
-  - **Native (iOS/Android)**: Smart template-based pedagogical generation — instant, fully offline, no model download needed.
-- Generated plans follow the structure defined in `docs/guia_plano_de_aula.md` (Angolan pedagogical guide with 18 model plans).
+### Lesson Plan Structure
+- Lesson plans follow the structure defined in `docs/guia_plano_de_aula.md` (Angolan pedagogical guide with 18 model plans).
 - No external API keys required. No data is sent to external servers.
 
 ### Database
@@ -104,7 +100,6 @@ The app is **100% offline** — there is no backend server. All data lives in As
 - **drizzle-orm** (^0.39.3) + **pg** (^8.16.3) — Database ORM
 - **@tanstack/react-query** (^5.83.0) — Server state management
 - **@react-native-async-storage/async-storage** (2.2.0) — Local persistence
-- **@huggingface/transformers** — Offline AI inference via Qwen2.5-0.5B-Instruct (ONNX) on web
 - **expo-image-picker** — Student photo selection
 - **expo-haptics** — Tactile feedback on actions
 - **expo-crypto** — UUID generation
