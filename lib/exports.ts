@@ -56,7 +56,7 @@ export async function exportPdfFromHtml(
   try {
     const Print = await import("expo-print");
     const Sharing = await import("expo-sharing");
-    const FS = await import("expo-file-system");
+    const FS = await import("expo-file-system/legacy");
 
     const { uri: tempUri } = await Print.printToFileAsync({ html, base64: false });
 
@@ -141,7 +141,7 @@ export async function exportExcelMultiSheet(
       return;
     }
 
-    const FS = await import("expo-file-system");
+    const FS = await import("expo-file-system/legacy");
     const Sharing = await import("expo-sharing");
     const b64 = XLSX.write(wb, { bookType: "xlsx", type: "base64" }) as string;
 

@@ -29,7 +29,7 @@ export function getExportFileName(baseName: string, ext: "pdf" | "xlsx"): string
 export async function ensureEcoFolders(): Promise<void> {
   if (Platform.OS === "web") return;
   try {
-    const FS = await import("expo-file-system");
+    const FS = await import("expo-file-system/legacy");
     const docDir = (FS as any).documentDirectory as string | undefined;
     if (!docDir) return;
     const subFolders: string[] = [
@@ -53,7 +53,7 @@ export async function ensureEcoFolders(): Promise<void> {
 export async function getEcoFolderPath(folder: EcoFolder): Promise<string | null> {
   if (Platform.OS === "web") return null;
   try {
-    const FS = await import("expo-file-system");
+    const FS = await import("expo-file-system/legacy");
     const docDir = (FS as any).documentDirectory as string | undefined;
     if (!docDir) return null;
     const map: Record<EcoFolder, string> = {
