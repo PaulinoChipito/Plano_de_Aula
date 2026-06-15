@@ -14,6 +14,12 @@ jobs:
     env:
       CI: true
       EXPO_NO_TELEMETRY: 1
+      EXPO_PUBLIC_GOOGLE_CLIENT_ID: ${{ secrets.EXPO_PUBLIC_GOOGLE_CLIENT_ID || '638940181616-v64e3fhu0tv6f5i4r17jhsp061re2sf4.apps.googleusercontent.com' }}
+      EXPO_PUBLIC_GOOGLE_REDIRECT_URI: ${{ secrets.EXPO_PUBLIC_GOOGLE_REDIRECT_URI || 'planodeaula://google-drive-auth' }}
+      ANDROID_KEYSTORE_BASE64: ${{ secrets.ANDROID_KEYSTORE_BASE64 }}
+      ANDROID_KEYSTORE_PASSWORD: ${{ secrets.ANDROID_KEYSTORE_PASSWORD }}
+      ANDROID_KEY_ALIAS: ${{ secrets.ANDROID_KEY_ALIAS }}
+      ANDROID_KEY_PASSWORD: ${{ secrets.ANDROID_KEY_PASSWORD }}
 
     steps:
       - name: Checkout
@@ -49,16 +55,27 @@ jobs:
       - name: Sign release APK
         working-directory: android
         run: |
-          keytool -genkeypair -v \
-            -storetype PKCS12 \
+          if [ -z "$ANDROID_KEYSTORE_BASE64" ] || [ -z "$ANDROID_KEYSTORE_PASSWORD" ]; then
+            echo "::error::Configure os secrets ANDROID_KEYSTORE_BASE64 e ANDROID_KEYSTORE_PASSWORD para assinar o APK com um certificado fixo."
+            exit 1
+          fi
+
+          if [ -z "$ANDROID_KEY_ALIAS" ]; then
+            ANDROID_KEY_ALIAS="plano-de-aula"
+          fi
+
+          if [ -z "$ANDROID_KEY_PASSWORD" ]; then
+            ANDROID_KEY_PASSWORD="$ANDROID_KEYSTORE_PASSWORD"
+          fi
+
+          printf '%s' "$ANDROID_KEYSTORE_BASE64" | base64 --decode > plano-de-aula-release.keystore
+
+          echo "Release certificate fingerprints:"
+          keytool -list -v \
             -keystore plano-de-aula-release.keystore \
-            -alias plano-de-aula \
-            -keyalg RSA \
-            -keysize 2048 \
-            -validity 10000 \
-            -storepass android \
-            -keypass android \
-            -dname "CN=Plano de Aula, OU=EcoEducacional, O=EcoEducacional, L=Luanda, S=Luanda, C=AO"
+            -alias "$ANDROID_KEY_ALIAS" \
+            -storepass "$ANDROID_KEYSTORE_PASSWORD" \
+            | grep -E "SHA1|SHA256"
 
           APKSIGNER="$(find "$ANDROID_HOME/build-tools" -name apksigner | sort -V | tail -n 1)"
           INPUT_APK="$(find app/build/outputs/apk/release -type f -name '*unsigned*.apk' | head -n 1)"
@@ -74,9 +91,9 @@ jobs:
 
           "$APKSIGNER" sign \
             --ks plano-de-aula-release.keystore \
-            --ks-key-alias plano-de-aula \
-            --ks-pass pass:android \
-            --key-pass pass:android \
+            --ks-key-alias "$ANDROID_KEY_ALIAS" \
+            --ks-pass "pass:$ANDROID_KEYSTORE_PASSWORD" \
+            --key-pass "pass:$ANDROID_KEY_PASSWORD" \
             --out app/build/outputs/apk/release/plano-de-aula-release.apk \
             "$INPUT_APK"
 

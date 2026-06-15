@@ -65,6 +65,14 @@ const ITEMS: SettingsItem[] = [
     route: "/settings-cabecalho",
   },
   {
+    labelKey: "settingsBackup",
+    subKey: "settingsBackupSub",
+    icon: "download",
+    color: "#22c55e",
+    bg: "#22c55e18",
+    route: "/settings-backup",
+  },
+  {
     labelKey: "settingsAbout",
     subKey: "settingsAboutSub",
     icon: "info",

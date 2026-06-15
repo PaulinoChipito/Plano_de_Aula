@@ -52,6 +52,7 @@ function RootLayoutNav() {
       <Stack.Screen name="settings-security" />
       <Stack.Screen name="settings-idioma" />
       <Stack.Screen name="settings-cabecalho" />
+      <Stack.Screen name="settings-backup" />
       <Stack.Screen name="settings-sobre" />
     </Stack>
   );
