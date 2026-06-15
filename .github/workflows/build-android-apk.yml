@@ -68,7 +68,8 @@ jobs:
             ANDROID_KEY_PASSWORD="$ANDROID_KEYSTORE_PASSWORD"
           fi
 
-          printf '%s' "$ANDROID_KEYSTORE_BASE64" | base64 --decode > plano-de-aula-release.keystore
+          KEYSTORE_BASE64_CLEAN="$(printf '%s' "$ANDROID_KEYSTORE_BASE64" | sed 's/^ANDROID_KEYSTORE_BASE64=//' | tr '\r\n' ' ' | awk '{print $1}')"
+          printf '%s' "$KEYSTORE_BASE64_CLEAN" | base64 --decode > plano-de-aula-release.keystore
 
           echo "Release certificate fingerprints:"
           keytool -list -v \
