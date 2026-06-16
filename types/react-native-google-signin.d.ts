@@ -12,7 +12,7 @@ declare module "@react-native-google-signin/google-signin" {
   };
 
   export const GoogleSignin: {
-    configure(options?: { scopes?: string[]; offlineAccess?: boolean }): void;
+    configure(options?: { scopes?: string[]; offlineAccess?: boolean; webClientId?: string }): void;
     hasPlayServices(options?: { showPlayServicesUpdateDialog?: boolean }): Promise<boolean>;
     hasPreviousSignIn(): boolean;
     signIn(options?: Record<string, unknown>): Promise<SignInResponse>;

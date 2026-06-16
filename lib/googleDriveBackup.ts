@@ -22,6 +22,8 @@ const GOOGLE_REDIRECT_PATH = "google-drive-auth";
 const DEFAULT_GOOGLE_REDIRECT_URI = "com.planodeaula.app:/google-drive-auth";
 const ANDROID_NATIVE_AUTH_REQUIRED =
   "Google Sign-In nativo ainda nao esta disponivel neste build. Instale @react-native-google-signin/google-signin e recompile o APK.";
+const ANDROID_DEVELOPER_ERROR_MESSAGE =
+  "Erro de configuracao do Google Sign-In. Confirme no Google Cloud/Firebase que existe um OAuth Client Android com package name com.planodeaula.app e o SHA-1 da chave usada para assinar este APK. Se usar EXPO_PUBLIC_GOOGLE_WEB_CLIENT_ID, ele deve ser um OAuth Client do tipo Web.";
 
 export interface GoogleDriveBackupStatus {
   configured: boolean;
@@ -56,7 +58,7 @@ type GoogleSigninResponse = {
 };
 
 type GoogleSigninApi = {
-  configure: (options?: { scopes?: string[]; offlineAccess?: boolean }) => void;
+  configure: (options?: { scopes?: string[]; offlineAccess?: boolean; webClientId?: string }) => void;
   hasPlayServices: (options?: { showPlayServicesUpdateDialog?: boolean }) => Promise<boolean>;
   hasPreviousSignIn: () => boolean;
   signIn: (options?: Record<string, unknown>) => Promise<GoogleSigninResponse>;
@@ -68,6 +70,16 @@ type GoogleSigninApi = {
 
 function getClientId() {
   return process.env.EXPO_PUBLIC_GOOGLE_CLIENT_ID ?? DEFAULT_GOOGLE_CLIENT_ID;
+}
+
+function getNativeWebClientId() {
+  return process.env.EXPO_PUBLIC_GOOGLE_WEB_CLIENT_ID?.trim();
+}
+
+function isGoogleDeveloperError(error: unknown) {
+  const anyError = error as { code?: string; message?: string };
+  const text = `${anyError.code ?? ""} ${anyError.message ?? ""}`;
+  return /DEVELOPER_ERROR|code:\s*10|Developer console is not set up correctly/i.test(text);
 }
 
 export function getGoogleDriveRedirectUri() {
@@ -96,41 +108,53 @@ async function loadGoogleSignin(): Promise<GoogleSigninApi> {
 
 async function getNativeGoogleDriveTokens(interactive: boolean): Promise<GoogleDriveTokens> {
   const GoogleSignin = await loadGoogleSignin();
+  const webClientId = getNativeWebClientId();
   GoogleSignin.configure({
     scopes: [DRIVE_SCOPE],
     offlineAccess: false,
+    ...(webClientId ? { webClientId } : {}),
   });
 
-  await GoogleSignin.hasPlayServices({ showPlayServicesUpdateDialog: true });
+  try {
+    await GoogleSignin.hasPlayServices({ showPlayServicesUpdateDialog: true });
 
-  let response: GoogleSigninResponse | null = null;
-  if (GoogleSignin.hasPreviousSignIn()) {
-    response = await GoogleSignin.signInSilently();
-  }
-
-  if (response?.type !== "success") {
-    if (!interactive) throw new Error("Sessao Google expirada. Inicie sessao novamente.");
-    response = await GoogleSignin.signIn({});
-  }
-
-  if (response.type !== "success" || !response.data) {
-    throw new Error("Inicio de sessao cancelado.");
-  }
-
-  if (!response.data.scopes?.includes(DRIVE_SCOPE)) {
-    const scopedResponse = await GoogleSignin.addScopes({ scopes: [DRIVE_SCOPE] });
-    if (scopedResponse?.type !== "success" || !scopedResponse.data) {
-      throw new Error("Permissao Google Drive nao concedida.");
+    let response: GoogleSigninResponse | null = null;
+    if (GoogleSignin.hasPreviousSignIn()) {
+      response = await GoogleSignin.signInSilently();
     }
-    response = scopedResponse;
-  }
 
-  const tokens = await GoogleSignin.getTokens();
-  return {
-    accessToken: tokens.accessToken,
-    expiresAt: Date.now() + 55 * 60 * 1000,
-    email: response.data.user?.email ?? undefined,
-  };
+    if (response?.type !== "success") {
+      if (!interactive) throw new Error("Sessao Google expirada. Inicie sessao novamente.");
+      response = await GoogleSignin.signIn({});
+    }
+
+    if (response.type !== "success" || !response.data) {
+      throw new Error("Inicio de sessao cancelado.");
+    }
+
+    if (!response.data.scopes?.includes(DRIVE_SCOPE)) {
+      const scopedResponse = await GoogleSignin.addScopes({ scopes: [DRIVE_SCOPE] });
+      if (scopedResponse?.type !== "success" || !scopedResponse.data) {
+        throw new Error("Permissao Google Drive nao concedida.");
+      }
+      response = scopedResponse;
+    }
+
+    const userData = response.data;
+    if (!userData) throw new Error("Inicio de sessao cancelado.");
+
+    const tokens = await GoogleSignin.getTokens();
+    return {
+      accessToken: tokens.accessToken,
+      expiresAt: Date.now() + 55 * 60 * 1000,
+      email: userData.user?.email ?? undefined,
+    };
+  } catch (error) {
+    if (isGoogleDeveloperError(error)) {
+      throw new Error(ANDROID_DEVELOPER_ERROR_MESSAGE);
+    }
+    throw error;
+  }
 }
 
 async function getStoredTokens(): Promise<GoogleDriveTokens | null> {
