@@ -5,7 +5,10 @@
     "version": "1.0.0",
     "orientation": "portrait",
     "icon": "./assets/images/icon.png",
-    "scheme": "planodeaula",
+    "scheme": [
+      "planodeaula",
+      "com.planodeaula.app"
+    ],
     "userInterfaceStyle": "automatic",
     "newArchEnabled": true,
     "splash": {
@@ -34,6 +37,12 @@
         "expo-router",
         {
           "origin": "https://replit.com/"
+        }
+      ],
+      [
+        "@react-native-google-signin/google-signin",
+        {
+          "iosUrlScheme": "com.googleusercontent.apps.638940181616-v64e3fhu0tv6f5i4r17jhsp061re2sf4"
         }
       ],
       "expo-font",

@@ -1,6 +1,8 @@
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import * as Crypto from "expo-crypto";
+import * as Linking from "expo-linking";
 import * as WebBrowser from "expo-web-browser";
+import { Platform } from "react-native";
 import { createAppBackupPayload, parseAppBackupPayload, restoreAppBackupPayload } from "./appBackup";
 
 WebBrowser.maybeCompleteAuthSession();
@@ -16,7 +18,10 @@ const DRIVE_FILES_URL = "https://www.googleapis.com/drive/v3/files";
 const DRIVE_UPLOAD_URL = "https://www.googleapis.com/upload/drive/v3/files";
 const DEFAULT_GOOGLE_CLIENT_ID =
   "638940181616-v64e3fhu0tv6f5i4r17jhsp061re2sf4.apps.googleusercontent.com";
-const DEFAULT_GOOGLE_REDIRECT_URI = "planodeaula://google-drive-auth";
+const GOOGLE_REDIRECT_PATH = "google-drive-auth";
+const DEFAULT_GOOGLE_REDIRECT_URI = "com.planodeaula.app:/google-drive-auth";
+const ANDROID_NATIVE_AUTH_REQUIRED =
+  "Google Sign-In nativo ainda nao esta disponivel neste build. Instale @react-native-google-signin/google-signin e recompile o APK.";
 
 export interface GoogleDriveBackupStatus {
   configured: boolean;
@@ -38,16 +43,94 @@ interface GoogleDriveTokens {
   email?: string;
 }
 
+type GoogleSigninUser = {
+  scopes?: string[];
+  user?: {
+    email?: string | null;
+  };
+};
+
+type GoogleSigninResponse = {
+  type: "success" | "cancelled" | "noSavedCredentialFound" | string;
+  data?: GoogleSigninUser;
+};
+
+type GoogleSigninApi = {
+  configure: (options?: { scopes?: string[]; offlineAccess?: boolean }) => void;
+  hasPlayServices: (options?: { showPlayServicesUpdateDialog?: boolean }) => Promise<boolean>;
+  hasPreviousSignIn: () => boolean;
+  signIn: (options?: Record<string, unknown>) => Promise<GoogleSigninResponse>;
+  signInSilently: () => Promise<GoogleSigninResponse>;
+  addScopes: (options: { scopes: string[] }) => Promise<GoogleSigninResponse | null>;
+  getTokens: () => Promise<{ accessToken: string; idToken?: string }>;
+  signOut: () => Promise<null>;
+};
+
 function getClientId() {
   return process.env.EXPO_PUBLIC_GOOGLE_CLIENT_ID ?? DEFAULT_GOOGLE_CLIENT_ID;
 }
 
 export function getGoogleDriveRedirectUri() {
-  return process.env.EXPO_PUBLIC_GOOGLE_REDIRECT_URI ?? DEFAULT_GOOGLE_REDIRECT_URI;
+  const configuredRedirectUri = process.env.EXPO_PUBLIC_GOOGLE_REDIRECT_URI?.trim();
+  if (configuredRedirectUri) return configuredRedirectUri;
+
+  if (Platform.OS === "web") {
+    return Linking.createURL(GOOGLE_REDIRECT_PATH);
+  }
+
+  return DEFAULT_GOOGLE_REDIRECT_URI;
 }
 
 export function isGoogleDriveBackupConfigured() {
   return getClientId().trim().length > 0;
+}
+
+async function loadGoogleSignin(): Promise<GoogleSigninApi> {
+  try {
+    const googleSigninModule = await import("@react-native-google-signin/google-signin");
+    return googleSigninModule.GoogleSignin as GoogleSigninApi;
+  } catch {
+    throw new Error(ANDROID_NATIVE_AUTH_REQUIRED);
+  }
+}
+
+async function getNativeGoogleDriveTokens(interactive: boolean): Promise<GoogleDriveTokens> {
+  const GoogleSignin = await loadGoogleSignin();
+  GoogleSignin.configure({
+    scopes: [DRIVE_SCOPE],
+    offlineAccess: false,
+  });
+
+  await GoogleSignin.hasPlayServices({ showPlayServicesUpdateDialog: true });
+
+  let response: GoogleSigninResponse | null = null;
+  if (GoogleSignin.hasPreviousSignIn()) {
+    response = await GoogleSignin.signInSilently();
+  }
+
+  if (response?.type !== "success") {
+    if (!interactive) throw new Error("Sessao Google expirada. Inicie sessao novamente.");
+    response = await GoogleSignin.signIn({});
+  }
+
+  if (response.type !== "success" || !response.data) {
+    throw new Error("Inicio de sessao cancelado.");
+  }
+
+  if (!response.data.scopes?.includes(DRIVE_SCOPE)) {
+    const scopedResponse = await GoogleSignin.addScopes({ scopes: [DRIVE_SCOPE] });
+    if (scopedResponse?.type !== "success" || !scopedResponse.data) {
+      throw new Error("Permissao Google Drive nao concedida.");
+    }
+    response = scopedResponse;
+  }
+
+  const tokens = await GoogleSignin.getTokens();
+  return {
+    accessToken: tokens.accessToken,
+    expiresAt: Date.now() + 55 * 60 * 1000,
+    email: response.data.user?.email ?? undefined,
+  };
 }
 
 async function getStoredTokens(): Promise<GoogleDriveTokens | null> {
@@ -136,6 +219,12 @@ async function exchangeCodeForTokens(code: string, verifier: string): Promise<Go
 }
 
 async function refreshAccessToken(tokens: GoogleDriveTokens): Promise<GoogleDriveTokens> {
+  if (Platform.OS === "android") {
+    const refreshed = await getNativeGoogleDriveTokens(false);
+    await storeTokens(refreshed);
+    return refreshed;
+  }
+
   if (!tokens.refreshToken) throw new Error("Sessão Google expirada. Inicie sessão novamente.");
 
   const response = await fetch(TOKEN_URL, {
@@ -195,6 +284,12 @@ export async function getGoogleDriveBackupStatus(): Promise<GoogleDriveBackupSta
 export async function signInToGoogleDrive(): Promise<GoogleDriveTokens> {
   if (!isGoogleDriveBackupConfigured()) {
     throw new Error("Backup Google Drive não configurado.");
+  }
+
+  if (Platform.OS === "android") {
+    const tokens = await getNativeGoogleDriveTokens(true);
+    await storeTokens(tokens);
+    return tokens;
   }
 
   const state = bytesToBase64Url(await Crypto.getRandomBytesAsync(16));
