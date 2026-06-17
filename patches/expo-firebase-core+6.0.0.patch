@@ -1,0 +1,22 @@
+*** Begin Patch
+*** Update File: node_modules/expo-firebase-core/android/build.gradle
+@@
+ task androidSourcesJar(type: Jar) {
+-  classifier = 'sources'
++  archiveClassifier.set('sources')
+   from android.sourceSets.main.java.srcDirs
+ }
+@@
+ android {
+-  compileSdkVersion safeExtGet("compileSdkVersion", 31)
++  compileSdk = safeExtGet("compileSdkVersion", 31)
+@@
+   defaultConfig {
+-    minSdkVersion safeExtGet("minSdkVersion", 21)
+-    targetSdkVersion safeExtGet("targetSdkVersion", 31)
++    minSdk safeExtGet("minSdkVersion", 21)
++    targetSdk safeExtGet("targetSdkVersion", 31)
+     versionCode 10
+     versionName '6.0.0'
+   }
+*** End Patch
