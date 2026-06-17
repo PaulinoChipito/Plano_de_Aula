@@ -45,7 +45,16 @@
           "iosUrlScheme": "com.googleusercontent.apps.638940181616-v64e3fhu0tv6f5i4r17jhsp061re2sf4"
         }
       ],
-      "expo-firebase-core",
+      [
+        "expo-build-properties",
+        {
+          "android": {
+            "compileSdkVersion": 33,
+            "targetSdkVersion": 33,
+            "minSdkVersion": 21
+          }
+        }
+      ],
       "expo-font",
       "expo-web-browser"
     ],
