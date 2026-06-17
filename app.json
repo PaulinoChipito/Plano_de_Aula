@@ -45,6 +45,7 @@
           "iosUrlScheme": "com.googleusercontent.apps.638940181616-v64e3fhu0tv6f5i4r17jhsp061re2sf4"
         }
       ],
+      "expo-firebase-core",
       "expo-font",
       "expo-web-browser"
     ],
