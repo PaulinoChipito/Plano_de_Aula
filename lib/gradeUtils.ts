@@ -8,9 +8,5 @@ export function getMacAverage(mac: GradeEntry[]): number {
 export function getNotaFinal(mac: GradeEntry[], npt: number | null): number | null {
   const macAvg = mac.length > 0 ? getMacAverage(mac) : null;
   if (macAvg === null && npt === null) return null;
-  if (macAvg !== null && npt !== null) {
-    return Math.round(((macAvg + npt) / 2) * 10) / 10;
-  }
-  if (macAvg !== null) return macAvg;
-  return npt;
+  return Math.round((((macAvg ?? 0) + (npt ?? 0)) / 2) * 10) / 10;
 }

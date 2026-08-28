@@ -308,13 +308,10 @@ interface TrimestreStats {
 function calcTrimestre(grade: StudentGrade | undefined): AlunoTrimestre {
   const macA = grade ? macAvg(grade.mac) : null;
   const nptA = grade?.npt ?? null;
-  // Trimestral average: MAC plus NPT divided by 2.
   const mtA =
-    macA !== null && nptA !== null
-      ? Math.round(((macA + nptA) / 2) * 10) / 10
-      : macA !== null
-        ? macA
-        : nptA;
+    macA !== null || nptA !== null
+      ? Math.round((((macA ?? 0) + (nptA ?? 0)) / 2) * 10) / 10
+      : null;
   return { mac: macA, npt: nptA, mt: mtA };
 }
 
