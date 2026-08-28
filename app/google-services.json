@@ -1,26 +1,44 @@
 {
   "project_info": {
-    "project_number": "638940181616",
-    "project_id": "eco-educacional",
-    "storage_bucket": "eco-educacional.firebasestorage.app"
+    "project_number": "298990139943",
+    "project_id": "plano-de-aula-ac311",
+    "storage_bucket": "plano-de-aula-ac311.firebasestorage.app"
   },
   "client": [
     {
       "client_info": {
-        "mobilesdk_app_id": "1:638940181616:android:25eedd9e55a0a9fd03b0b5",
+        "mobilesdk_app_id": "1:298990139943:android:fb1fb978d9110ff6c4ac02",
         "android_client_info": {
           "package_name": "com.planodeaula.app"
         }
       },
-      "oauth_client": [],
+      "oauth_client": [
+        {
+          "client_id": "298990139943-ehk2i7dalsmb4p5iaq911iqubi4ggks0.apps.googleusercontent.com",
+          "client_type": 1,
+          "android_info": {
+            "package_name": "com.planodeaula.app",
+            "certificate_hash": "f20f9b839fd18a090a52444f33d83757f181e8f7"
+          }
+        },
+        {
+          "client_id": "298990139943-ehk2i7dalsmb4p5iaq911iqubi4ggks0.apps.googleusercontent.com",
+          "client_type": 3
+        }
+      ],
       "api_key": [
         {
-          "current_key": "AIzaSyALklLi-7f7ezfQi5vvOPHxl-WvPt3lPXg"
+          "current_key": "AIzaSyBbLZvhMSCu6Bsj6pirZ12pbZ_GOwYniuQ"
         }
       ],
       "services": {
         "appinvite_service": {
-          "other_platform_oauth_client": []
+          "other_platform_oauth_client": [
+            {
+              "client_id": "298990139943-ehk2i7dalsmb4p5iaq911iqubi4ggks0.apps.googleusercontent.com",
+              "client_type": 3
+            }
+          ]
         }
       }
     }

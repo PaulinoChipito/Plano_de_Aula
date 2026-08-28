@@ -18,6 +18,7 @@ import { PeriodProvider } from "@/lib/periodContext";
 import { YearProvider } from "@/lib/yearContext";
 import { LanguageProvider } from "@/lib/LanguageProvider";
 import { ensureEcoFolders } from "@/lib/fileSystem";
+import { startAutomaticBackupMonitor } from "@/lib/automaticBackup";
 
 SplashScreen.preventAutoHideAsync();
 
@@ -29,6 +30,7 @@ function RootLayoutNav() {
       }
     });
     ensureEcoFolders().catch(() => {});
+    return startAutomaticBackupMonitor();
   }, []);
 
   return (

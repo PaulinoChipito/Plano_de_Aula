@@ -26,6 +26,11 @@ import {
   DriveBackupFile,
 } from "@/lib/googleDriveBackup";
 import { useLanguage } from "@/lib/i18n";
+import {
+  AutomaticBackupFrequency,
+  getAutomaticBackupSettings,
+  setAutomaticBackupFrequency,
+} from "@/lib/automaticBackup";
 
 export default function SettingsBackupScreen() {
   const insets = useSafeAreaInsets();
@@ -39,12 +44,14 @@ export default function SettingsBackupScreen() {
   const [latest, setLatest] = useState<DriveBackupFile | null>(null);
   const [loading, setLoading] = useState(true);
   const [busy, setBusy] = useState<"signin" | "backup" | "restore" | "signout" | null>(null);
+  const [automaticFrequency, setAutomaticFrequency] = useState<AutomaticBackupFrequency>("off");
 
   const refresh = useCallback(async () => {
     setLoading(true);
     try {
       const nextStatus = await getGoogleDriveBackupStatus();
       setStatus(nextStatus);
+      setAutomaticFrequency((await getAutomaticBackupSettings()).frequency);
       if (nextStatus.configured && nextStatus.connected) {
         setLatest(await getLatestDriveBackupInfo());
       } else {
@@ -136,6 +143,27 @@ export default function SettingsBackupScreen() {
                 <Text style={styles.statusSub}>
                   {tr.backupLastBackup}: {lastBackupText}
                 </Text>
+              </View>
+
+              <View style={styles.automaticBox}>
+                <Text style={styles.automaticTitle}>{tr.backupAutomaticTitle}</Text>
+                <Text style={styles.automaticSubtitle}>{tr.backupAutomaticSubtitle}</Text>
+                <View style={styles.frequencyOptions}>
+                  {(["off", "daily", "weekly", "monthly"] as AutomaticBackupFrequency[]).map((frequency) => (
+                    <Pressable
+                      key={frequency}
+                      onPress={async () => {
+                        await setAutomaticBackupFrequency(frequency);
+                        setAutomaticFrequency(frequency);
+                      }}
+                      style={[styles.frequencyOption, automaticFrequency === frequency && styles.frequencyOptionSelected]}
+                    >
+                      <Text style={[styles.frequencyText, automaticFrequency === frequency && styles.frequencyTextSelected]}>
+                        {tr[`backupFrequency${frequency[0].toUpperCase()}${frequency.slice(1)}` as "backupFrequencyOff"]}
+                      </Text>
+                    </Pressable>
+                  ))}
+                </View>
               </View>
 
               {!status.configured ? (
@@ -260,6 +288,29 @@ const styles = StyleSheet.create({
   },
   statusLabel: { fontFamily: "Inter_600SemiBold", fontSize: 14, color: Colors.text },
   statusSub: { fontFamily: "Inter_400Regular", fontSize: 12, color: Colors.textSecondary },
+  automaticBox: {
+    marginTop: 14,
+    padding: 14,
+    borderRadius: 12,
+    backgroundColor: "rgba(255,255,255,0.04)",
+    borderWidth: 1,
+    borderColor: Colors.border,
+    gap: 6,
+  },
+  automaticTitle: { fontFamily: "Inter_600SemiBold", fontSize: 14, color: Colors.text },
+  automaticSubtitle: { fontFamily: "Inter_400Regular", fontSize: 12, color: Colors.textSecondary },
+  frequencyOptions: { gap: 8, marginTop: 8 },
+  frequencyOption: {
+    minHeight: 42,
+    paddingHorizontal: 12,
+    borderRadius: 10,
+    borderWidth: 1,
+    borderColor: Colors.border,
+    justifyContent: "center",
+  },
+  frequencyOptionSelected: { backgroundColor: Colors.primary, borderColor: Colors.primary },
+  frequencyText: { fontFamily: "Inter_500Medium", fontSize: 13, color: Colors.textSecondary },
+  frequencyTextSelected: { color: "#fff" },
   warningBox: {
     marginTop: 14,
     padding: 14,
