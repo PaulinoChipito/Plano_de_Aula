@@ -305,7 +305,7 @@ export async function getGoogleDriveBackupStatus(): Promise<GoogleDriveBackupSta
   };
 }
 
-export async function signInToGoogleDrive(): Promise<GoogleDriveTokens> {
+export async function signInToGoogleDrive(forceAccountSelection = false): Promise<GoogleDriveTokens> {
   if (!isGoogleDriveBackupConfigured()) {
     throw new Error("Backup Google Drive não configurado.");
   }
@@ -325,7 +325,7 @@ export async function signInToGoogleDrive(): Promise<GoogleDriveTokens> {
     code_challenge: challenge,
     code_challenge_method: "S256",
     include_granted_scopes: "true",
-    prompt: "consent",
+    prompt: forceAccountSelection ? "select_account" : "consent",
     redirect_uri: redirectUri,
     response_type: "code",
     scope: `${PROFILE_SCOPE} ${DRIVE_SCOPE}`,
@@ -347,9 +347,20 @@ export async function signInToGoogleDrive(): Promise<GoogleDriveTokens> {
 
 export async function signOutFromGoogleDrive() {
   await AsyncStorage.removeItem(TOKEN_STORAGE_KEY);
+  if (Platform.OS === "android") {
+    try {
+      const GoogleSignin = await loadGoogleSignin();
+      await GoogleSignin.signOut();
+    } catch {}
+  }
 }
 
-async function findBackupFile(accessToken: string): Promise<DriveBackupFile | null> {
+export async function switchGoogleDriveAccount(): Promise<GoogleDriveTokens> {
+  await signOutFromGoogleDrive();
+  return signInToGoogleDrive(true);
+}
+
+async function findBackupFiles(accessToken: string): Promise<DriveBackupFile[]> {
   const params = new URLSearchParams({
     fields: "files(id,name,modifiedTime,size)",
     orderBy: "modifiedTime desc",
@@ -362,54 +373,66 @@ async function findBackupFile(accessToken: string): Promise<DriveBackupFile | nu
 
   if (!response.ok) throw new Error(await response.text());
   const json = await response.json();
-  return json.files?.[0] ?? null;
+  return json.files ?? [];
+}
+
+async function deleteBackupFile(accessToken: string, fileId: string) {
+  const response = await fetch(`${DRIVE_FILES_URL}/${fileId}`, {
+    method: "DELETE",
+    headers: { Authorization: `Bearer ${accessToken}` },
+  });
+  if (!response.ok) throw new Error(await response.text());
 }
 
 export async function getLatestDriveBackupInfo(): Promise<DriveBackupFile | null> {
   if (!isGoogleDriveBackupConfigured()) return null;
   const tokens = await getValidTokens();
-  return findBackupFile(tokens.accessToken);
+  const files = await findBackupFiles(tokens.accessToken);
+  return files[0] ?? null;
 }
 
 export async function uploadBackupToDrive(): Promise<DriveBackupFile | null> {
   const tokens = await getValidTokens();
   const payload = await createAppBackupPayload();
-  const existing = await findBackupFile(tokens.accessToken);
   const content = JSON.stringify(payload);
 
+  const existingFiles = await findBackupFiles(tokens.accessToken);
   const response = await fetch(
-    existing
-      ? `${DRIVE_UPLOAD_URL}/${existing.id}?uploadType=media&fields=id,name,modifiedTime,size`
-      : `${DRIVE_UPLOAD_URL}?uploadType=multipart&fields=id,name,modifiedTime,size`,
+    `${DRIVE_UPLOAD_URL}?uploadType=multipart&fields=id,name,modifiedTime,size`,
     {
-      method: existing ? "PATCH" : "POST",
+      method: "POST",
       headers: {
         Authorization: `Bearer ${tokens.accessToken}`,
-        "Content-Type": existing ? "application/json" : "multipart/related; boundary=ecoeducacional_backup",
+        "Content-Type": "multipart/related; boundary=ecoeducacional_backup",
       },
-      body: existing
-        ? content
-        : [
-            "--ecoeducacional_backup",
-            "Content-Type: application/json; charset=UTF-8",
-            "",
-            JSON.stringify({ name: BACKUP_FILE_NAME, parents: ["appDataFolder"] }),
-            "--ecoeducacional_backup",
-            "Content-Type: application/json",
-            "",
-            content,
-            "--ecoeducacional_backup--",
-          ].join("\r\n"),
+      body: [
+        "--ecoeducacional_backup",
+        "Content-Type: application/json; charset=UTF-8",
+        "",
+        JSON.stringify({ name: BACKUP_FILE_NAME, parents: ["appDataFolder"] }),
+        "--ecoeducacional_backup",
+        "Content-Type: application/json",
+        "",
+        content,
+        "--ecoeducacional_backup--",
+      ].join("\r\n"),
     },
   );
 
   if (!response.ok) throw new Error(await response.text());
-  return response.json();
+  const uploaded = (await response.json()) as DriveBackupFile;
+  for (const file of existingFiles) {
+    if (file.id !== uploaded.id) {
+      await deleteBackupFile(tokens.accessToken, file.id);
+    }
+  }
+  return uploaded;
 }
 
 export async function restoreBackupFromDrive(): Promise<void> {
   const tokens = await getValidTokens();
-  const file = await findBackupFile(tokens.accessToken);
+  const files = await findBackupFiles(tokens.accessToken);
+  const file = files[0];
   if (!file) throw new Error("Nenhum backup encontrado no Google Drive.");
 
   const response = await fetch(`${DRIVE_FILES_URL}/${file.id}?alt=media`, {

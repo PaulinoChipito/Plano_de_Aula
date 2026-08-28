@@ -20,7 +20,7 @@ import {
   getLatestDriveBackupInfo,
   GoogleDriveBackupStatus,
   signInToGoogleDrive,
-  signOutFromGoogleDrive,
+  switchGoogleDriveAccount,
   uploadBackupToDrive,
   restoreBackupFromDrive,
   DriveBackupFile,
@@ -176,14 +176,16 @@ export default function SettingsBackupScreen() {
 
               <View style={styles.actions}>
                 <ActionButton
-                  label={status.connected ? tr.backupSignOut : tr.backupSignIn}
+                  label={status.connected ? tr.backupChangeAccount : tr.backupSignIn}
                   icon={status.connected ? "close" : "account-check"}
                   variant={status.connected ? "secondary" : "primary"}
                   disabled={!status.configured || busy !== null}
                   loading={busy === "signin" || busy === "signout"}
                   onPress={() =>
                     status.connected
-                      ? runAction("signout", signOutFromGoogleDrive)
+                      ? runAction("signin", async () => {
+                          await switchGoogleDriveAccount();
+                        })
                       : runAction("signin", async () => {
                           await signInToGoogleDrive();
                         })
